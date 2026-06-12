@@ -18,6 +18,103 @@ Then log in to WandB to track your experiments if needed:
 wandb login YOUR_WANDB_API_KEY
 ```
 
+## ARC Setup
+
+This repo now has a working ARC setup for both the standard ELF workflow and
+the PNPL LibriBrain smoke test.
+
+Persistent shared env path used on ARC:
+
+```bash
+/data/engs-pnpl/glandau/BrainDiffusion/elf-env
+```
+
+Large caches and model / dataset downloads are kept on:
+
+```bash
+/data/engs-pnpl/glandau/elf-cache
+```
+
+Two env patterns are supported:
+
+1. Persistent shared env on `/data`:
+
+```bash
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate /data/engs-pnpl/glandau/BrainDiffusion/elf-env
+cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
+pip install -r requirements.txt
+```
+
+2. Node-local env rebuilt on `/tmp` from the same `requirements.txt`:
+
+```bash
+bash scripts/arc_setup_elf_env.sh
+```
+
+The node-local setup script keeps the executable env on `/tmp/$USER-elf-env`
+but sends Hugging Face, torch, pip, conda, and wandb caches to `/data`.
+
+### ARC smoke tests
+
+ELF-B unconditional generation smoke test:
+
+```bash
+srun --clusters=htc --partition=short --qos=priority \
+  --gres=gpu:1 --cpus-per-task=4 --mem=48G --time=01:00:00 \
+  bash /data/engs-pnpl/glandau/BrainDiffusion/ELF/scripts/arc_run_owt_b_demo.sh
+```
+
+PNPL LibriBrain MEG + sentence smoke test:
+
+```bash
+srun --clusters=arc --partition=interactive --cpus-per-task=4 --mem=32G --time=00:25:00 \
+  bash /data/engs-pnpl/glandau/BrainDiffusion/ELF/scripts/arc_run_libribrain_probe.sh
+```
+
+Tiny LibriBrain MEG-to-text overfit check:
+
+```bash
+LIBRIBRAIN_DATA_PATH=/path/to/libribrain \
+srun --clusters=htc --partition=short --qos=priority \
+  --gres=gpu:1 --cpus-per-task=4 --mem=48G --time=02:00:00 \
+  bash /data/engs-pnpl/glandau/BrainDiffusion/ELF/scripts/arc_run_meg_context_overfit.sh \
+  --books 1 --num-examples 8 --steps 2000
+```
+
+Expected successful probe output looks like:
+
+```text
+dataset_type=_FlexibleSemanticDataset
+num_examples=2101
+batch=0 meg_shape=(2, 306, 750) mask_shape=(2, 750) semantic_shape=(2, 1024)
+lengths=[750, 750]
+sample[0] ... 'A Study in Scarlet by Sir Arthur Conan Doyle'
+sample[1] ... 'This is a LibriVox recording'
+```
+
+### ARC training
+
+For training from the persistent env:
+
+```bash
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate /data/engs-pnpl/glandau/BrainDiffusion/elf-env
+cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
+```
+
+Single-GPU training:
+
+```bash
+bash scripts/launch.sh train src/configs/training_configs/train_owt_ELF-B.yml
+```
+
+Single-node multi-GPU training:
+
+```bash
+NGPU=8 bash scripts/launch.sh train src/configs/training_configs/train_owt_ELF-B.yml
+```
+
 ## Converted Checkpoints
 
 We provide PyTorch-converted versions of the official JAX checkpoints on HuggingFace:
