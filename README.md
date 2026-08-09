@@ -157,10 +157,17 @@ cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
 sbatch submit-jobs/sherlock_sva_meg2sem_minilm_direct_elf_dt8z7o55.sbatch
 ```
 
-The job defaults to an eval-only pass for W&B run `dt8z7o55`: it discovers the
-MEG2SEM `.ckpt` under `/data/engs-pnpl/glandau/MEG2SEM/MEG2SEM/wandb/dt8z7o55`,
-predicts MiniLM vectors from MEG, maps them through the saved MiniLM-to-ELF K64
-semantic projector, and generates/evaluates with the paired ELF checkpoint.
+The job defaults to an eval-only pass for W&B run `dt8z7o55` using the
+retrieval/nDCG-selected epoch 852 checkpoint:
+
+```text
+/data/engs-pnpl/glandau/MEG2SEM/MEG2SEM/wandb/dt8z7o55/checkpoints/sherlock_sva_minilm_books1to9_to_sherlock12_bs60_seed49-epoch=852-val_loss=26.45.ckpt
+```
+
+It predicts MiniLM vectors from MEG, maps them through the saved MiniLM-to-ELF
+K64 semantic projector, and generates/evaluates with the paired ELF checkpoint.
+To match the original val-loss monitor instead, override `MEG2SEM_CHECKPOINT`
+with the epoch 49 checkpoint.
 
 To fine-tune instead of only evaluating:
 
