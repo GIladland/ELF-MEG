@@ -157,8 +157,11 @@ cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
 sbatch submit-jobs/sherlock_sva_meg2sem_minilm_direct_elf_dt8z7o55.sbatch
 ```
 
-The job defaults to an eval-only pass for W&B run `dt8z7o55` using the
-retrieval/nDCG-selected epoch 852 checkpoint:
+The job defaults to an eval-only pass for W&B run `dt8z7o55` using
+`MEG2SEM_CHECKPOINT_SELECTION=priority`. That selector reads the W&B history
+and ranks available checkpoints by `val_nDCG_epoch` descending, then
+`val_cosine_mean_epoch` descending, then `val_procrustes_epoch` ascending, then
+`val_loss` ascending. For the current `dt8z7o55` run this selects epoch 852:
 
 ```text
 /data/engs-pnpl/glandau/MEG2SEM/MEG2SEM/wandb/dt8z7o55/checkpoints/sherlock_sva_minilm_books1to9_to_sherlock12_bs60_seed49-epoch=852-val_loss=26.45.ckpt
@@ -166,8 +169,19 @@ retrieval/nDCG-selected epoch 852 checkpoint:
 
 It predicts MiniLM vectors from MEG, maps them through the saved MiniLM-to-ELF
 K64 semantic projector, and generates/evaluates with the paired ELF checkpoint.
-To match the original val-loss monitor instead, override `MEG2SEM_CHECKPOINT`
-with the epoch 49 checkpoint.
+To inspect or change the selector:
+
+```bash
+python scripts/select_meg2sem_handoff_checkpoint.py \
+  --wandb-run pnpl/b2s2t/dt8z7o55 \
+  --checkpoint-dir /data/engs-pnpl/glandau/MEG2SEM/MEG2SEM/wandb/dt8z7o55/checkpoints \
+  --strategy priority
+```
+
+Use `--strategy ndcg_dominant` for an 80/10/7/3 nDCG/cosine/procrustes/loss
+rank-percentile blend, `--strategy balanced` for 65/20/10/5, or
+`--strategy loss` to match the original val-loss monitor. An explicit
+`MEG2SEM_CHECKPOINT=/path/to/file.ckpt` still overrides the selector.
 
 To fine-tune instead of only evaluating:
 

@@ -27,7 +27,9 @@ MEG2SEM_RUN_ID=${MEG2SEM_RUN_ID:-dt8z7o55}
 MEG2SEM_ROOT=${MEG2SEM_ROOT:-/data/engs-pnpl/glandau/MEG2SEM/MEG2SEM}
 MEG2SEM_CHECKPOINT_DIR=${MEG2SEM_CHECKPOINT_DIR:-$MEG2SEM_ROOT/wandb/$MEG2SEM_RUN_ID/checkpoints}
 MEG2SEM_RECOMMENDED_CHECKPOINT=${MEG2SEM_RECOMMENDED_CHECKPOINT:-$MEG2SEM_CHECKPOINT_DIR/sherlock_sva_minilm_books1to9_to_sherlock12_bs60_seed49-epoch=852-val_loss=26.45.ckpt}
-MEG2SEM_CHECKPOINT=${MEG2SEM_CHECKPOINT:-$MEG2SEM_RECOMMENDED_CHECKPOINT}
+MEG2SEM_SELECTION_WANDB_RUN=${MEG2SEM_SELECTION_WANDB_RUN:-pnpl/b2s2t/$MEG2SEM_RUN_ID}
+MEG2SEM_CHECKPOINT_SELECTION=${MEG2SEM_CHECKPOINT_SELECTION:-priority}
+MEG2SEM_CHECKPOINT=${MEG2SEM_CHECKPOINT:-}
 
 EVAL_ONLY=${EVAL_ONLY:-1}
 TRAIN_MEG2SEM=${TRAIN_MEG2SEM:-0}
@@ -88,18 +90,6 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 mkdir -p "$OUTPUT_DIR" "$WANDB_DIR" "$WANDB_DATA_DIR" "$WANDB_CACHE_DIR" "$TMPDIR"
 cd "$PROJECT_ROOT"
 
-if [[ -z "$MEG2SEM_CHECKPOINT" ]]; then
-  if [[ ! -d "$MEG2SEM_CHECKPOINT_DIR" ]]; then
-    echo "MEG2SEM_CHECKPOINT_DIR does not exist: $MEG2SEM_CHECKPOINT_DIR" >&2
-    exit 2
-  fi
-  MEG2SEM_CHECKPOINT=$(find "$MEG2SEM_CHECKPOINT_DIR" -maxdepth 1 -type f -name '*.ckpt' -print | sort -V | tail -n 1)
-fi
-if [[ -z "$MEG2SEM_CHECKPOINT" || ! -f "$MEG2SEM_CHECKPOINT" ]]; then
-  echo "Could not resolve MEG2SEM_CHECKPOINT. Set MEG2SEM_CHECKPOINT explicitly." >&2
-  exit 2
-fi
-
 ENV_STAMP_PATH="$TMP_ENV_ROOT/.elf_env_stamp"
 if [[ "$SKIP_ARC_SETUP" == "1" && -d "$TMP_ENV_ROOT/bin" && -f "$ENV_STAMP_PATH" && "$(cat "$ENV_STAMP_PATH")" == "$ENV_STAMP" ]]; then
   echo "Skipping ARC env setup; reusing TMP_ENV_ROOT=$TMP_ENV_ROOT ENV_STAMP=$ENV_STAMP"
@@ -110,9 +100,46 @@ else
 fi
 conda activate "$TMP_ENV_ROOT"
 
+if [[ -z "$MEG2SEM_CHECKPOINT" ]]; then
+  if [[ ! -d "$MEG2SEM_CHECKPOINT_DIR" ]]; then
+    echo "MEG2SEM_CHECKPOINT_DIR does not exist: $MEG2SEM_CHECKPOINT_DIR" >&2
+    exit 2
+  fi
+  case "$MEG2SEM_CHECKPOINT_SELECTION" in
+    priority|ndcg_dominant|balanced|loss)
+      echo "Selecting MEG2SEM checkpoint with strategy=$MEG2SEM_CHECKPOINT_SELECTION from $MEG2SEM_SELECTION_WANDB_RUN"
+      if selected_checkpoint=$(WANDB_SILENT=true python scripts/select_meg2sem_handoff_checkpoint.py \
+        --wandb-run "$MEG2SEM_SELECTION_WANDB_RUN" \
+        --checkpoint-dir "$MEG2SEM_CHECKPOINT_DIR" \
+        --strategy "$MEG2SEM_CHECKPOINT_SELECTION" \
+        --output path | tail -n 1); then
+        MEG2SEM_CHECKPOINT="$selected_checkpoint"
+      else
+        echo "W&B checkpoint selection failed; falling back to MEG2SEM_RECOMMENDED_CHECKPOINT=$MEG2SEM_RECOMMENDED_CHECKPOINT" >&2
+        MEG2SEM_CHECKPOINT="$MEG2SEM_RECOMMENDED_CHECKPOINT"
+      fi
+      ;;
+    pinned)
+      MEG2SEM_CHECKPOINT="$MEG2SEM_RECOMMENDED_CHECKPOINT"
+      ;;
+    latest)
+      MEG2SEM_CHECKPOINT=$(find "$MEG2SEM_CHECKPOINT_DIR" -maxdepth 1 -type f -name '*.ckpt' -print | sort -V | tail -n 1)
+      ;;
+    *)
+      echo "Unknown MEG2SEM_CHECKPOINT_SELECTION=$MEG2SEM_CHECKPOINT_SELECTION" >&2
+      exit 2
+      ;;
+  esac
+fi
+if [[ -z "$MEG2SEM_CHECKPOINT" || ! -f "$MEG2SEM_CHECKPOINT" ]]; then
+  echo "Could not resolve MEG2SEM_CHECKPOINT. Set MEG2SEM_CHECKPOINT explicitly." >&2
+  exit 2
+fi
+
 echo "Running MEG2SEM MiniLM -> semantic projector -> ELF"
 echo "TRAIN_NPZ=$TRAIN_NPZ"
 echo "MEG2SEM_CHECKPOINT=$MEG2SEM_CHECKPOINT"
+echo "MEG2SEM_CHECKPOINT_SELECTION=$MEG2SEM_CHECKPOINT_SELECTION"
 echo "ELF_CHECKPOINT=$ELF_CHECKPOINT"
 echo "SEMANTIC_PROJECTOR_CHECKPOINT=$SEMANTIC_PROJECTOR_CHECKPOINT"
 echo "OUTPUT_DIR=$OUTPUT_DIR"
