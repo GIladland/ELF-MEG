@@ -32,7 +32,6 @@ from scripts.meg_context_overfit import (
     eval_checkpoint_scores,
     evaluate_generation,
     evaluate_retrieval,
-    format_overlap_counts,
     freeze_for_toy_tuning,
     load_pretrained_model,
     tokenize_sentences,
@@ -162,6 +161,12 @@ def parse_args() -> argparse.Namespace:
 
 def _strings(array: np.ndarray) -> list[str]:
     return [str(x.decode("utf-8") if isinstance(x, bytes) else x) for x in array.tolist()]
+
+
+def format_overlap_counts(counts: dict[str, int] | None) -> str:
+    if not counts:
+        return ""
+    return ", ".join(f"{token}x{count}" if count > 1 else token for token, count in counts.items())
 
 
 def make_batches(num_examples: int, batch_size: int, generator: torch.Generator) -> list[torch.Tensor]:
