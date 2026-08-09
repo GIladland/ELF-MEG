@@ -840,6 +840,38 @@ def build_batches(
     return batches
 
 
+def optimizer_grad_metrics(optimizer: torch.optim.Optimizer) -> dict[str, float]:
+    metrics: dict[str, float] = {}
+    global_sq = 0.0
+    global_max = 0.0
+    global_tensors = 0
+
+    for group_idx, group in enumerate(optimizer.param_groups):
+        group_name = str(group.get("name", f"group{group_idx}")).replace("/", "_")
+        group_sq = 0.0
+        group_max = 0.0
+        group_tensors = 0
+        for param in group["params"]:
+            grad = param.grad
+            if grad is None:
+                continue
+            grad = grad.detach().float()
+            group_sq += float(torch.sum(grad * grad).cpu())
+            group_max = max(group_max, float(grad.abs().max().cpu()))
+            group_tensors += 1
+        metrics[f"grad_{group_name}_l2"] = group_sq ** 0.5
+        metrics[f"grad_{group_name}_max_abs"] = group_max
+        metrics[f"grad_{group_name}_tensor_count"] = float(group_tensors)
+        global_sq += group_sq
+        global_max = max(global_max, group_max)
+        global_tensors += group_tensors
+
+    metrics["grad_global_l2"] = global_sq ** 0.5
+    metrics["grad_global_max_abs"] = global_max
+    metrics["grad_global_tensor_count"] = float(global_tensors)
+    return metrics
+
+
 def train_step(
     *,
     model: nn.Module,
@@ -1016,13 +1048,16 @@ def train_step(
         scaled_decoder_loss = config.decoder_loss_weight * decoder_loss
     scaled_decoder_loss.backward()
 
+    grad_metrics = optimizer_grad_metrics(optimizer)
     optimizer.step()
     loss_value = config.denoiser_loss_weight * denoiser_loss_value + float(scaled_decoder_loss.detach().cpu())
-    return {
+    metrics = {
         "loss": loss_value,
         "denoiser_loss": denoiser_loss_value,
         "decoder_loss": float(decoder_loss.detach().cpu()),
     }
+    metrics.update(grad_metrics)
+    return metrics
 
 
 @torch.no_grad()

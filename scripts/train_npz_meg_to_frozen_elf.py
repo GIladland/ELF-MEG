@@ -25,6 +25,7 @@ import torch.nn.functional as F
 from transformers import AutoTokenizer
 
 from configs.config import SamplingConfig
+from modules.meg2sem_bridge import MEG2SEMToELFContextAdapter, load_meg2sem_model
 from modules.meg_adapter import MEGContextAdapter
 from modules.t5_encoder import get_encoder
 from scripts.meg_context_overfit import (
@@ -37,6 +38,7 @@ from scripts.meg_context_overfit import (
     evaluate_retrieval,
     freeze_for_toy_tuning,
     load_pretrained_model,
+    optimizer_grad_metrics,
     save_best_results,
     save_eval_checkpoint,
     save_results,
@@ -76,8 +78,63 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--val-npz", default="")
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--checkpoint_path", required=True)
+    parser.add_argument(
+        "--elf-checkpoint-path",
+        default="",
+        help="Explicit ELF checkpoint path. Defaults to --checkpoint_path for backwards compatibility.",
+    )
+    parser.add_argument(
+        "--semantic-projector-checkpoint",
+        default="",
+        help=(
+            "Checkpoint containing adapter_state_dict for SemanticVectorContextProjector. "
+            "Defaults to --checkpoint_path when a semantic teacher/projector is needed."
+        ),
+    )
     parser.add_argument("--model", default="ELF-B")
     parser.add_argument("--encoder_model_name", default="t5-small")
+    parser.add_argument(
+        "--adapter-kind",
+        choices=["meg_context", "meg2sem_projector"],
+        default="meg_context",
+        help=(
+            "meg_context trains ELF's native MEGContextAdapter. meg2sem_projector routes "
+            "MEG through a trained MEG2SEM checkpoint, then through a MiniLM->ELF projector."
+        ),
+    )
+    parser.add_argument(
+        "--meg2sem-checkpoint",
+        default="",
+        help="MEG2SEM checkpoint path used by --adapter-kind meg2sem_projector.",
+    )
+    parser.add_argument(
+        "--meg2sem-output-normalization",
+        choices=["auto", "never", "always"],
+        default="auto",
+        help="Normalize predicted semantic vectors before the ELF projector. auto follows the MEG2SEM checkpoint.",
+    )
+    parser.add_argument(
+        "--train-meg2sem",
+        action="store_true",
+        help="Allow gradients into the loaded MEG2SEM model in meg2sem_projector mode.",
+    )
+    parser.add_argument(
+        "--train-semantic-projector",
+        action="store_true",
+        help="Allow gradients into the MiniLM->ELF semantic projector in meg2sem_projector mode.",
+    )
+    parser.add_argument(
+        "--meg2sem-lr",
+        type=float,
+        default=None,
+        help="Learning rate for loaded MEG2SEM params. Defaults to --lr.",
+    )
+    parser.add_argument(
+        "--semantic-projector-lr",
+        type=float,
+        default=None,
+        help="Learning rate for loaded semantic projector params. Defaults to --lr.",
+    )
     parser.add_argument("--meg-key", default="meg")
     parser.add_argument("--meg-lengths-key", default="meg_lengths")
     parser.add_argument("--meg-mask-key", default="meg_time_mask")
@@ -112,6 +169,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--steps", type=int, default=0)
     parser.add_argument("--epochs", type=float, default=20.0)
+    parser.add_argument("--eval-only", action="store_true", help="Run retrieval/generation once without training.")
+    parser.add_argument(
+        "--interface-monitor-every",
+        type=int,
+        default=10,
+        help="Log MEG2SEM semantic/projector interface metrics every N train steps. <=0 disables.",
+    )
+    parser.add_argument(
+        "--interface-monitor-batch-size",
+        type=int,
+        default=16,
+        help="Max examples from the current batch or eval slice used for interface diagnostics.",
+    )
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--weight_decay", type=float, default=1e-2)
     parser.add_argument("--eval_every", type=int, default=500)
@@ -427,6 +497,7 @@ def maybe_init_wandb(args: argparse.Namespace, config, *, train_n: int, eval_n: 
     wandb.define_metric("retrieval/*", step_metric="retrieval/epoch")
     wandb.define_metric("generation_t5_retrieval/*", step_metric="eval/epoch")
     wandb.define_metric("generation_quality/*", step_metric="eval/epoch")
+    wandb.define_metric("meg2sem_interface/*", step_metric="eval/epoch")
     return run
 
 
@@ -472,6 +543,174 @@ def load_adapter_initialization(adapter: MEGContextAdapter, checkpoint_path: str
     log_for_0(f"Initialized MEG adapter from {checkpoint_path}")
 
 
+def set_module_trainable(module: torch.nn.Module, trainable: bool) -> None:
+    for param in module.parameters():
+        param.requires_grad_(trainable)
+
+
+def semantic_projector_checkpoint_path(args: argparse.Namespace) -> str:
+    return args.semantic_projector_checkpoint or args.checkpoint_path
+
+
+def build_meg2sem_projector_adapter(
+    *,
+    args: argparse.Namespace,
+    semantic_input_dim: int,
+    context_dim: int,
+    device: torch.device,
+) -> tuple[MEG2SEMToELFContextAdapter, dict[str, object]]:
+    if not args.meg2sem_checkpoint:
+        raise ValueError("--meg2sem-checkpoint is required with --adapter-kind meg2sem_projector.")
+
+    meg2sem, load_info = load_meg2sem_model(
+        args.meg2sem_checkpoint,
+        output_normalization=args.meg2sem_output_normalization,
+        device=device,
+    )
+    if int(load_info.embedding_dim) != int(semantic_input_dim):
+        raise ValueError(
+            f"MEG2SEM checkpoint predicts {load_info.embedding_dim}-d semantic vectors, "
+            f"but the training NPZ uses {semantic_input_dim}-d vectors. "
+            "Use a matching MiniLM semantic-projector checkpoint/NPZ pair."
+        )
+
+    projector_checkpoint = semantic_projector_checkpoint_path(args)
+    semantic_projector = load_teacher_projector(
+        checkpoint_path=projector_checkpoint,
+        input_dim=int(load_info.embedding_dim),
+        context_dim=context_dim,
+        context_length=args.context_length,
+        hidden_dim=args.semantic_hidden_dim,
+        device=device,
+    )
+
+    set_module_trainable(meg2sem, args.train_meg2sem)
+    set_module_trainable(semantic_projector, args.train_semantic_projector)
+    adapter = MEG2SEMToELFContextAdapter(
+        meg2sem=meg2sem,
+        semantic_projector=semantic_projector,
+        normalize_semantic_output=bool(load_info.normalize_output),
+    ).to(device)
+
+    summary = {
+        "adapter_kind": args.adapter_kind,
+        "meg2sem_checkpoint": args.meg2sem_checkpoint,
+        "meg2sem_checkpoint_format": load_info.checkpoint_format,
+        "meg2sem_input_dim": load_info.input_dim,
+        "meg2sem_embedding_dim": load_info.embedding_dim,
+        "meg2sem_n_subjects": load_info.n_subjects,
+        "meg2sem_normalize_output": load_info.normalize_output,
+        "meg2sem_missing_keys": load_info.missing_keys,
+        "meg2sem_unexpected_keys": load_info.unexpected_keys,
+        "semantic_projector_checkpoint": projector_checkpoint,
+        "train_meg2sem": bool(args.train_meg2sem),
+        "train_semantic_projector": bool(args.train_semantic_projector),
+    }
+    return adapter, summary
+
+
+@torch.no_grad()
+def evaluate_meg2sem_interface(
+    *,
+    adapter: torch.nn.Module,
+    meg: torch.Tensor,
+    meg_lengths: torch.Tensor,
+    semantic_vectors: torch.Tensor,
+    subject_ids: torch.Tensor,
+    device: torch.device,
+    max_examples: int,
+) -> dict[str, float]:
+    if not hasattr(adapter, "meg2sem") or not hasattr(adapter, "semantic_projector"):
+        return {}
+
+    limit = int(max_examples)
+    if limit > 0:
+        limit = min(limit, int(meg.shape[0]))
+        meg = meg[:limit]
+        meg_lengths = meg_lengths[:limit]
+        semantic_vectors = semantic_vectors[:limit]
+        subject_ids = subject_ids[:limit]
+
+    was_training = adapter.training
+    try:
+        adapter.eval()
+        with torch.no_grad():
+            meg = meg.to(device=device, dtype=torch.float32)
+            meg_lengths = meg_lengths.to(device=device, dtype=torch.long)
+            subject_ids = subject_ids.to(device=device, dtype=torch.long)
+            target_semantic = semantic_vectors.to(device=device, dtype=torch.float32)
+
+            predicted_semantic = adapter.meg2sem(
+                meg,
+                meg_lengths=meg_lengths,
+                subjects=subject_ids,
+            )
+            normalize = bool(getattr(adapter, "normalize_semantic_output", False))
+            predicted_projector_input = (
+                F.normalize(predicted_semantic, p=2, dim=-1)
+                if normalize
+                else predicted_semantic
+            )
+            target_projector_input = (
+                F.normalize(target_semantic, p=2, dim=-1)
+                if normalize
+                else target_semantic
+            )
+
+            semantic_cosine = F.cosine_similarity(
+                predicted_projector_input.float(),
+                target_projector_input.float(),
+                dim=-1,
+            )
+            pred_norm = predicted_semantic.float().norm(dim=-1)
+            target_norm = target_semantic.float().norm(dim=-1)
+            pred_std = predicted_semantic.float().std(dim=0, unbiased=False).mean()
+            target_std = target_semantic.float().std(dim=0, unbiased=False).mean()
+
+            pred_normed = F.normalize(predicted_projector_input.float(), p=2, dim=-1)
+            target_normed = F.normalize(target_projector_input.float(), p=2, dim=-1)
+            scores = pred_normed @ target_normed.T
+            sorted_indices = torch.argsort(scores, dim=1, descending=True)
+            labels = torch.arange(scores.shape[0], dtype=torch.long, device=device)
+            ranks = (sorted_indices == labels[:, None]).nonzero()[:, 1] + 1
+
+            predicted_context, _ = adapter.semantic_projector(predicted_projector_input)
+            target_context, _ = adapter.semantic_projector(target_projector_input)
+            context_cosine = F.cosine_similarity(
+                predicted_context.float().reshape(predicted_context.shape[0], -1),
+                target_context.float().reshape(target_context.shape[0], -1),
+                dim=-1,
+            )
+    finally:
+        if was_training:
+            adapter.train()
+
+    return {
+        "interface_semantic_cosine": float(semantic_cosine.mean().cpu()),
+        "interface_semantic_cosine_std": float(semantic_cosine.std(unbiased=False).cpu()),
+        "interface_semantic_mse": float(F.mse_loss(predicted_projector_input.float(), target_projector_input.float()).cpu()),
+        "interface_semantic_top1": float((ranks == 1).float().mean().cpu()),
+        "interface_semantic_top5": float((ranks <= min(5, scores.shape[1])).float().mean().cpu()),
+        "interface_semantic_mean_rank": float(ranks.float().mean().cpu()),
+        "interface_pred_norm_mean": float(pred_norm.mean().cpu()),
+        "interface_target_norm_mean": float(target_norm.mean().cpu()),
+        "interface_pred_target_norm_ratio": float((pred_norm.mean() / target_norm.mean().clamp_min(1e-8)).cpu()),
+        "interface_pred_dim_std_mean": float(pred_std.cpu()),
+        "interface_target_dim_std_mean": float(target_std.cpu()),
+        "interface_context_mse": float(F.mse_loss(predicted_context.float(), target_context.float()).cpu()),
+        "interface_context_cosine": float(context_cosine.mean().cpu()),
+    }
+
+
+def add_numeric_metrics(payload: dict[str, object], metrics: dict, *, prefix: str, skip: set[str] | None = None) -> None:
+    skip = skip or set()
+    for key, value in metrics.items():
+        if key in skip:
+            continue
+        if isinstance(value, (int, float)):
+            payload[f"{prefix}/{key}"] = float(value)
+
+
 def teacher_context_metrics(predicted: torch.Tensor, target: torch.Tensor) -> dict[str, float]:
     pred_flat = predicted.detach().float().reshape(predicted.shape[0], -1)
     target_flat = target.detach().float().reshape(target.shape[0], -1)
@@ -505,6 +744,7 @@ def teacher_train_step(
     context_loss = F.mse_loss(predicted.float(), target_context.float())
     loss = loss_weight * context_loss
     loss.backward()
+    grad_metrics = optimizer_grad_metrics(optimizer)
     optimizer.step()
 
     metrics = teacher_context_metrics(predicted, target_context)
@@ -513,6 +753,7 @@ def teacher_train_step(
         "denoiser_loss": 0.0,
         "decoder_loss": 0.0,
     })
+    metrics.update(grad_metrics)
     return metrics
 
 
@@ -592,8 +833,10 @@ def main() -> None:
     for param in encoder.parameters():
         param.requires_grad_(False)
 
+    elf_args = argparse.Namespace(**vars(args))
+    elf_args.checkpoint_path = args.elf_checkpoint_path or args.checkpoint_path
     model = load_pretrained_model(
-        args=args,
+        args=elf_args,
         config=config,
         encoder_dim=encoder_config.d_model,
         vocab_size=len(tokenizer),
@@ -616,31 +859,45 @@ def main() -> None:
     else:
         log_for_0(f"Frozen ELF parameters: {sum(p.numel() for p in model.parameters()):,}")
 
-    adapter = MEGContextAdapter(
-        in_channels=int(train_examples.meg.shape[1]),
-        context_dim=encoder_config.d_model,
-        context_length=args.context_length,
-        n_subjects=max(1, len(subject_to_id)),
-        merger_channels=args.merger_channels,
-        conv_channels=args.conv_channels,
-        num_conv_layers=args.num_conv_layers,
-        kernel_size=args.kernel_size,
-        dilation_growth=args.dilation_growth,
-        dilation_period=args.dilation_period,
-        dropout=args.adapter_dropout,
-        attention_heads=args.attention_heads,
-        use_subject_layers=not args.disable_subject_layers,
-        use_temporal_attention=not args.disable_temporal_attention,
-        norm_type=args.norm_type,
-    ).to(device)
-    if args.init_adapter_checkpoint:
-        load_adapter_initialization(adapter, args.init_adapter_checkpoint, device)
-    log_for_0(f"Trainable MEG adapter parameters: {sum(p.numel() for p in adapter.parameters() if p.requires_grad):,}")
+    adapter_summary: dict[str, object] = {"adapter_kind": args.adapter_kind}
+    if args.adapter_kind == "meg_context":
+        adapter = MEGContextAdapter(
+            in_channels=int(train_examples.meg.shape[1]),
+            context_dim=encoder_config.d_model,
+            context_length=args.context_length,
+            n_subjects=max(1, len(subject_to_id)),
+            merger_channels=args.merger_channels,
+            conv_channels=args.conv_channels,
+            num_conv_layers=args.num_conv_layers,
+            kernel_size=args.kernel_size,
+            dilation_growth=args.dilation_growth,
+            dilation_period=args.dilation_period,
+            dropout=args.adapter_dropout,
+            attention_heads=args.attention_heads,
+            use_subject_layers=not args.disable_subject_layers,
+            use_temporal_attention=not args.disable_temporal_attention,
+            norm_type=args.norm_type,
+        ).to(device)
+        if args.init_adapter_checkpoint:
+            load_adapter_initialization(adapter, args.init_adapter_checkpoint, device)
+    elif args.adapter_kind == "meg2sem_projector":
+        if args.init_adapter_checkpoint:
+            raise ValueError("--init-adapter-checkpoint is only supported with --adapter-kind meg_context.")
+        adapter, adapter_summary = build_meg2sem_projector_adapter(
+            args=args,
+            semantic_input_dim=int(train_examples.semantic_vectors.shape[-1]),
+            context_dim=encoder_config.d_model,
+            device=device,
+        )
+        log_for_0(f"MEG2SEM adapter summary: {json.dumps(adapter_summary, sort_keys=True)}")
+    else:
+        raise ValueError(f"Unsupported adapter_kind={args.adapter_kind!r}")
+    log_for_0(f"Trainable adapter parameters: {sum(p.numel() for p in adapter.parameters() if p.requires_grad):,}")
 
     teacher_adapter = None
     if args.teacher_context_loss_weight > 0.0:
         teacher_adapter = load_teacher_projector(
-            checkpoint_path=args.checkpoint_path,
+            checkpoint_path=semantic_projector_checkpoint_path(args),
             input_dim=int(train_examples.semantic_vectors.shape[-1]),
             context_dim=encoder_config.d_model,
             context_length=args.context_length,
@@ -648,7 +905,7 @@ def main() -> None:
             device=device,
         )
         log_for_0(
-            f"Loaded frozen semantic teacher projector from {args.checkpoint_path}; "
+            f"Loaded frozen semantic teacher projector from {semantic_projector_checkpoint_path(args)}; "
             f"teacher_context_loss_weight={args.teacher_context_loss_weight}"
         )
 
@@ -682,24 +939,53 @@ def main() -> None:
     eval_target_ids = eval_input_ids.detach().cpu()
     eval_target_mask = eval_attention_mask.detach().cpu().to(torch.float32)
 
-    param_groups = [
-        {
-            "params": [param for param in adapter.parameters() if param.requires_grad],
-            "lr": args.lr,
-            "name": "meg_adapter",
-        }
-    ]
-    if args.unfreeze_elf:
-        elf_lr = args.lr if args.elf_lr is None else args.elf_lr
+    param_groups = []
+
+    def add_param_group(params: list[torch.nn.Parameter], *, lr: float, name: str) -> None:
+        if not params:
+            return
         param_groups.append(
             {
-                "params": [param for param in model.parameters() if param.requires_grad],
-                "lr": elf_lr,
-                "name": "elf",
+                "params": params,
+                "lr": lr,
+                "name": name,
             }
         )
-        log_for_0(f"Optimizer param groups: adapter_lr={args.lr:g} elf_lr={elf_lr:g}")
-    optimizer = torch.optim.AdamW(param_groups, weight_decay=args.weight_decay)
+
+    if args.adapter_kind == "meg2sem_projector":
+        meg2sem_lr = args.lr if args.meg2sem_lr is None else args.meg2sem_lr
+        projector_lr = args.lr if args.semantic_projector_lr is None else args.semantic_projector_lr
+        add_param_group(
+            [param for param in adapter.meg2sem.parameters() if param.requires_grad],
+            lr=meg2sem_lr,
+            name="meg2sem",
+        )
+        add_param_group(
+            [param for param in adapter.semantic_projector.parameters() if param.requires_grad],
+            lr=projector_lr,
+            name="semantic_projector",
+        )
+        log_for_0(f"Adapter optimizer groups: meg2sem_lr={meg2sem_lr:g} semantic_projector_lr={projector_lr:g}")
+    else:
+        add_param_group(
+            [param for param in adapter.parameters() if param.requires_grad],
+            lr=args.lr,
+            name="meg_adapter",
+        )
+    if args.unfreeze_elf:
+        elf_lr = args.lr if args.elf_lr is None else args.elf_lr
+        add_param_group(
+            [param for param in model.parameters() if param.requires_grad],
+            lr=elf_lr,
+            name="elf",
+        )
+        log_for_0(f"ELF optimizer group: elf_lr={elf_lr:g}")
+    if not param_groups and not args.eval_only:
+        raise ValueError(
+            "No trainable parameters. Use --eval-only for frozen evaluation, or enable "
+            "--train-meg2sem/--train-semantic-projector/--unfreeze-elf."
+        )
+    optimizer = torch.optim.AdamW(param_groups, weight_decay=args.weight_decay) if param_groups else None
     sampling_config = SamplingConfig(
         sampling_method="ode",
         num_sampling_steps=[args.num_sampling_steps],
@@ -721,6 +1007,9 @@ def main() -> None:
 
     config_payload = {
         **vars(args),
+        "resolved_elf_checkpoint_path": elf_args.checkpoint_path,
+        "resolved_semantic_projector_checkpoint": semantic_projector_checkpoint_path(args),
+        "adapter_summary": adapter_summary,
         "num_train_examples": train_n,
         "num_eval_examples_available": eval_available,
         "eval_split": eval_split,
@@ -736,6 +1025,155 @@ def main() -> None:
         json.dump(config_payload, handle, indent=2)
 
     run = maybe_init_wandb(args, config, train_n=train_n, eval_n=eval_available, subject_count=len(subject_to_id))
+    if args.eval_only:
+        epoch = 0.0
+        if retrieval_count > 0:
+            retrieval_metrics = evaluate_retrieval(
+                model=model,
+                adapter=adapter,
+                meg=eval_examples.meg.index_select(0, retrieval_indices),
+                meg_lengths=eval_examples.meg_lengths.index_select(0, retrieval_indices),
+                semantic_vectors=eval_examples.semantic_vectors.index_select(0, retrieval_indices),
+                subject_ids=eval_subject_ids.index_select(0, retrieval_indices),
+                target_latents=eval_target_latents.index_select(0, retrieval_indices),
+                target_ids=eval_target_ids.index_select(0, retrieval_indices),
+                target_mask=eval_target_mask.index_select(0, retrieval_indices),
+                target_sentences=select_strings(eval_examples.sentences, retrieval_indices),
+                config=config,
+                device=device,
+                condition_source="meg",
+                retrieval_batch_size=args.retrieval_batch_size,
+                retrieval_t=args.retrieval_t,
+            )
+            retrieval_metrics["step"] = 0
+            retrieval_metrics["epoch"] = epoch
+            retrieval_metrics["eval_num_examples"] = retrieval_count
+            with (output_dir / "retrieval_step_000000.json").open("w", encoding="utf-8") as handle:
+                json.dump(retrieval_metrics, handle, ensure_ascii=False, indent=2)
+            log_for_0(
+                f"eval-only retrieval combined_top1={retrieval_metrics['combined']['top1']:.3f} "
+                f"combined_top5={retrieval_metrics['combined']['top5']:.3f} "
+                f"mean_rank={retrieval_metrics['combined']['mean_rank']:.2f}"
+            )
+            if run is not None:
+                wandb.log(
+                    {
+                        "retrieval/combined_top1": retrieval_metrics["combined"]["top1"],
+                        "retrieval/combined_top5": retrieval_metrics["combined"]["top5"],
+                        "retrieval/combined_mean_rank": retrieval_metrics["combined"]["mean_rank"],
+                        "retrieval/denoiser_top1": retrieval_metrics["denoiser"]["top1"],
+                        "retrieval/decoder_top1": retrieval_metrics["decoder"]["top1"],
+                        "retrieval/epoch": epoch,
+                    },
+                    step=0,
+                )
+
+        eval_metrics = evaluate_generation(
+            model=model,
+            adapter=adapter,
+            meg=eval_examples.meg.index_select(0, eval_indices),
+            meg_lengths=eval_examples.meg_lengths.index_select(0, eval_indices),
+            semantic_vectors=eval_examples.semantic_vectors.index_select(0, eval_indices),
+            subject_ids=eval_subject_ids.index_select(0, eval_indices),
+            tokenizer=tokenizer,
+            encoder=encoder if args.generation_t5_retrieval else None,
+            target_sentences=select_strings(eval_examples.sentences, eval_indices),
+            target_latents=eval_target_latents.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
+            target_mask=eval_target_mask.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
+            target_length=eval_target_length,
+            context_length=args.context_length,
+            config=config,
+            sampling_config=sampling_config,
+            device=device,
+            generator=noise_generator,
+            condition_source="meg",
+        )
+        eval_metrics["step"] = 0
+        eval_metrics["epoch"] = epoch
+        eval_metrics["eval_num_examples"] = eval_count
+        eval_metrics["eval_split"] = eval_split
+        if teacher_adapter is not None:
+            eval_metrics["teacher_context"] = evaluate_teacher_context(
+                adapter=adapter,
+                teacher=teacher_adapter,
+                meg=eval_examples.meg.index_select(0, eval_indices),
+                meg_lengths=eval_examples.meg_lengths.index_select(0, eval_indices),
+                semantic_vectors=eval_examples.semantic_vectors.index_select(0, eval_indices),
+                subject_ids=eval_subject_ids.index_select(0, eval_indices),
+                device=device,
+            )
+        interface_metrics = evaluate_meg2sem_interface(
+            adapter=adapter,
+            meg=eval_examples.meg.index_select(0, eval_indices),
+            meg_lengths=eval_examples.meg_lengths.index_select(0, eval_indices),
+            semantic_vectors=eval_examples.semantic_vectors.index_select(0, eval_indices),
+            subject_ids=eval_subject_ids.index_select(0, eval_indices),
+            device=device,
+            max_examples=args.interface_monitor_batch_size,
+        )
+        if interface_metrics:
+            eval_metrics["meg2sem_interface"] = interface_metrics
+        eval_metrics["eval_checkpoint_scores"] = eval_checkpoint_scores(eval_metrics)
+        save_results(args.output_dir, 0, eval_metrics)
+        save_best_results(args.output_dir, eval_metrics)
+        quality = eval_metrics.get("generation_quality", {})
+        retrieval = eval_metrics.get("generation_t5_retrieval", {})
+        interface = eval_metrics.get("meg2sem_interface", {})
+        log_for_0(
+            f"eval-only exact={eval_metrics['exact_match']:.3f} "
+            f"words_overlap={quality.get('words_overlap', float('nan')):.3f} "
+            f"well_structured={quality.get('well_structured_sentence', float('nan')):.3f} "
+            f"gen_t5_top5={retrieval.get('top5')}"
+            + (
+                f" sem_cos={interface['interface_semantic_cosine']:.3f} "
+                f"ctx_cos={interface['interface_context_cosine']:.3f}"
+                if interface
+                else ""
+            )
+        )
+        for idx in range(min(5, len(eval_metrics["generated"]))):
+            log_for_0(
+                f"[{idx}] target={eval_metrics['targets'][idx]!r} "
+                f"generated={eval_metrics['generated'][idx]!r}"
+            )
+        if run is not None:
+            payload = {
+                "eval/exact_match": eval_metrics["exact_match"],
+                "eval/epoch": epoch,
+            }
+            payload.update(
+                {
+                    f"generation_quality/{key}": value
+                    for key, value in quality.items()
+                    if isinstance(value, (int, float))
+                }
+            )
+            if retrieval:
+                payload.update(
+                    {
+                        "generation_t5_retrieval/top1": retrieval["top1"],
+                        "generation_t5_retrieval/top5": retrieval["top5"],
+                        "generation_t5_retrieval/mean_rank": retrieval["mean_rank"],
+                        "generation_t5_retrieval/median_rank": retrieval["median_rank"],
+                    }
+                )
+            if "teacher_context" in eval_metrics:
+                payload.update({
+                    "teacher_context/mse": eval_metrics["teacher_context"]["teacher_context_mse"],
+                    "teacher_context/cosine": eval_metrics["teacher_context"]["teacher_context_cosine"],
+                })
+            if interface:
+                add_numeric_metrics(payload, interface, prefix="meg2sem_interface")
+            wandb.log(payload, step=0)
+            run.summary["best_exact_match"] = eval_metrics["exact_match"]
+            run.summary["best_structured_rank"] = eval_metrics["eval_checkpoint_scores"]["structured_rank"]
+            run.finish()
+        log_for_0("Finished eval-only pass.")
+        return
+
+    if optimizer is None:
+        raise ValueError("Training requires an optimizer, but no trainable parameters were found.")
+
     best_metrics = None
     best_eval_score = None
     saved_checkpoints: list[dict] = []
@@ -778,6 +1216,22 @@ def main() -> None:
                 train_timestep_steps=args.train_timestep_steps,
             )
 
+        run_interface_monitor = args.interface_monitor_every > 0 and (
+            step == 1 or step % args.interface_monitor_every == 0
+        )
+        if run_interface_monitor:
+            metrics.update(
+                evaluate_meg2sem_interface(
+                    adapter=adapter,
+                    meg=batch.meg,
+                    meg_lengths=batch.meg_lengths,
+                    semantic_vectors=batch.semantic_vectors,
+                    subject_ids=batch.subject_ids,
+                    device=device,
+                    max_examples=args.interface_monitor_batch_size,
+                )
+            )
+
         if step == 1 or step % 10 == 0:
             log_for_0(
                 f"step={step} epoch={epoch:.4f} loss={metrics['loss']:.6f} "
@@ -786,6 +1240,12 @@ def main() -> None:
                     f" teacher_mse={metrics['teacher_context_mse']:.6f} "
                     f"teacher_cos={metrics['teacher_context_cosine']:.3f}"
                     if "teacher_context_mse" in metrics
+                    else ""
+                )
+                + (
+                    f" sem_cos={metrics['interface_semantic_cosine']:.3f} "
+                    f"ctx_cos={metrics['interface_context_cosine']:.3f}"
+                    if "interface_semantic_cosine" in metrics
                     else ""
                 )
             )
@@ -803,6 +1263,12 @@ def main() -> None:
                     "train/teacher_context_mse": metrics["teacher_context_mse"],
                     "train/teacher_context_cosine": metrics["teacher_context_cosine"],
                 })
+            add_numeric_metrics(
+                payload,
+                metrics,
+                prefix="train",
+                skip={"loss", "denoiser_loss", "decoder_loss", "teacher_context_mse", "teacher_context_cosine"},
+            )
             wandb.log(payload, step=step)
 
         run_retrieval = args.retrieval_eval_every > 0 and (
@@ -888,6 +1354,17 @@ def main() -> None:
                 subject_ids=eval_subject_ids.index_select(0, eval_indices),
                 device=device,
             )
+        interface_metrics = evaluate_meg2sem_interface(
+            adapter=adapter,
+            meg=eval_examples.meg.index_select(0, eval_indices),
+            meg_lengths=eval_examples.meg_lengths.index_select(0, eval_indices),
+            semantic_vectors=eval_examples.semantic_vectors.index_select(0, eval_indices),
+            subject_ids=eval_subject_ids.index_select(0, eval_indices),
+            device=device,
+            max_examples=args.interface_monitor_batch_size,
+        )
+        if interface_metrics:
+            eval_metrics["meg2sem_interface"] = interface_metrics
         eval_metrics["eval_checkpoint_scores"] = eval_checkpoint_scores(eval_metrics)
         save_results(args.output_dir, step, eval_metrics)
         eval_index += 1
@@ -922,6 +1399,7 @@ def main() -> None:
 
         quality = eval_metrics.get("generation_quality", {})
         retrieval = eval_metrics.get("generation_t5_retrieval", {})
+        interface = eval_metrics.get("meg2sem_interface", {})
         log_for_0(
             f"eval step={step} exact={eval_metrics['exact_match']:.3f} "
             f"words_overlap={quality.get('words_overlap', float('nan')):.3f} "
@@ -931,6 +1409,12 @@ def main() -> None:
                 f" teacher_mse={eval_metrics['teacher_context']['teacher_context_mse']:.6f} "
                 f"teacher_cos={eval_metrics['teacher_context']['teacher_context_cosine']:.3f}"
                 if "teacher_context" in eval_metrics
+                else ""
+            )
+            + (
+                f" sem_cos={interface['interface_semantic_cosine']:.3f} "
+                f"ctx_cos={interface['interface_context_cosine']:.3f}"
+                if interface
                 else ""
             )
         )
@@ -965,6 +1449,8 @@ def main() -> None:
                     "teacher_context/mse": eval_metrics["teacher_context"]["teacher_context_mse"],
                     "teacher_context/cosine": eval_metrics["teacher_context"]["teacher_context_cosine"],
                 })
+            if interface:
+                add_numeric_metrics(payload, interface, prefix="meg2sem_interface")
             if not args.no_wandb_samples and args.wandb_sample_examples > 0:
                 sample_count = min(args.wandb_sample_examples, len(eval_metrics["generated"]))
                 overlap_per_sample = eval_metrics.get("word_overlap", {}).get("per_sample", [])

@@ -150,6 +150,35 @@ MiniLM semantic sidecars under `embeddings_ada` at:
 For direct MEG2SEM loading of those sidecars, use `embedding_type=ADA` with
 `embedding_dim=384` and point the semantic-vector root at that sidecar tree.
 
+Directly route a trained MEG2SEM MiniLM checkpoint into ELF:
+
+```bash
+cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
+sbatch submit-jobs/sherlock_sva_meg2sem_minilm_direct_elf_dt8z7o55.sbatch
+```
+
+The job defaults to an eval-only pass for W&B run `dt8z7o55`: it discovers the
+MEG2SEM `.ckpt` under `/data/engs-pnpl/glandau/MEG2SEM/MEG2SEM/wandb/dt8z7o55`,
+predicts MiniLM vectors from MEG, maps them through the saved MiniLM-to-ELF K64
+semantic projector, and generates/evaluates with the paired ELF checkpoint.
+
+To fine-tune instead of only evaluating:
+
+```bash
+EVAL_ONLY=0 TRAIN_MEG2SEM=1 UNFREEZE_ELF=1 \
+  sbatch submit-jobs/sherlock_sva_meg2sem_minilm_direct_elf_dt8z7o55.sbatch
+```
+
+For the full end-to-end run with close monitoring enabled:
+
+```bash
+sbatch submit-jobs/sherlock_sva_meg2sem_minilm_e2e_finetune_dt8z7o55.sbatch
+```
+
+That wrapper trains MEG2SEM, the MiniLM-to-ELF semantic projector, and ELF
+itself by default. It logs interface diagnostics every 5 steps, generation and
+retrieval every 50 steps, and keeps the top 3 eval checkpoints.
+
 ### ARC training
 
 For training on ARC, use a GPU allocation and let the launcher/setup script

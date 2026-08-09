@@ -56,6 +56,7 @@ class ConvSequence(nn.Module):
         batch_norm: bool = False,
         skip: bool = False,
         glu_every: int = 0,
+        glu_context: int = 0,
         activation: Optional[type[nn.Module]] = None,
     ) -> None:
         super().__init__()
@@ -89,7 +90,7 @@ class ConvSequence(nn.Module):
             if glu_every and (idx + 1) % glu_every == 0:
                 self.glus.append(
                     nn.Sequential(
-                        nn.Conv1d(chout, 2 * chout, 1),
+                        nn.Conv1d(chout, 2 * chout, 1 + 2 * glu_context, padding=glu_context),
                         nn.GLU(dim=1),
                     )
                 )
