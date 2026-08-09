@@ -437,10 +437,12 @@ def main() -> None:
         json.dump(output, f, ensure_ascii=False, indent=2)
     for result in results:
         logger.info(
-            "%s exact=%.4f well_structured=%.4f",
+            "%s exact=%.4f well_structured=%.4f words_overlap=%.4f content_words_overlap=%.4f",
             result["name"],
             result["exact_match"],
             result["generation_quality"]["well_structured_sentence"],
+            result["generation_quality"].get("words_overlap", float("nan")),
+            result["generation_quality"].get("content_words_overlap", float("nan")),
         )
         for idx in range(min(8, len(result["generated"]))):
             logger.info("[%s:%d] target=%r generated=%r", result["name"], idx, result["targets"][idx], result["generated"][idx])

@@ -31,6 +31,7 @@ from scripts.meg_context_overfit import (
     encode_text_batched,
     evaluate_generation,
     evaluate_retrieval,
+    format_overlap_counts,
     freeze_for_toy_tuning,
     load_pretrained_model,
     tokenize_sentences,
@@ -626,11 +627,12 @@ def main() -> None:
                 )
         quality = eval_metrics.get("generation_quality", {})
         logger.info(
-            "eval step=%d exact=%.3f well_structured=%.3f words_overlap=%.3f gen_t5_top1=%s",
+            "eval step=%d exact=%.3f well_structured=%.3f words_overlap=%.3f content_words_overlap=%.3f gen_t5_top1=%s",
             step,
             eval_metrics["exact_match"],
             quality.get("well_structured_sentence", float("nan")),
             quality.get("words_overlap", float("nan")),
+            quality.get("content_words_overlap", float("nan")),
             retrieval.get("top1"),
         )
         if run is not None:
@@ -657,8 +659,21 @@ def main() -> None:
             if args.wandb_sample_examples > 0:
                 sample_count = min(args.wandb_sample_examples, len(eval_metrics["generated"]))
                 overlap_per_sample = eval_metrics.get("word_overlap", {}).get("per_sample", [])
+                content_overlap_per_sample = eval_metrics.get("word_overlap", {}).get("per_sample_content", [])
+                content_overlap_counts = eval_metrics.get("word_overlap", {}).get(
+                    "per_sample_content_overlap_counts",
+                    [],
+                )
                 payload["eval/samples"] = wandb.Table(
-                    columns=["index", "target", "generated", "exact", "words_overlap"],
+                    columns=[
+                        "index",
+                        "target",
+                        "generated",
+                        "exact",
+                        "words_overlap",
+                        "content_words_overlap",
+                        "content_overlap_words",
+                    ],
                     data=[
                         [
                             idx,
@@ -666,6 +681,16 @@ def main() -> None:
                             eval_metrics["generated"][idx],
                             int(eval_metrics["exact"][idx]),
                             float(overlap_per_sample[idx]) if idx < len(overlap_per_sample) else None,
+                            (
+                                float(content_overlap_per_sample[idx])
+                                if idx < len(content_overlap_per_sample)
+                                else None
+                            ),
+                            (
+                                format_overlap_counts(content_overlap_counts[idx])
+                                if idx < len(content_overlap_counts)
+                                else ""
+                            ),
                         ]
                         for idx in range(sample_count)
                     ],

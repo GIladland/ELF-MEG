@@ -101,6 +101,7 @@ def main() -> None:
             "epoch": eval_data.get("epoch"),
             "overall": summarize(all_vals),
             "logged_words_overlap": eval_data.get("generation_quality", {}).get("words_overlap"),
+            "logged_content_words_overlap": eval_data.get("generation_quality", {}).get("content_words_overlap"),
             "logged_t5_top1": eval_data.get("generation_t5_retrieval", {}).get("top1"),
             "groups": {name: summarize(vals) for name, vals in sorted(groups.items())},
         }

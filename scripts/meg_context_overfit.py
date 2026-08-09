@@ -350,10 +350,72 @@ def mean_pool_latents(latents: torch.Tensor, mask: torch.Tensor) -> torch.Tensor
 
 
 _WORD_RE = re.compile(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?")
+_QUALITY_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "but", "by", "for", "from",
+    "had", "has", "have", "he", "her", "him", "his", "i", "in", "is", "it",
+    "its", "me", "my", "no", "not", "of", "on", "or", "she", "so", "that",
+    "the", "their", "them", "there", "they", "this", "to", "was", "we",
+    "were", "what", "when", "which", "who", "with", "you",
+}
+_CONTENT_WORD_STOPWORDS = _QUALITY_STOPWORDS | {
+    "about", "after", "again", "against", "all", "am", "any", "because",
+    "been", "before", "being", "below", "between", "both", "can", "could",
+    "did", "do", "does", "doing", "down", "during", "each", "few", "further",
+    "having", "here", "hers", "herself", "himself", "how", "if", "into",
+    "itself", "just", "more", "most", "off", "once", "only", "other", "our",
+    "ours", "ourselves", "out", "over", "own", "same", "should", "some",
+    "quite", "really", "such", "sure", "than", "then", "these", "those",
+    "through", "too", "under", "until", "up", "us", "very", "where", "whom",
+    "whose", "why", "will", "would", "your", "yours", "yourself",
+    "yourselves", "well", "yes",
+}
 
 
 def _word_tokens(text: str) -> list[str]:
     return _WORD_RE.findall(text.lower())
+
+
+def _content_word_tokens(text: str) -> list[str]:
+    return [
+        token
+        for token in _word_tokens(text)
+        if token not in _CONTENT_WORD_STOPWORDS and any(char.isalpha() for char in token)
+    ]
+
+
+def _counted_overlap(
+    generated_tokens: Sequence[str],
+    target_tokens: Sequence[str],
+) -> tuple[float, float, float, float, dict[str, int]]:
+    if not generated_tokens or not target_tokens:
+        return 0.0, 0.0, 0.0, 0.0, {}
+
+    generated_counts = {}
+    for token in generated_tokens:
+        generated_counts[token] = generated_counts.get(token, 0) + 1
+    target_counts = {}
+    for token in target_tokens:
+        target_counts[token] = target_counts.get(token, 0) + 1
+
+    overlap_counts = {
+        token: min(count, target_counts.get(token, 0))
+        for token, count in generated_counts.items()
+        if target_counts.get(token, 0) > 0
+    }
+    overlap_count = sum(overlap_counts.values())
+    precision = overlap_count / max(1, len(generated_tokens))
+    recall = overlap_count / max(1, len(target_tokens))
+    f1 = 0.0 if precision + recall == 0.0 else (2.0 * precision * recall) / (precision + recall)
+    generated_set = set(generated_tokens)
+    target_set = set(target_tokens)
+    jaccard = len(generated_set & target_set) / max(1, len(generated_set | target_set))
+    return float(precision), float(recall), float(f1), float(jaccard), dict(sorted(overlap_counts.items()))
+
+
+def format_overlap_counts(counts: dict[str, int] | None) -> str:
+    if not counts:
+        return ""
+    return ", ".join(f"{token}x{count}" if count > 1 else token for token, count in counts.items())
 
 
 def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> dict:
@@ -361,45 +423,42 @@ def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> di
     recalls = []
     f1s = []
     jaccards = []
+    overlap_counts = []
+    content_precisions = []
+    content_recalls = []
+    content_f1s = []
+    content_jaccards = []
+    content_overlap_counts = []
 
     for generated_text, target_text in zip(generated, targets):
         generated_tokens = _word_tokens(generated_text)
         target_tokens = _word_tokens(target_text)
-        if not generated_tokens or not target_tokens:
-            precisions.append(0.0)
-            recalls.append(0.0)
-            f1s.append(0.0)
-            jaccards.append(0.0)
-            continue
+        precision, recall, f1, jaccard, counts = _counted_overlap(generated_tokens, target_tokens)
+        precisions.append(precision)
+        recalls.append(recall)
+        f1s.append(f1)
+        jaccards.append(jaccard)
+        overlap_counts.append(counts)
 
-        generated_counts = {}
-        for token in generated_tokens:
-            generated_counts[token] = generated_counts.get(token, 0) + 1
-        target_counts = {}
-        for token in target_tokens:
-            target_counts[token] = target_counts.get(token, 0) + 1
-
-        overlap_count = sum(
-            min(count, target_counts.get(token, 0))
-            for token, count in generated_counts.items()
+        content_precision, content_recall, content_f1, content_jaccard, content_counts = _counted_overlap(
+            _content_word_tokens(generated_text),
+            _content_word_tokens(target_text),
         )
-        precision = overlap_count / max(1, len(generated_tokens))
-        recall = overlap_count / max(1, len(target_tokens))
-        f1 = 0.0 if precision + recall == 0.0 else (2.0 * precision * recall) / (precision + recall)
-        generated_set = set(generated_tokens)
-        target_set = set(target_tokens)
-        jaccard = len(generated_set & target_set) / max(1, len(generated_set | target_set))
-
-        precisions.append(float(precision))
-        recalls.append(float(recall))
-        f1s.append(float(f1))
-        jaccards.append(float(jaccard))
+        content_precisions.append(content_precision)
+        content_recalls.append(content_recall)
+        content_f1s.append(content_f1)
+        content_jaccards.append(content_jaccard)
+        content_overlap_counts.append(content_counts)
 
     summary = {
         "words_overlap": float(np.mean(f1s)) if f1s else 0.0,
         "words_overlap_precision": float(np.mean(precisions)) if precisions else 0.0,
         "words_overlap_recall": float(np.mean(recalls)) if recalls else 0.0,
         "words_overlap_jaccard": float(np.mean(jaccards)) if jaccards else 0.0,
+        "content_words_overlap": float(np.mean(content_f1s)) if content_f1s else 0.0,
+        "content_words_overlap_precision": float(np.mean(content_precisions)) if content_precisions else 0.0,
+        "content_words_overlap_recall": float(np.mean(content_recalls)) if content_recalls else 0.0,
+        "content_words_overlap_jaccard": float(np.mean(content_jaccards)) if content_jaccards else 0.0,
     }
     return {
         "summary": summary,
@@ -407,17 +466,16 @@ def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> di
         "per_sample_precision": precisions,
         "per_sample_recall": recalls,
         "per_sample_jaccard": jaccards,
+        "per_sample_overlap_counts": overlap_counts,
+        "per_sample_content": content_f1s,
+        "per_sample_content_precision": content_precisions,
+        "per_sample_content_recall": content_recalls,
+        "per_sample_content_jaccard": content_jaccards,
+        "per_sample_content_overlap_counts": content_overlap_counts,
     }
 
 
 def generation_repetition_metrics(texts: Sequence[str]) -> dict[str, float]:
-    stopwords = {
-        "a", "an", "and", "are", "as", "at", "be", "but", "by", "for", "from",
-        "had", "has", "have", "he", "her", "him", "his", "i", "in", "is", "it",
-        "its", "me", "my", "no", "not", "of", "on", "or", "she", "so", "that",
-        "the", "their", "them", "there", "they", "this", "to", "was", "we",
-        "were", "what", "when", "which", "who", "with", "you",
-    }
     unique_ratios = []
     repeated_token_fractions = []
     max_token_runs = []
@@ -460,7 +518,7 @@ def generation_repetition_metrics(texts: Sequence[str]) -> dict[str, float]:
             sum(len(token) > 3 and not any(char in "aeiou" for char in token) for token in alpha_tokens)
             / max(1, len(alpha_tokens))
         )
-        stopword_fraction = sum(token in stopwords for token in alpha_tokens) / max(1, len(alpha_tokens))
+        stopword_fraction = sum(token in _QUALITY_STOPWORDS for token in alpha_tokens) / max(1, len(alpha_tokens))
         length_score = min(len(tokens), 40) / 40.0 if len(tokens) < 40 else max(0.0, 1.0 - (len(tokens) - 40) / 80.0)
 
         unique_ratio = len(set(tokens)) / len(tokens)
@@ -1408,6 +1466,7 @@ def eval_checkpoint_scores(metrics: dict) -> dict[str, float]:
     quality = metrics.get("generation_quality") or {}
     retrieval = metrics.get("generation_t5_retrieval") or {}
     well_structured = quality.get("well_structured_sentence")
+    content_words_overlap = quality.get("content_words_overlap")
     mean_rank = retrieval.get("mean_rank")
     eval_num_examples = max(1, int(metrics.get("eval_num_examples") or 1))
     scores = {}
@@ -1419,6 +1478,8 @@ def eval_checkpoint_scores(metrics: dict) -> dict[str, float]:
         scores["structured_rank"] = float(metrics.get("exact_match") or 0.0)
     if well_structured is not None:
         scores["well_structured_sentence"] = float(well_structured)
+    if content_words_overlap is not None:
+        scores["content_words_overlap"] = float(content_words_overlap)
     if mean_rank is not None:
         scores["mean_rank"] = -float(mean_rank)
     return scores
@@ -1885,7 +1946,8 @@ def main() -> None:
         quality = metrics.get("generation_quality", {})
         log_for_0(
             f"eval step={step} epoch={epoch:.4f} exact_match={metrics['exact_match']:.3f} "
-            f"words_overlap={quality.get('words_overlap', float('nan')):.3f}"
+            f"words_overlap={quality.get('words_overlap', float('nan')):.3f} "
+            f"content_words_overlap={quality.get('content_words_overlap', float('nan')):.3f}"
         )
         for idx, (target, generated, exact) in enumerate(
             zip(metrics["targets"], metrics["generated"], metrics["exact"])
@@ -1918,12 +1980,36 @@ def main() -> None:
                 wandb.log(payload, step=step)
                 continue
             overlap_per_sample = metrics.get("word_overlap", {}).get("per_sample", [])
-            table = wandb.Table(columns=["epoch", "step", "id", "target", "generated", "exact", "words_overlap"])
+            content_overlap_per_sample = metrics.get("word_overlap", {}).get("per_sample_content", [])
+            content_overlap_counts = metrics.get("word_overlap", {}).get("per_sample_content_overlap_counts", [])
+            table = wandb.Table(
+                columns=[
+                    "epoch",
+                    "step",
+                    "id",
+                    "target",
+                    "generated",
+                    "exact",
+                    "words_overlap",
+                    "content_words_overlap",
+                    "content_overlap_words",
+                ]
+            )
             for idx, (target, generated, exact) in enumerate(
                 zip(metrics["targets"], metrics["generated"], metrics["exact"])
             ):
                 overlap = float(overlap_per_sample[idx]) if idx < len(overlap_per_sample) else None
-                table.add_data(epoch, step, idx, target, generated, exact, overlap)
+                content_overlap = (
+                    float(content_overlap_per_sample[idx])
+                    if idx < len(content_overlap_per_sample)
+                    else None
+                )
+                content_words = (
+                    format_overlap_counts(content_overlap_counts[idx])
+                    if idx < len(content_overlap_counts)
+                    else ""
+                )
+                table.add_data(epoch, step, idx, target, generated, exact, overlap, content_overlap, content_words)
             payload["eval/samples"] = table
             wandb.log(payload, step=step)
 
