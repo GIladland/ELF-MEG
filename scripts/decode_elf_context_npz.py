@@ -34,10 +34,12 @@ from utils.generation_utils import (
 from utils.sampling_utils import get_sampling_steps
 
 from scripts.meg_context_overfit import (
+    evaluate_retrieval,
     generation_repetition_metrics,
     mean_pool_latents,
     rank_true_targets_by_similarity,
     tokenize_sentences,
+    word_overlap_metrics,
 )
 
 
@@ -66,6 +68,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sentence-key", default="sentence")
     parser.add_argument("--target-latents-key", default="target_t5_latents")
     parser.add_argument("--target-mask-key", default="t5_attention_mask")
+    parser.add_argument("--target-ids-key", default="t5_input_ids")
     parser.add_argument("--model", default="ELF-B")
     parser.add_argument("--checkpoint_path", default="embedded-language-flows/ELF-B-owt-torch")
     parser.add_argument("--encoder_model_name", default="t5-small")
@@ -80,6 +83,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--decode-oracle-target", action="store_true")
+    parser.add_argument("--retrieval-num-examples", type=int, default=0, help="0 disables conditional retrieval.")
+    parser.add_argument("--retrieval-batch-size", type=int, default=256)
+    parser.add_argument("--retrieval-t", type=float, default=0.5)
+    parser.add_argument("--denoiser-loss-weight", type=float, default=1.0)
+    parser.add_argument("--decoder-loss-weight", type=float, default=1.0)
     return parser.parse_args()
 
 
@@ -98,6 +106,8 @@ def build_config(args: argparse.Namespace, max_length: int) -> Config:
     config.denoiser_p_std = 0.8
     config.denoiser_noise_scale = 2.0
     config.time_schedule = "logit_normal"
+    config.denoiser_loss_weight = args.denoiser_loss_weight
+    config.decoder_loss_weight = args.decoder_loss_weight
     return config
 
 
@@ -194,6 +204,21 @@ def _as_string_list(array: np.ndarray) -> list[str]:
     return [str(x.decode("utf-8") if isinstance(x, bytes) else x) for x in array.tolist()]
 
 
+class StoredContextAdapter(torch.nn.Module):
+    """Expose precomputed contexts through the semantic adapter interface."""
+
+    def __init__(self, contexts: torch.Tensor, masks: torch.Tensor) -> None:
+        super().__init__()
+        self.register_buffer("contexts", contexts)
+        self.register_buffer("masks", masks)
+
+    def forward(self, semantic_vectors: torch.Tensor):
+        indices = semantic_vectors.reshape(-1).to(dtype=torch.long, device=self.contexts.device)
+        contexts = self.contexts.index_select(0, indices)
+        masks = self.masks.index_select(0, indices).to(dtype=contexts.dtype)
+        return contexts, masks
+
+
 @torch.no_grad()
 def direct_decode_batch(
     *,
@@ -230,21 +255,25 @@ def main() -> None:
 
     data = np.load(args.npz_path, allow_pickle=True)
     logger.info("Loaded keys: %s", sorted(data.files))
-    context_np = data[args.context_key]
-    context_mask_np = data[args.context_mask_key]
-    sentences = _as_string_list(data[args.sentence_key])
+    context_all_np = data[args.context_key]
+    context_mask_all_np = data[args.context_mask_key]
+    sentences_all = _as_string_list(data[args.sentence_key])
 
-    n = context_np.shape[0] if args.num_examples <= 0 else min(args.num_examples, context_np.shape[0])
-    context_np = context_np[:n]
-    context_mask_np = context_mask_np[:n]
-    sentences = sentences[:n]
+    total_n = context_all_np.shape[0]
+    n = total_n if args.num_examples <= 0 else min(args.num_examples, total_n)
+    context_np = context_all_np[:n]
+    context_mask_np = context_mask_all_np[:n]
+    sentences = sentences_all[:n]
 
-    target_latents_np = data[args.target_latents_key][:n] if args.target_latents_key in data.files else None
-    target_mask_np = data[args.target_mask_key][:n] if args.target_mask_key in data.files else None
-    if target_latents_np is not None:
-        target_latents_np = target_latents_np.astype(np.float32)
-    if target_mask_np is not None:
-        target_mask_np = target_mask_np.astype(np.float32)
+    target_latents_all_np = data[args.target_latents_key] if args.target_latents_key in data.files else None
+    target_mask_all_np = data[args.target_mask_key] if args.target_mask_key in data.files else None
+    target_ids_all_np = data[args.target_ids_key] if args.target_ids_key in data.files else None
+    if target_latents_all_np is not None:
+        target_latents_all_np = target_latents_all_np.astype(np.float32)
+    if target_mask_all_np is not None:
+        target_mask_all_np = target_mask_all_np.astype(np.float32)
+    target_latents_np = target_latents_all_np[:n] if target_latents_all_np is not None else None
+    target_mask_np = target_mask_all_np[:n] if target_mask_all_np is not None else None
 
     context_length = int(context_np.shape[1])
     target_length = int(args.target_length)
@@ -270,18 +299,24 @@ def main() -> None:
 
     def build_metrics(name: str, generated: list[str]) -> dict:
         exact = [int(g.strip() == t.strip()) for g, t in zip(generated, sentences)]
+        overlap = word_overlap_metrics(generated, sentences)
+        generation_quality = generation_repetition_metrics(generated)
+        generation_quality.update(overlap["summary"])
         metrics = {
             "name": name,
             "npz_path": args.npz_path,
             "context_key": args.context_key,
             "n": n,
+            "total_n": total_n,
             "context_length": context_length,
             "target_length": target_length,
             "num_sampling_steps": args.num_sampling_steps,
             "cfg_scale": args.cfg_scale,
             "direct_decode": args.direct_decode,
+            "retrieval_num_examples": args.retrieval_num_examples,
             "exact_match": float(sum(exact) / max(1, len(exact))),
-            "generation_quality": generation_repetition_metrics(generated),
+            "generation_quality": generation_quality,
+            "word_overlap": overlap,
             "targets": sentences,
             "generated": generated,
             "exact": exact,
@@ -307,6 +342,42 @@ def main() -> None:
             metrics["generation_t5_retrieval"] = rank_true_targets_by_similarity(similarity)
         return metrics
 
+    def retrieval_for_context(name: str, ctx_np: np.ndarray, mask_np: np.ndarray) -> dict | None:
+        if args.retrieval_num_examples <= 0:
+            return None
+        if target_latents_all_np is None or target_mask_all_np is None or target_ids_all_np is None:
+            logger.warning("%s retrieval skipped; target latents, mask, or ids are missing.", name)
+            return None
+        retrieval_n = min(args.retrieval_num_examples, total_n)
+        contexts = torch.as_tensor(ctx_np[:retrieval_n], dtype=torch.float32, device=device)
+        masks = torch.as_tensor(mask_np[:retrieval_n], dtype=torch.float32, device=device)
+        adapter = StoredContextAdapter(contexts, masks).to(device).eval()
+        metrics = evaluate_retrieval(
+            model=model,
+            adapter=adapter,
+            meg=torch.zeros((retrieval_n, 1, 1), dtype=torch.float32),
+            meg_lengths=torch.ones((retrieval_n,), dtype=torch.long),
+            semantic_vectors=torch.arange(retrieval_n, dtype=torch.float32).reshape(-1, 1),
+            subject_ids=torch.zeros((retrieval_n,), dtype=torch.long),
+            target_latents=torch.as_tensor(target_latents_all_np[:retrieval_n], dtype=torch.float32),
+            target_ids=torch.as_tensor(target_ids_all_np[:retrieval_n], dtype=torch.long),
+            target_mask=torch.as_tensor(target_mask_all_np[:retrieval_n], dtype=torch.float32),
+            target_sentences=sentences_all[:retrieval_n],
+            config=config,
+            device=device,
+            condition_source="semantic",
+            retrieval_batch_size=args.retrieval_batch_size,
+            retrieval_t=args.retrieval_t,
+        )
+        logger.info(
+            "%s retrieval combined_top1=%.3f combined_top5=%.3f mean_rank=%.2f",
+            name,
+            metrics["combined"]["top1"],
+            metrics["combined"]["top5"],
+            metrics["combined"]["mean_rank"],
+        )
+        return metrics
+
     def run_sample_decode(name: str, ctx_np: np.ndarray, mask_np: np.ndarray) -> dict:
         generated: list[str] = []
         for start in range(0, n, args.batch_size):
@@ -327,7 +398,11 @@ def main() -> None:
             )
             logger.info("%s decoded %d/%d", name, end, n)
 
-        return build_metrics(name, generated)
+        metrics = build_metrics(name, generated)
+        retrieval_metrics = retrieval_for_context(name, ctx_np, mask_np)
+        if retrieval_metrics is not None:
+            metrics["retrieval"] = retrieval_metrics
+        return metrics
 
     def run_direct_decode(name: str, latents_np: np.ndarray) -> dict:
         generated: list[str] = []
@@ -352,9 +427,9 @@ def main() -> None:
         if args.decode_oracle_target and target_latents_np is not None:
             results.append(run_direct_decode(f"direct_{args.target_latents_key}", target_latents_np))
     else:
-        results = [run_sample_decode(args.context_key, context_np.astype(np.float32), context_mask_np.astype(np.float32))]
-        if args.decode_oracle_target and target_latents_np is not None and target_mask_np is not None:
-            results.append(run_sample_decode(args.target_latents_key, target_latents_np, target_mask_np))
+        results = [run_sample_decode(args.context_key, context_all_np.astype(np.float32), context_mask_all_np.astype(np.float32))]
+        if args.decode_oracle_target and target_latents_all_np is not None and target_mask_all_np is not None:
+            results.append(run_sample_decode(args.target_latents_key, target_latents_all_np, target_mask_all_np))
 
     output = {"results": results}
     out_path = out_dir / "decode_results.json"

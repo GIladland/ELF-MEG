@@ -6,7 +6,8 @@ set -euo pipefail
 
 PROJECT_ROOT=${PROJECT_ROOT:-/data/engs-pnpl/glandau/BrainDiffusion/ELF}
 DATA_ROOT=${DATA_ROOT:-/data/engs-pnpl/glandau/elf-cache}
-TMP_ENV_ROOT=${TMP_ENV_ROOT:-/tmp/${USER}-elf-env}
+TMP_ENV_ROOT=${TMP_ENV_ROOT:-/tmp/${USER}-braindiffusion-elf-torch213}
+ENV_STAMP=${ENV_STAMP:-braindiffusion-elf-torch213-py310-20260803}
 OUTPUT_DIR=${OUTPUT_DIR:-/data/engs-pnpl/glandau/elf-runs/toy-context-overfit}
 
 source "$(conda info --base)/etc/profile.d/conda.sh"
@@ -19,12 +20,22 @@ export TORCH_HOME="${TORCH_HOME:-$DATA_ROOT/torch}"
 export WANDB_DIR="${WANDB_DIR:-$DATA_ROOT/wandb}"
 export PIP_CACHE_DIR="${PIP_CACHE_DIR:-$DATA_ROOT/pip-cache}"
 export CONDA_PKGS_DIRS="${CONDA_PKGS_DIRS:-$DATA_ROOT/conda-pkgs}"
+export PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-1}"
 
 mkdir -p "$OUTPUT_DIR"
 cd "$PROJECT_ROOT"
 
-PROJECT_ROOT="$PROJECT_ROOT" DATA_ROOT="$DATA_ROOT" TMP_ENV_ROOT="$TMP_ENV_ROOT" \
-  "$PROJECT_ROOT/scripts/arc_setup_elf_env.sh"
+ENV_STAMP_PATH="$TMP_ENV_ROOT/.elf_env_stamp"
+if [[ "${SKIP_ARC_SETUP:-0}" == "1" && -d "$TMP_ENV_ROOT/bin" && -f "$ENV_STAMP_PATH" && "$(cat "$ENV_STAMP_PATH")" == "$ENV_STAMP" ]]; then
+  echo "Skipping ARC env setup; reusing TMP_ENV_ROOT=$TMP_ENV_ROOT ENV_STAMP=$ENV_STAMP"
+elif [[ "${SKIP_ARC_SETUP:-0}" == "1" ]]; then
+  echo "SKIP_ARC_SETUP=1 requested, but matching env stamp was not found; falling back to setup: $TMP_ENV_ROOT"
+  PROJECT_ROOT="$PROJECT_ROOT" DATA_ROOT="$DATA_ROOT" TMP_ENV_ROOT="$TMP_ENV_ROOT" ENV_STAMP="$ENV_STAMP" \
+    bash "$PROJECT_ROOT/scripts/arc_setup_elf_env.sh"
+else
+  PROJECT_ROOT="$PROJECT_ROOT" DATA_ROOT="$DATA_ROOT" TMP_ENV_ROOT="$TMP_ENV_ROOT" ENV_STAMP="$ENV_STAMP" \
+    bash "$PROJECT_ROOT/scripts/arc_setup_elf_env.sh"
+fi
 
 conda activate "$TMP_ENV_ROOT"
 

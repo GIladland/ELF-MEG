@@ -7,7 +7,8 @@ set -euo pipefail
 
 PROJECT_ROOT=${PROJECT_ROOT:-/data/engs-pnpl/glandau/BrainDiffusion/ELF}
 DATA_ROOT=${DATA_ROOT:-/data/engs-pnpl/glandau/elf-cache}
-TMP_ENV_ROOT=${TMP_ENV_ROOT:-/tmp/${USER}-elf-env}
+TMP_ENV_ROOT=${TMP_ENV_ROOT:-/tmp/${USER}-braindiffusion-elf-torch213}
+ENV_STAMP=${ENV_STAMP:-braindiffusion-elf-torch213-py310-20260803}
 LIBRIBRAIN_ROOT=${LIBRIBRAIN_ROOT:-/data/engs-pnpl/glandau/MEG2SEM/LibriBrain}
 PNPL_ROOT=${PNPL_ROOT:-/data/engs-pnpl/glandau/MEG2SEM/PNPL/pnpl}
 BOOKS=${BOOKS:-1}
@@ -27,11 +28,12 @@ export TORCH_HOME="${TORCH_HOME:-$DATA_ROOT/torch}"
 export WANDB_DIR="${WANDB_DIR:-$DATA_ROOT/wandb}"
 export PIP_CACHE_DIR="${PIP_CACHE_DIR:-$DATA_ROOT/pip-cache}"
 export CONDA_PKGS_DIRS="${CONDA_PKGS_DIRS:-$DATA_ROOT/conda-pkgs}"
+export PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-1}"
 
 cd "$PROJECT_ROOT"
 
-PROJECT_ROOT="$PROJECT_ROOT" DATA_ROOT="$DATA_ROOT" TMP_ENV_ROOT="$TMP_ENV_ROOT" \
-  "$PROJECT_ROOT/scripts/arc_setup_elf_env.sh"
+PROJECT_ROOT="$PROJECT_ROOT" DATA_ROOT="$DATA_ROOT" TMP_ENV_ROOT="$TMP_ENV_ROOT" ENV_STAMP="$ENV_STAMP" \
+  bash "$PROJECT_ROOT/scripts/arc_setup_elf_env.sh"
 
 conda activate "$TMP_ENV_ROOT"
 

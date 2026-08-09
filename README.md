@@ -23,21 +23,52 @@ wandb login YOUR_WANDB_API_KEY
 This repo now has a working ARC setup for both the standard ELF workflow and
 the PNPL LibriBrain smoke test.
 
-Persistent shared env path used on ARC:
+### BrainDiffusion ARC env policy
+
+Use the versioned node-local env for GPU experiments:
 
 ```bash
-/data/engs-pnpl/glandau/BrainDiffusion/elf-env
+/tmp/$USER-braindiffusion-elf-torch213
 ```
 
-Large caches and model / dataset downloads are kept on:
+The setup script stamps the env with:
+
+```text
+braindiffusion-elf-torch213-py310-20260803
+```
+
+Launchers only reuse the env when the stamp matches; otherwise they rebuild it
+from `requirements.txt`. Keep executable Torch/CUDA libraries on node-local
+`/tmp`, not in the persistent `/data` env. We saw `import torch` fail or hang
+from the old `/data/engs-pnpl/glandau/BrainDiffusion/elf-env` because large
+Torch shared objects can fail to map from NFS.
+
+Large caches and model / dataset downloads still live on:
 
 ```bash
 /data/engs-pnpl/glandau/elf-cache
 ```
 
-Two env patterns are supported:
+This includes the Triton kernel cache; GPU launchers should set
+`TRITON_CACHE_DIR=/data/engs-pnpl/glandau/elf-cache/triton-cache` so compiled
+kernels do not consume the ARC home-directory quota.
 
-1. Persistent shared env on `/data`:
+Do not submit new GPU jobs against the old persistent env unless Torch import
+has been verified on a compute node. It is acceptable for lightweight commands
+that do not import Torch.
+
+Persistent shared env path, for lightweight/non-GPU use only:
+
+```bash
+/data/engs-pnpl/glandau/BrainDiffusion/elf-env
+```
+
+Two env patterns are supported. For GPU runs, prefer the node-local env: large
+Torch/CUDA shared libraries can be slow or fail to map from the `/data` NFS
+env, while caches and downloaded artifacts still stay persistent on `/data`.
+
+1. Persistent shared env on `/data` for lightweight commands, or only after
+   verifying Torch import on a compute node:
 
 ```bash
 source "$(conda info --base)/etc/profile.d/conda.sh"
@@ -46,14 +77,16 @@ cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
 pip install -r requirements.txt
 ```
 
-2. Node-local env rebuilt on `/tmp` from the same `requirements.txt`:
+2. Node-local env rebuilt on `/tmp` from the same `requirements.txt`
+   recommended for GPU jobs:
 
 ```bash
 bash scripts/arc_setup_elf_env.sh
 ```
 
-The node-local setup script keeps the executable env on `/tmp/$USER-elf-env`
-but sends Hugging Face, torch, pip, conda, and wandb caches to `/data`.
+The node-local setup script keeps the executable env on
+`/tmp/$USER-braindiffusion-elf-torch213`, stamps it with the dependency version,
+and sends Hugging Face, torch, pip, conda, and wandb caches to `/data`.
 
 ### ARC smoke tests
 
@@ -93,14 +126,48 @@ sample[0] ... 'A Study in Scarlet by Sir Arthur Conan Doyle'
 sample[1] ... 'This is a LibriVox recording'
 ```
 
+Sherlock SVA MiniLM + MEG export for MEG2SEM-style training:
+
+```bash
+cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
+sbatch submit-jobs/export_sherlock_sva_meg2sem_minilm.sbatch
+```
+
+Default output:
+
+```text
+/data/engs-pnpl/glandau/elf-cache/sherlock_sva/meg2sem/sherlock1to9_sva_no_coord_decl5to18_train_minilm_meg2sem_segment3000_fp16.npz
+```
+
+The packed NPZ stores `meg`, `meg_time_mask`, `meg_lengths`, `input_embeddings`
+/ `minilm_embeddings`, `sentence`, and `rows`. The wrapper also writes
+MiniLM semantic sidecars under `embeddings_ada` at:
+
+```text
+/data/engs-pnpl/glandau/elf-cache/sherlock_sva/meg2sem/minilm_sidecars
+```
+
+For direct MEG2SEM loading of those sidecars, use `embedding_type=ADA` with
+`embedding_dim=384` and point the semantic-vector root at that sidecar tree.
+
 ### ARC training
 
-For training from the persistent env:
+For training on ARC, use a GPU allocation and let the launcher/setup script
+activate the versioned node-local env:
 
 ```bash
 source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate /data/engs-pnpl/glandau/BrainDiffusion/elf-env
 cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
+bash scripts/arc_setup_elf_env.sh
+```
+
+Expected setup output includes:
+
+```text
+TMP_ENV_ROOT=/tmp/$USER-braindiffusion-elf-torch213
+ENV_STAMP=braindiffusion-elf-torch213-py310-20260803
+torch 2.13.0+cu130
+cuda_available True
 ```
 
 Single-GPU training:

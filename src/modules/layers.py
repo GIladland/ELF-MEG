@@ -91,8 +91,13 @@ class TextRotaryEmbeddingFast(nn.Module):
         return freqs_cos, freqs_sin
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
-        freqs_cos = self.freqs_cos.to(t.dtype)
-        freqs_sin = self.freqs_sin.to(t.dtype)
+        seq_len = t.shape[-2]
+        if seq_len > self.freqs_cos.shape[0]:
+            raise ValueError(
+                f"RoPE sequence length {seq_len} exceeds configured length {self.freqs_cos.shape[0]}"
+            )
+        freqs_cos = self.freqs_cos[:seq_len].to(dtype=t.dtype, device=t.device)
+        freqs_sin = self.freqs_sin[:seq_len].to(dtype=t.dtype, device=t.device)
         return t * freqs_cos + rotate_half(t) * freqs_sin
 
 

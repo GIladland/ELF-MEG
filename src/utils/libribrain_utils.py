@@ -132,6 +132,17 @@ def build_sherlock_run_keys_for_books(
     return run_keys
 
 
+def build_sherlock1_session_run_keys(
+    sessions: Iterable[int | str],
+) -> list[tuple[str, str, str, str]]:
+    run_keys: list[tuple[str, str, str, str]] = []
+    for session in sessions:
+        session_id = str(session)
+        run = "2" if session_id in {"11", "12"} else "1"
+        run_keys.append(("0", session_id, "Sherlock1", run))
+    return run_keys
+
+
 def _register_extra_libribrain_run_keys(
     run_keys: Sequence[tuple[str, str, str, str]],
 ) -> None:
@@ -155,6 +166,7 @@ def build_libribrain_sentence_dataset(
     data_path: str,
     books: Sequence[int | str],
     *,
+    run_keys: Sequence[tuple[str, str, str, str]] | None = None,
     semantic_data_path: str | None = None,
     pnpl_root: str | os.PathLike[str] | None = None,
     preprocessing_str: str = "bads+headpos+sss+notch+bp+ds",
@@ -212,7 +224,7 @@ def build_libribrain_sentence_dataset(
                 semantic_vectors_variant=semantic_vectors_variant,
             )
 
-    run_keys = build_sherlock_run_keys_for_books(books)
+    run_keys = list(run_keys) if run_keys is not None else build_sherlock_run_keys_for_books(books)
     _register_extra_libribrain_run_keys(run_keys)
 
     return _FlexibleSemanticDataset(

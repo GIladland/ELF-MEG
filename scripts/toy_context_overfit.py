@@ -43,7 +43,7 @@ from utils.generation_utils import (
     shift_left,
 )
 from utils.logging_utils import log_for_0
-from utils.sampling_utils import add_noise, get_sampling_steps, sample_timesteps
+from utils.sampling_utils import add_noise, get_sampling_steps, net_out_to_v_x, sample_timesteps
 
 try:
     import wandb
@@ -365,7 +365,7 @@ def build_config(args: argparse.Namespace, max_length: int) -> Config:
 
 
 def tokenize_sentences(tokenizer, sentences: Sequence[str]) -> tuple[torch.Tensor, torch.Tensor]:
-    ids_list = [tokenizer(sentence, add_special_tokens=False)["input_ids"] for sentence in sentences]
+    ids_list = [tokenizer(sentence, add_special_tokens=True)["input_ids"] for sentence in sentences]
     max_len = max(len(ids) for ids in ids_list)
     pad_id = tokenizer.pad_token_id
     if pad_id is None:
@@ -499,9 +499,12 @@ def train_step_toy(
         context = torch.where(drop, torch.zeros_like(context), context)
 
     x0 = torch.cat([context, target_latents], dim=1)
-    cond_seq_mask = torch.zeros(x0.shape[:2], dtype=torch.float32, device=device)
-    cond_seq_mask[:, : context.shape[1]] = 1.0
-    attention_mask = torch.ones_like(cond_seq_mask)
+    context_mask = torch.ones((x0.shape[0], context.shape[1]), dtype=torch.float32, device=device)
+    target_valid_mask = target_token_mask.to(device=device, dtype=torch.float32)
+    target_prefix = torch.zeros((x0.shape[0], target_latents.shape[1]), dtype=torch.float32, device=device)
+    cond_seq_mask = torch.cat([context_mask, target_prefix], dim=1)
+    attention_mask = torch.cat([context_mask, target_valid_mask], dim=1)
+    target_loss_mask = torch.cat([torch.zeros_like(context_mask), target_valid_mask], dim=1)
 
     t = sample_timesteps(
         batch_size=x0.shape[0],
@@ -534,9 +537,12 @@ def train_step_toy(
             deterministic=False,
             self_cond_cfg_scale=sc_scale,
         )
-        latent_target_mask = (1.0 - cond_seq_mask).unsqueeze(-1)
+        v_pred, _ = net_out_to_v_x(pred, z, t, config.t_eps)
+        t_expanded = t.reshape(-1, 1, 1)
+        v_target = (x0 - z) / torch.clamp(1.0 - t_expanded, min=config.t_eps)
+        latent_target_mask = target_loss_mask.unsqueeze(-1)
         denoiser_loss = (
-            ((pred - x0) ** 2 * latent_target_mask).sum()
+            ((v_pred - v_target) ** 2 * latent_target_mask).sum()
             / latent_target_mask.sum().clamp_min(1.0)
             / x0.shape[-1]
         )

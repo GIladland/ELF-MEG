@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import random
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,11 +39,13 @@ from utils.generation_utils import (
     shift_left,
 )
 from utils.libribrain_utils import (
+    build_libribrain_sentence_dataset,
     build_libribrain_sentence_dataset_per_book,
+    build_sherlock1_session_run_keys,
     collate_libribrain_sentence_batch,
 )
 from utils.logging_utils import log_for_0
-from utils.sampling_utils import add_noise, get_sampling_steps, sample_timesteps
+from utils.sampling_utils import add_noise, get_sampling_steps, net_out_to_v_x, sample_timesteps
 
 try:
     import wandb
@@ -114,6 +117,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pnpl-root", default=None)
     parser.add_argument("--books", nargs="+", type=int, default=[1])
     parser.add_argument("--num-examples", type=int, default=8, help="Use 0 to load all non-empty examples.")
+    parser.add_argument(
+        "--eval-split",
+        choices=["train_head", "sherlock1_sessions_11_12"],
+        default="train_head",
+        help=(
+            "Validation source. train_head keeps the legacy first-N examples from training; "
+            "sherlock1_sessions_11_12 loads Sherlock1 sessions 11/12 as held-out eval data."
+        ),
+    )
+    parser.add_argument(
+        "--eval-sherlock1-sessions",
+        nargs="+",
+        type=int,
+        default=[11, 12],
+        help="Sherlock1 sessions to load when --eval-split=sherlock1_sessions_11_12.",
+    )
     parser.add_argument("--checkpoint_path", default="embedded-language-flows/ELF-B-owt-torch")
     parser.add_argument("--model", default="ELF-B")
     parser.add_argument("--encoder_model_name", default="t5-small")
@@ -208,6 +227,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wandb_notes", default=None)
     parser.add_argument("--use_wandb", action="store_true")
     parser.add_argument("--no-wandb-samples", action="store_true", help="Do not log generated text tables to WandB.")
+    parser.add_argument(
+        "--save-eval-checkpoints",
+        action="store_true",
+        help="Save top-scoring model/adapter checkpoints at generation evals.",
+    )
+    parser.add_argument(
+        "--eval-checkpoint-top-k",
+        type=int,
+        default=3,
+        help="Keep at most this many eval checkpoints, ranked by checkpoint score.",
+    )
+    parser.add_argument(
+        "--eval-checkpoint-every",
+        type=int,
+        default=0,
+        help="Also save every Nth generation eval checkpoint; 0 disables periodic saves.",
+    )
+    parser.add_argument(
+        "--include-optimizer-in-checkpoints",
+        action="store_true",
+        help="Include optimizer state in eval checkpoints. This is much larger and only needed to resume training.",
+    )
     parser.add_argument("--device", default=None, help="cpu, cuda, or leave unset for auto")
     parser.add_argument("--segment-ms", type=int, default=3000)
     parser.add_argument("--set-name", default="sentences")
@@ -271,7 +312,7 @@ def build_config(args: argparse.Namespace, max_length: int) -> Config:
 
 
 def tokenize_sentences(tokenizer, sentences: Sequence[str]) -> tuple[torch.Tensor, torch.Tensor]:
-    ids_list = [tokenizer(sentence, add_special_tokens=False)["input_ids"] for sentence in sentences]
+    ids_list = [tokenizer(sentence, add_special_tokens=True)["input_ids"] for sentence in sentences]
     max_len = max(len(ids) for ids in ids_list)
     pad_id = tokenizer.pad_token_id
     if pad_id is None:
@@ -306,6 +347,67 @@ def mean_pool_latents(latents: torch.Tensor, mask: torch.Tensor) -> torch.Tensor
     mask = mask.to(device=latents.device, dtype=latents.dtype).unsqueeze(-1)
     pooled = (latents * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1.0)
     return F.normalize(pooled.to(torch.float32), dim=-1)
+
+
+_WORD_RE = re.compile(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?")
+
+
+def _word_tokens(text: str) -> list[str]:
+    return _WORD_RE.findall(text.lower())
+
+
+def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> dict:
+    precisions = []
+    recalls = []
+    f1s = []
+    jaccards = []
+
+    for generated_text, target_text in zip(generated, targets):
+        generated_tokens = _word_tokens(generated_text)
+        target_tokens = _word_tokens(target_text)
+        if not generated_tokens or not target_tokens:
+            precisions.append(0.0)
+            recalls.append(0.0)
+            f1s.append(0.0)
+            jaccards.append(0.0)
+            continue
+
+        generated_counts = {}
+        for token in generated_tokens:
+            generated_counts[token] = generated_counts.get(token, 0) + 1
+        target_counts = {}
+        for token in target_tokens:
+            target_counts[token] = target_counts.get(token, 0) + 1
+
+        overlap_count = sum(
+            min(count, target_counts.get(token, 0))
+            for token, count in generated_counts.items()
+        )
+        precision = overlap_count / max(1, len(generated_tokens))
+        recall = overlap_count / max(1, len(target_tokens))
+        f1 = 0.0 if precision + recall == 0.0 else (2.0 * precision * recall) / (precision + recall)
+        generated_set = set(generated_tokens)
+        target_set = set(target_tokens)
+        jaccard = len(generated_set & target_set) / max(1, len(generated_set | target_set))
+
+        precisions.append(float(precision))
+        recalls.append(float(recall))
+        f1s.append(float(f1))
+        jaccards.append(float(jaccard))
+
+    summary = {
+        "words_overlap": float(np.mean(f1s)) if f1s else 0.0,
+        "words_overlap_precision": float(np.mean(precisions)) if precisions else 0.0,
+        "words_overlap_recall": float(np.mean(recalls)) if recalls else 0.0,
+        "words_overlap_jaccard": float(np.mean(jaccards)) if jaccards else 0.0,
+    }
+    return {
+        "summary": summary,
+        "per_sample": f1s,
+        "per_sample_precision": precisions,
+        "per_sample_recall": recalls,
+        "per_sample_jaccard": jaccards,
+    }
 
 
 def generation_repetition_metrics(texts: Sequence[str]) -> dict[str, float]:
@@ -508,9 +610,18 @@ def load_pretrained_model(
 
     ckpt_root = _download_hf_checkpoint(args.checkpoint_path) or args.checkpoint_path
     ckpt = _restore_checkpoint(ckpt_root)
-    if ckpt is None or "params" not in ckpt:
+    if ckpt is None:
         raise ValueError(f"Could not restore checkpoint from {args.checkpoint_path}")
-    model.load_state_dict(ckpt["params"])
+    if "params" in ckpt:
+        params = ckpt["params"]
+    elif "model_state_dict" in ckpt:
+        params = ckpt["model_state_dict"]
+    else:
+        raise ValueError(
+            f"Checkpoint {args.checkpoint_path} has neither 'params' nor 'model_state_dict'. "
+            f"Available keys: {sorted(ckpt.keys())}"
+        )
+    model.load_state_dict(params)
     return model
 
 
@@ -549,20 +660,13 @@ def extract_subject_label(info: dict) -> str:
     return "0"
 
 
-def load_overfit_examples(args: argparse.Namespace) -> dict[str, torch.Tensor | list[str] | list[dict] | dict[str, int]]:
-    dataset = build_libribrain_sentence_dataset_per_book(
-        data_path=args.data_path,
-        books=args.books,
-        semantic_data_path=args.semantic_data_path,
-        pnpl_root=args.pnpl_root,
-        set_name=args.set_name,
-        embedding_type=args.embedding_type,
-        segment_ms=None if args.segment_ms <= 0 else args.segment_ms,
-        standardize=not args.no_standardize,
-        preload_files=args.preload_files,
-    )
-
-    if args.condition_source == "semantic":
+def examples_from_dataset(
+    *,
+    dataset,
+    condition_source: str,
+    max_examples: int,
+) -> dict[str, torch.Tensor | list[str] | list[dict] | dict[str, int]]:
+    if condition_source == "semantic":
         datasets = list(getattr(dataset, "datasets", [dataset]))
         semantic_vectors = []
         sentences = []
@@ -586,22 +690,19 @@ def load_overfit_examples(args: argparse.Namespace) -> dict[str, torch.Tensor | 
                         "sentence": sentence,
                     }
                 )
-                if args.num_examples > 0 and len(sentences) >= args.num_examples:
+                if max_examples > 0 and len(sentences) >= max_examples:
                     break
-            if args.num_examples > 0 and len(sentences) >= args.num_examples:
+            if max_examples > 0 and len(sentences) >= max_examples:
                 break
 
-        if args.num_examples > 0 and len(sentences) < args.num_examples:
+        if max_examples > 0 and len(sentences) < max_examples:
             raise ValueError(
-                f"Requested {args.num_examples} examples but found only {len(sentences)} non-empty sentences."
+                f"Requested {max_examples} examples but found only {len(sentences)} non-empty sentences."
             )
         if not sentences:
             raise ValueError("No non-empty semantic-vector sentence examples found.")
 
         subject_labels = [extract_subject_label(info) for info in info_list]
-        unique_subjects = sorted(set(subject_labels))
-        subject_to_id = {subject: idx for idx, subject in enumerate(unique_subjects)}
-        subject_ids = torch.tensor([subject_to_id[subject] for subject in subject_labels], dtype=torch.long)
         num_examples = len(sentences)
         return {
             "meg": torch.zeros((num_examples, 1, 1), dtype=torch.float32),
@@ -611,8 +712,6 @@ def load_overfit_examples(args: argparse.Namespace) -> dict[str, torch.Tensor | 
             "sentences": sentences,
             "info": info_list,
             "subject_labels": subject_labels,
-            "subject_to_id": subject_to_id,
-            "subject_ids": subject_ids,
         }
 
     samples = []
@@ -630,24 +729,84 @@ def load_overfit_examples(args: argparse.Namespace) -> dict[str, torch.Tensor | 
             continue
 
         samples.append(item)
-        if args.num_examples > 0 and len(samples) >= args.num_examples:
+        if max_examples > 0 and len(samples) >= max_examples:
             break
 
-    if args.num_examples > 0 and len(samples) < args.num_examples:
+    if max_examples > 0 and len(samples) < max_examples:
         raise ValueError(
-            f"Requested {args.num_examples} examples but found only {len(samples)} non-empty sentences."
+            f"Requested {max_examples} examples but found only {len(samples)} non-empty sentences."
         )
 
     batch = collate_libribrain_sentence_batch(samples)
     subject_labels = [extract_subject_label(info) for info in batch["info"]]
-    unique_subjects = sorted(set(subject_labels))
-    subject_to_id = {subject: idx for idx, subject in enumerate(unique_subjects)}
-    subject_ids = torch.tensor([subject_to_id[subject] for subject in subject_labels], dtype=torch.long)
 
     batch["subject_labels"] = subject_labels
-    batch["subject_to_id"] = subject_to_id
-    batch["subject_ids"] = subject_ids
     return batch
+
+
+def assign_subject_ids(
+    batch: dict[str, torch.Tensor | list[str] | list[dict] | dict[str, int]],
+    subject_to_id: dict[str, int],
+) -> None:
+    subject_labels = batch["subject_labels"]
+    batch["subject_to_id"] = subject_to_id
+    batch["subject_ids"] = torch.tensor([subject_to_id[subject] for subject in subject_labels], dtype=torch.long)
+
+
+def load_overfit_examples(args: argparse.Namespace) -> dict[str, torch.Tensor | list[str] | list[dict] | dict[str, int]]:
+    dataset = build_libribrain_sentence_dataset_per_book(
+        data_path=args.data_path,
+        books=args.books,
+        semantic_data_path=args.semantic_data_path,
+        pnpl_root=args.pnpl_root,
+        set_name=args.set_name,
+        embedding_type=args.embedding_type,
+        segment_ms=None if args.segment_ms <= 0 else args.segment_ms,
+        standardize=not args.no_standardize,
+        preload_files=args.preload_files,
+    )
+    batch = examples_from_dataset(
+        dataset=dataset,
+        condition_source=args.condition_source,
+        max_examples=args.num_examples,
+    )
+    unique_subjects = sorted(set(batch["subject_labels"]))
+    subject_to_id = {subject: idx for idx, subject in enumerate(unique_subjects)}
+    assign_subject_ids(batch, subject_to_id)
+    return batch
+
+
+def load_eval_examples(
+    args: argparse.Namespace,
+    train_batch: dict[str, torch.Tensor | list[str] | list[dict] | dict[str, int]],
+) -> dict[str, torch.Tensor | list[str] | list[dict] | dict[str, int]]:
+    if args.eval_split == "train_head":
+        return train_batch
+    if args.eval_split != "sherlock1_sessions_11_12":
+        raise ValueError(f"Unsupported eval split: {args.eval_split}")
+
+    dataset = build_libribrain_sentence_dataset(
+        data_path=args.data_path,
+        books=[1],
+        run_keys=build_sherlock1_session_run_keys(args.eval_sherlock1_sessions),
+        semantic_data_path=args.semantic_data_path,
+        pnpl_root=args.pnpl_root,
+        set_name=args.set_name,
+        embedding_type=args.embedding_type,
+        segment_ms=None if args.segment_ms <= 0 else args.segment_ms,
+        standardize=not args.no_standardize,
+        preload_files=args.preload_files,
+    )
+    eval_batch = examples_from_dataset(
+        dataset=dataset,
+        condition_source=args.condition_source,
+        max_examples=args.eval_num_examples,
+    )
+    subject_labels = sorted(set(train_batch["subject_labels"]) | set(eval_batch["subject_labels"]))
+    subject_to_id = {subject: idx for idx, subject in enumerate(subject_labels)}
+    assign_subject_ids(train_batch, subject_to_id)
+    assign_subject_ids(eval_batch, subject_to_id)
+    return eval_batch
 
 
 def build_batches(
@@ -702,7 +861,7 @@ def train_step(
     meg_lengths = batch.meg_lengths.to(device=device, dtype=torch.long)
     semantic_vectors = batch.semantic_vectors.to(device=device, dtype=torch.float32)
     subject_ids = batch.subject_ids.to(device=device, dtype=torch.long)
-    target_latents = batch.target_latents.to(device)
+    target_latents = batch.target_latents.to(device=device, dtype=torch.float32)
     target_ids = batch.target_ids.to(device)
     target_token_mask = batch.target_mask.to(device=device, dtype=torch.float32)
 
@@ -725,21 +884,23 @@ def train_step(
             context = torch.where(drop, torch.zeros_like(context), context)
 
         x0 = torch.cat([context, target_latents], dim=1)
+        target_valid_mask = target_token_mask.to(dtype=cond_seq_mask.dtype)
         target_prefix = torch.zeros(
             (x0.shape[0], target_latents.shape[1]),
             dtype=cond_seq_mask.dtype,
             device=device,
         )
         cond_seq_mask = torch.cat([cond_seq_mask, target_prefix], dim=1)
-        attention_mask = torch.ones_like(cond_seq_mask)
+        attention_mask = torch.cat([cond_seq_mask[:, : context.shape[1]], target_valid_mask], dim=1)
+        target_loss_mask = torch.cat([torch.zeros_like(cond_seq_mask[:, : context.shape[1]]), target_valid_mask], dim=1)
         sc_scale = torch.ones((x0.shape[0],), dtype=x0.dtype, device=device)
-        return context, x0, cond_seq_mask, attention_mask, sc_scale
+        return context, x0, cond_seq_mask, attention_mask, sc_scale, target_loss_mask
 
     optimizer.zero_grad(set_to_none=True)
     use_bf16 = bool(config.use_bf16) and device.type == "cuda"
 
     def denoiser_loss_for_t(t: torch.Tensor) -> torch.Tensor:
-        _, x0, cond_seq_mask, attention_mask, sc_scale = build_conditioned_x0()
+        _, x0, cond_seq_mask, attention_mask, sc_scale, target_loss_mask = build_conditioned_x0()
         noise = torch.randn(x0.shape, generator=noise_generator, device=device, dtype=x0.dtype)
         z = add_noise(x0, noise, t, config, cond_seq_mask=cond_seq_mask.unsqueeze(-1))
         pred, _ = model(
@@ -749,9 +910,12 @@ def train_step(
             deterministic=False,
             self_cond_cfg_scale=sc_scale,
         )
-        latent_target_mask = (1.0 - cond_seq_mask).unsqueeze(-1)
+        v_pred, _ = net_out_to_v_x(pred, z, t, config.t_eps)
+        t_expanded = t.reshape(-1, 1, 1)
+        v_target = (x0 - z) / torch.clamp(1.0 - t_expanded, min=config.t_eps)
+        latent_target_mask = target_loss_mask.unsqueeze(-1)
         denoiser_loss = (
-            ((pred - x0) ** 2 * latent_target_mask).sum()
+            ((v_pred - v_target) ** 2 * latent_target_mask).sum()
             / latent_target_mask.sum().clamp_min(1.0)
             / x0.shape[-1]
         )
@@ -818,7 +982,7 @@ def train_step(
         denoiser_loss_value += float(denoiser_loss.detach().cpu()) / len(t_values)
 
     with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_bf16):
-        context, x0, cond_seq_mask, attention_mask, sc_scale = build_conditioned_x0()
+        context, x0, cond_seq_mask, attention_mask, sc_scale, _target_loss_mask = build_conditioned_x0()
         decoder_lambda = torch.sigmoid(
             torch.randn(x0.shape[:2], generator=noise_generator, device=device, dtype=x0.dtype)
             * config.decoder_p_std + config.decoder_p_mean
@@ -954,12 +1118,16 @@ def evaluate_generation(
     ]
     normalized_targets = [sentence.strip() for sentence in target_sentences]
     exact = [int(gen == tgt) for gen, tgt in zip(generated, normalized_targets)]
+    overlap = word_overlap_metrics(generated, normalized_targets)
+    generation_quality = generation_repetition_metrics(generated)
+    generation_quality.update(overlap["summary"])
     metrics = {
         "generated": generated,
         "targets": normalized_targets,
         "exact": exact,
         "exact_match": float(sum(exact) / len(exact)),
-        "generation_quality": generation_repetition_metrics(generated),
+        "generation_quality": generation_quality,
+        "word_overlap": overlap,
     }
     if encoder is not None and target_latents is not None and target_mask is not None:
         safe_generated = [text if text.strip() else tokenizer.eos_token or "." for text in generated]
@@ -1051,9 +1219,10 @@ def evaluate_retrieval(
             dtype=context_mask.dtype,
             device=device,
         )
+        target_valid_mask = candidate_mask.to(dtype=context_mask.dtype)
         cond_seq_mask = torch.cat([context_mask, target_prefix], dim=1)
-        attention_mask = torch.ones_like(cond_seq_mask)
-        latent_target_mask = (1.0 - cond_seq_mask).unsqueeze(-1)
+        attention_mask = torch.cat([context_mask, target_valid_mask], dim=1)
+        latent_target_mask = torch.cat([torch.zeros_like(context_mask), target_valid_mask], dim=1).unsqueeze(-1)
 
         t = torch.full((x0.shape[0],), retrieval_t, dtype=x0.dtype, device=device)
         # Use a deterministic sinusoidal perturbation so each pair is scored stably.
@@ -1069,8 +1238,11 @@ def evaluate_retrieval(
                 deterministic=True,
                 self_cond_cfg_scale=torch.ones((x0.shape[0],), dtype=x0.dtype, device=device),
             )
+            v_pred, _ = net_out_to_v_x(pred, z, t, config.t_eps)
+            t_expanded = t.reshape(-1, 1, 1)
+            v_target = (x0 - z) / torch.clamp(1.0 - t_expanded, min=config.t_eps)
             denoiser_per_pair = (
-                ((pred - x0) ** 2 * latent_target_mask).sum(dim=(1, 2))
+                ((v_pred - v_target) ** 2 * latent_target_mask).sum(dim=(1, 2))
                 / latent_target_mask.sum(dim=(1, 2)).clamp_min(1.0)
                 / x0.shape[-1]
             )
@@ -1189,6 +1361,145 @@ def save_results(output_dir: str, step: int, metrics: dict) -> None:
         json.dump(metrics, f, ensure_ascii=False, indent=2)
 
 
+def save_best_results(output_dir: str, metrics: dict) -> None:
+    os.makedirs(output_dir, exist_ok=True)
+    out_path = Path(output_dir) / "best_metrics.json"
+    with out_path.open("w", encoding="utf-8") as f:
+        json.dump(metrics, f, ensure_ascii=False, indent=2)
+
+
+def eval_checkpoint_scores(metrics: dict) -> dict[str, float]:
+    """Score eval checkpoints by combined quality plus individual eval criteria."""
+    quality = metrics.get("generation_quality") or {}
+    retrieval = metrics.get("generation_t5_retrieval") or {}
+    well_structured = quality.get("well_structured_sentence")
+    mean_rank = retrieval.get("mean_rank")
+    eval_num_examples = max(1, int(metrics.get("eval_num_examples") or 1))
+    scores = {}
+    if well_structured is not None and mean_rank is not None:
+        scores["structured_rank"] = float(well_structured) - (float(mean_rank) / eval_num_examples)
+    elif mean_rank is not None:
+        scores["structured_rank"] = -float(mean_rank) / eval_num_examples
+    else:
+        scores["structured_rank"] = float(metrics.get("exact_match") or 0.0)
+    if well_structured is not None:
+        scores["well_structured_sentence"] = float(well_structured)
+    if mean_rank is not None:
+        scores["mean_rank"] = -float(mean_rank)
+    return scores
+
+
+def save_eval_checkpoint(
+    *,
+    args: argparse.Namespace,
+    model: nn.Module,
+    adapter: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    config: Config,
+    metrics: dict,
+    eval_index: int,
+    saved_checkpoints: list[dict],
+) -> None:
+    if not args.save_eval_checkpoints:
+        return
+
+    top_k = max(0, int(args.eval_checkpoint_top_k))
+    periodic = int(args.eval_checkpoint_every)
+    scores = eval_checkpoint_scores(metrics)
+    step = int(metrics["step"])
+    checkpoint_dir = Path(args.output_dir) / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    should_save = False
+    if top_k > 0:
+        for criterion, score in scores.items():
+            criterion_items = [item for item in saved_checkpoints if criterion in item["scores"]]
+            if len(criterion_items) < top_k or score > min(item["scores"][criterion] for item in criterion_items):
+                should_save = True
+                break
+    if periodic > 0 and eval_index % periodic == 0:
+        should_save = True
+    if not should_save:
+        return
+
+    payload = {
+        "step": step,
+        "epoch": metrics.get("epoch"),
+        "score": scores["structured_rank"],
+        "scores": scores,
+        "metrics": metrics,
+        "args": vars(args),
+        "config": {
+            key: value
+            for key, value in vars(config).items()
+            if isinstance(value, (str, int, float, bool, type(None), list, tuple))
+        },
+        "model_state_dict": model.state_dict(),
+        "adapter_state_dict": adapter.state_dict(),
+    }
+    if args.include_optimizer_in_checkpoints:
+        payload["optimizer_state_dict"] = optimizer.state_dict()
+
+    path = checkpoint_dir / f"eval_step_{step:08d}_score_{scores['structured_rank']:.6f}.pt"
+    torch.save(payload, path)
+    saved_checkpoints.append({"path": path, "score": scores["structured_rank"], "scores": scores, "step": step})
+
+    periodic_paths = set()
+    if periodic > 0:
+        periodic_paths = {
+            item["path"]
+            for item in saved_checkpoints
+            if item["step"] % (periodic * max(1, int(args.eval_every))) == 0
+        }
+
+    keep_paths = set(periodic_paths)
+    criteria = sorted({criterion for item in saved_checkpoints for criterion in item["scores"]})
+    criterion_rankings = {}
+    for criterion in criteria:
+        ranked_for_criterion = sorted(
+            [item for item in saved_checkpoints if criterion in item["scores"]],
+            key=lambda item: item["scores"][criterion],
+            reverse=True,
+        )
+        criterion_rankings[criterion] = ranked_for_criterion[:top_k]
+        keep_paths.update(item["path"] for item in criterion_rankings[criterion])
+    for item in list(saved_checkpoints):
+        if item["path"] in keep_paths:
+            continue
+        try:
+            item["path"].unlink()
+        except FileNotFoundError:
+            pass
+        saved_checkpoints.remove(item)
+
+    manifest = sorted(saved_checkpoints, key=lambda item: item["score"], reverse=True)
+    criterion_rankings = {
+        criterion: [
+            {"path": str(item["path"]), "score": item["scores"][criterion], "step": item["step"]}
+            for item in sorted(
+                [checkpoint for checkpoint in saved_checkpoints if criterion in checkpoint["scores"]],
+                key=lambda checkpoint: checkpoint["scores"][criterion],
+                reverse=True,
+            )[:top_k]
+        ]
+        for criterion in sorted({criterion for item in saved_checkpoints for criterion in item["scores"]})
+    }
+    manifest_path = checkpoint_dir / "manifest.json"
+    with manifest_path.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "criteria": criterion_rankings,
+                "checkpoints": [
+                    {"path": str(item["path"]), "score": item["score"], "scores": item["scores"], "step": item["step"]}
+                    for item in manifest
+                ],
+            },
+            f,
+            indent=2,
+        )
+    log_for_0(f"Saved eval checkpoint {path} scores={scores}")
+
+
 def main() -> None:
     args = parse_args()
     set_seed(args.seed)
@@ -1198,17 +1509,30 @@ def main() -> None:
     log_for_0(f"Using device: {device}")
 
     dataset_batch = load_overfit_examples(args)
+    eval_batch = load_eval_examples(args, dataset_batch)
     target_sentences = dataset_batch["sentences"]
+    eval_sentences = eval_batch["sentences"]
     meg = dataset_batch["meg"]
     meg_lengths = dataset_batch["meg_lengths"]
     semantic_vectors = dataset_batch["semantic_vectors"]
     subject_ids = dataset_batch["subject_ids"]
     subject_to_id = dataset_batch["subject_to_id"]
+    eval_meg = eval_batch["meg"]
+    eval_meg_lengths = eval_batch["meg_lengths"]
+    eval_semantic_vectors = eval_batch["semantic_vectors"]
+    eval_subject_ids = eval_batch["subject_ids"]
 
     log_for_0(
         f"Loaded {len(target_sentences)} examples across {len(subject_to_id)} subjects; "
         f"meg_shape={tuple(meg.shape)} semantic_shape={tuple(semantic_vectors.shape)}"
     )
+    if eval_batch is dataset_batch:
+        log_for_0("Eval split: train_head; generation/retrieval eval uses the first eval examples from training data.")
+    else:
+        log_for_0(
+            f"Eval split: {args.eval_split}; loaded {len(eval_sentences)} held-out examples "
+            f"from Sherlock1 sessions={args.eval_sherlock1_sessions}."
+        )
     num_train_examples = len(target_sentences)
     steps_per_epoch = int(np.ceil(num_train_examples / args.batch_size))
     if args.epochs > 0:
@@ -1224,8 +1548,14 @@ def main() -> None:
         tokenizer.pad_token = tokenizer.eos_token
 
     input_ids, attention_mask = tokenize_sentences(tokenizer, target_sentences)
+    eval_input_ids, eval_attention_mask = (
+        (input_ids, attention_mask)
+        if eval_batch is dataset_batch
+        else tokenize_sentences(tokenizer, eval_sentences)
+    )
     target_length = input_ids.shape[1]
-    max_length = args.context_length + target_length
+    eval_target_length = eval_input_ids.shape[1]
+    max_length = args.context_length + max(target_length, eval_target_length)
     config = build_config(args, max_length=max_length)
 
     encoder_config, encoder = get_encoder(args.encoder_model_name, dtype=torch.float32)
@@ -1292,6 +1622,22 @@ def main() -> None:
     )
     target_ids = input_ids.detach().cpu()
     target_mask = attention_mask.detach().cpu().to(torch.float32)
+    if eval_batch is dataset_batch:
+        eval_target_latents = target_latents
+        eval_target_ids = target_ids
+        eval_target_mask = target_mask
+    else:
+        eval_target_latents = encode_text_batched(
+            input_ids=eval_input_ids,
+            attention_mask=eval_attention_mask,
+            encoder=encoder,
+            latent_mean=config.latent_mean,
+            latent_std=config.latent_std,
+            device=device,
+            batch_size=args.target_encode_batch_size,
+        )
+        eval_target_ids = eval_input_ids.detach().cpu()
+        eval_target_mask = eval_attention_mask.detach().cpu().to(torch.float32)
 
     gpt2_tokenizer = None
     gpt2_model = None
@@ -1329,16 +1675,19 @@ def main() -> None:
     noise_generator = torch.Generator(device=device.type if device.type == "cuda" else "cpu")
     noise_generator.manual_seed(args.seed + 17)
     batch_generator = torch.Generator().manual_seed(args.seed + 29)
-    eval_count = len(target_sentences) if args.eval_num_examples <= 0 else min(args.eval_num_examples, len(target_sentences))
+    eval_count = len(eval_sentences) if args.eval_num_examples <= 0 else min(args.eval_num_examples, len(eval_sentences))
     eval_slice = slice(0, eval_count)
     retrieval_count = (
         eval_count
         if args.retrieval_num_examples <= 0
-        else min(args.retrieval_num_examples, len(target_sentences))
+        else min(args.retrieval_num_examples, len(eval_sentences))
     )
     retrieval_slice = slice(0, retrieval_count)
 
     best_metrics = None
+    best_eval_score = None
+    eval_index = 0
+    saved_checkpoints: list[dict] = []
     for step in range(1, args.steps + 1):
         epoch = min(step * args.batch_size / num_train_examples, args.steps / steps_per_epoch)
         batches = build_batches(
@@ -1400,14 +1749,14 @@ def main() -> None:
             retrieval_metrics = evaluate_retrieval(
                 model=model,
                 adapter=adapter,
-                meg=meg[retrieval_slice],
-                meg_lengths=meg_lengths[retrieval_slice],
-                semantic_vectors=semantic_vectors[retrieval_slice],
-                subject_ids=subject_ids[retrieval_slice],
-                target_latents=target_latents[retrieval_slice],
-                target_ids=target_ids[retrieval_slice],
-                target_mask=target_mask[retrieval_slice],
-                target_sentences=target_sentences[retrieval_slice],
+                meg=eval_meg[retrieval_slice],
+                meg_lengths=eval_meg_lengths[retrieval_slice],
+                semantic_vectors=eval_semantic_vectors[retrieval_slice],
+                subject_ids=eval_subject_ids[retrieval_slice],
+                target_latents=eval_target_latents[retrieval_slice],
+                target_ids=eval_target_ids[retrieval_slice],
+                target_mask=eval_target_mask[retrieval_slice],
+                target_sentences=eval_sentences[retrieval_slice],
                 config=config,
                 device=device,
                 condition_source=args.condition_source,
@@ -1453,18 +1802,18 @@ def main() -> None:
         metrics = evaluate_generation(
             model=model,
             adapter=adapter,
-            meg=meg[eval_slice],
-            meg_lengths=meg_lengths[eval_slice],
-            semantic_vectors=semantic_vectors[eval_slice],
-            subject_ids=subject_ids[eval_slice],
+            meg=eval_meg[eval_slice],
+            meg_lengths=eval_meg_lengths[eval_slice],
+            semantic_vectors=eval_semantic_vectors[eval_slice],
+            subject_ids=eval_subject_ids[eval_slice],
             tokenizer=tokenizer,
             encoder=encoder if args.generation_t5_retrieval else None,
             gpt2_tokenizer=gpt2_tokenizer,
             gpt2_model=gpt2_model,
-            target_sentences=target_sentences[eval_slice],
-            target_latents=target_latents[eval_slice] if args.generation_t5_retrieval else None,
-            target_mask=target_mask[eval_slice] if args.generation_t5_retrieval else None,
-            target_length=target_length,
+            target_sentences=eval_sentences[eval_slice],
+            target_latents=eval_target_latents[eval_slice] if args.generation_t5_retrieval else None,
+            target_mask=eval_target_mask[eval_slice] if args.generation_t5_retrieval else None,
+            target_length=eval_target_length,
             context_length=args.context_length,
             config=config,
             sampling_config=sampling_config,
@@ -1475,11 +1824,34 @@ def main() -> None:
         metrics["step"] = step
         metrics["epoch"] = epoch
         metrics["eval_num_examples"] = eval_count
-        metrics["subjects"] = dataset_batch["subject_labels"][eval_slice]
+        metrics["eval_split"] = args.eval_split
+        metrics["subjects"] = eval_batch["subject_labels"][eval_slice]
+        checkpoint_scores = eval_checkpoint_scores(metrics)
+        metrics["eval_checkpoint_scores"] = checkpoint_scores
         save_results(args.output_dir, step, metrics)
-        best_metrics = metrics if best_metrics is None or metrics["exact_match"] >= best_metrics["exact_match"] else best_metrics
+        eval_index += 1
+        save_eval_checkpoint(
+            args=args,
+            model=model,
+            adapter=adapter,
+            optimizer=optimizer,
+            config=config,
+            metrics=metrics,
+            eval_index=eval_index,
+            saved_checkpoints=saved_checkpoints,
+        )
+        eval_score = checkpoint_scores["structured_rank"]
+        if best_eval_score is None or eval_score > best_eval_score:
+            best_eval_score = eval_score
+            best_metrics = metrics
+            save_best_results(args.output_dir, best_metrics)
+            log_for_0(f"New best eval structured_rank={eval_score:.6f}; saved best_metrics.json")
 
-        log_for_0(f"eval step={step} epoch={epoch:.4f} exact_match={metrics['exact_match']:.3f}")
+        quality = metrics.get("generation_quality", {})
+        log_for_0(
+            f"eval step={step} epoch={epoch:.4f} exact_match={metrics['exact_match']:.3f} "
+            f"words_overlap={quality.get('words_overlap', float('nan')):.3f}"
+        )
         for idx, (target, generated, exact) in enumerate(
             zip(metrics["targets"], metrics["generated"], metrics["exact"])
         ):
@@ -1510,11 +1882,13 @@ def main() -> None:
             if args.no_wandb_samples:
                 wandb.log(payload, step=step)
                 continue
-            table = wandb.Table(columns=["epoch", "step", "id", "target", "generated", "exact"])
+            overlap_per_sample = metrics.get("word_overlap", {}).get("per_sample", [])
+            table = wandb.Table(columns=["epoch", "step", "id", "target", "generated", "exact", "words_overlap"])
             for idx, (target, generated, exact) in enumerate(
                 zip(metrics["targets"], metrics["generated"], metrics["exact"])
             ):
-                table.add_data(epoch, step, idx, target, generated, exact)
+                overlap = float(overlap_per_sample[idx]) if idx < len(overlap_per_sample) else None
+                table.add_data(epoch, step, idx, target, generated, exact, overlap)
             payload["eval/samples"] = table
             wandb.log(payload, step=step)
 
@@ -1524,14 +1898,13 @@ def main() -> None:
 
     if run is not None and best_metrics is not None:
         run.summary["best_exact_match"] = best_metrics["exact_match"]
+        run.summary["best_structured_rank"] = best_eval_score
         run.finish()
 
     if best_metrics is not None:
-        final_path = Path(args.output_dir) / "best_metrics.json"
-        with final_path.open("w", encoding="utf-8") as f:
-            json.dump(best_metrics, f, ensure_ascii=False, indent=2)
         log_for_0(f"Best exact match: {best_metrics['exact_match']:.3f}")
-        log_for_0(f"Saved best metrics to {final_path}")
+        log_for_0(f"Best structured rank: {best_eval_score:.6f}")
+        log_for_0(f"Saved best metrics to {Path(args.output_dir) / 'best_metrics.json'}")
 
 
 if __name__ == "__main__":
