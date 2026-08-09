@@ -34,6 +34,8 @@ export DATA_ROOT
 export NPZ_PATH
 export OUTPUT_DIR
 export SKIP_ARC_SETUP=${SKIP_ARC_SETUP:-1}
+export TMP_ENV_ROOT=${TMP_ENV_ROOT:-/tmp/${USER}-braindiffusion-elf-oracle-${SLURM_JOB_ID:-manual}}
+export ENV_STAMP=${ENV_STAMP:-braindiffusion-elf-oracle-py310-20260809}
 export WANDB_ENTITY=${WANDB_ENTITY:-giladland-university-of-oxford}
 export WANDB_PROJECT=${WANDB_PROJECT:-BrainDiffusion}
 export WANDB_RUN_GROUP=${WANDB_RUN_GROUP:-minilm_oracle_pipe}
