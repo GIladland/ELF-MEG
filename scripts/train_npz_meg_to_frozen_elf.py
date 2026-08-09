@@ -214,6 +214,15 @@ def parse_args() -> argparse.Namespace:
         help="Optional checkpoint containing adapter_state_dict used to initialize the MEG adapter.",
     )
     parser.add_argument(
+        "--init-e2e-checkpoint",
+        default="",
+        help=(
+            "Optional fine-tuned checkpoint containing adapter_state_dict and optionally "
+            "model_state_dict. Works for all adapter kinds and is intended for eval-only "
+            "or resumed end-to-end runs."
+        ),
+    )
+    parser.add_argument(
         "--unfreeze-elf",
         action="store_true",
         help="Update selected ELF parameters during end-to-end MEG->text training.",
@@ -542,6 +551,26 @@ def load_adapter_initialization(adapter: MEGContextAdapter, checkpoint_path: str
         raise ValueError(f"Unsupported adapter checkpoint payload in {checkpoint_path}")
     adapter.load_state_dict(state_dict)
     log_for_0(f"Initialized MEG adapter from {checkpoint_path}")
+
+
+def load_e2e_initialization(model: torch.nn.Module, adapter: torch.nn.Module, checkpoint_path: str, device: torch.device) -> None:
+    ckpt = torch.load(checkpoint_path, map_location=device)
+    if not isinstance(ckpt, dict):
+        raise ValueError(f"Unsupported e2e checkpoint payload in {checkpoint_path}: {type(ckpt).__name__}")
+
+    loaded = []
+    if "model_state_dict" in ckpt:
+        model.load_state_dict(ckpt["model_state_dict"])
+        loaded.append("model_state_dict")
+    if "adapter_state_dict" in ckpt:
+        adapter.load_state_dict(ckpt["adapter_state_dict"])
+        loaded.append("adapter_state_dict")
+    if not loaded:
+        raise ValueError(
+            f"E2E checkpoint {checkpoint_path} has neither model_state_dict nor adapter_state_dict. "
+            f"Available keys: {sorted(ckpt.keys())}"
+        )
+    log_for_0(f"Initialized e2e state from {checkpoint_path}: {', '.join(loaded)}")
 
 
 def set_module_trainable(module: torch.nn.Module, trainable: bool) -> None:
@@ -893,6 +922,8 @@ def main() -> None:
         log_for_0(f"MEG2SEM adapter summary: {json.dumps(adapter_summary, sort_keys=True)}")
     else:
         raise ValueError(f"Unsupported adapter_kind={args.adapter_kind!r}")
+    if args.init_e2e_checkpoint:
+        load_e2e_initialization(model, adapter, args.init_e2e_checkpoint, device)
     log_for_0(f"Trainable adapter parameters: {sum(p.numel() for p in adapter.parameters() if p.requires_grad):,}")
 
     teacher_adapter = None
