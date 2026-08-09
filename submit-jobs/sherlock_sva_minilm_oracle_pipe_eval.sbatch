@@ -43,6 +43,16 @@ export WANDB_RUN_NAME=${WANDB_RUN_NAME:-$RUN_TAG}
 export WANDB_DIR=${WANDB_DIR:-$DATA_ROOT/wandb}
 export WANDB_DATA_DIR=${WANDB_DATA_DIR:-$DATA_ROOT/wandb-data}
 export WANDB_CACHE_DIR=${WANDB_CACHE_DIR:-$DATA_ROOT/wandb-cache}
+export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$DATA_ROOT/xdg-cache}
+export HF_HOME=${HF_HOME:-$DATA_ROOT/huggingface}
+export HF_HUB_CACHE=${HF_HUB_CACHE:-$HF_HOME/hub}
+export HF_DATASETS_CACHE=${HF_DATASETS_CACHE:-$HF_HOME/datasets}
+export TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE:-$HF_HOME/transformers}
+export TORCH_HOME=${TORCH_HOME:-$DATA_ROOT/torch}
+export PIP_CACHE_DIR=${PIP_CACHE_DIR:-$DATA_ROOT/pip-cache}
+export CONDA_PKGS_DIRS=${CONDA_PKGS_DIRS:-$DATA_ROOT/conda-pkgs}
+export TOKENIZERS_PARALLELISM=${TOKENIZERS_PARALLELISM:-false}
+export PYTHONNOUSERSITE=${PYTHONNOUSERSITE:-1}
 export TMPDIR=${TMPDIR:-$DATA_ROOT/tmp}
 
 echo "Running Sherlock MiniLM oracle pipe eval"
@@ -52,8 +62,9 @@ echo "ELF_CHECKPOINT=$ELF_CHECKPOINT"
 echo "INIT_E2E_CHECKPOINT=$INIT_E2E_CHECKPOINT"
 echo "OUTPUT_DIR=$OUTPUT_DIR"
 echo "NUM_SAMPLING_STEPS=$NUM_SAMPLING_STEPS"
+echo "PYTHON_BIN=${PYTHON_BIN:-}"
 
-bash "$PROJECT_ROOT/scripts/arc_run_npz_semantic_to_elf.sh" \
+common_args=(
   --input-key "$INPUT_KEY" \
   --checkpoint_path "$ELF_CHECKPOINT" \
   --init-e2e-checkpoint "$INIT_E2E_CHECKPOINT" \
@@ -77,3 +88,20 @@ bash "$PROJECT_ROOT/scripts/arc_run_npz_semantic_to_elf.sh" \
   --seed 7 \
   --wandb_sample_examples 16 \
   --wandb_notes "Oracle diagnostic: feed true Sherlock MiniLM vectors directly into the MiniLM->ELF projector, bypassing MEG, to measure whether brain/e2e updates preserve or warp the normal semantic interface."
+)
+
+if [[ -n "${PYTHON_BIN:-}" ]]; then
+  mkdir -p "$OUTPUT_DIR" "$WANDB_DIR" "$WANDB_DATA_DIR" "$WANDB_CACHE_DIR" "$TMPDIR"
+  cd "$PROJECT_ROOT"
+  "$PYTHON_BIN" scripts/train_npz_semantic_to_elf.py \
+    --npz-path "$NPZ_PATH" \
+    --use_wandb \
+    --wandb_project "$WANDB_PROJECT" \
+    --wandb_entity "$WANDB_ENTITY" \
+    --wandb_group "$WANDB_RUN_GROUP" \
+    --wandb_run_name "$WANDB_RUN_NAME" \
+    --output_dir "$OUTPUT_DIR" \
+    "${common_args[@]}"
+else
+  bash "$PROJECT_ROOT/scripts/arc_run_npz_semantic_to_elf.sh" "${common_args[@]}"
+fi
