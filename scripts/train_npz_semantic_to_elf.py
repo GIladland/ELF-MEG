@@ -29,6 +29,7 @@ from scripts.meg_context_overfit import (
     SemanticVectorContextProjector,
     build_config,
     encode_text_batched,
+    eval_checkpoint_scores,
     evaluate_generation,
     evaluate_retrieval,
     format_overlap_counts,
@@ -134,6 +135,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--freeze-elf", action="store_true")
+    parser.add_argument("--eval-only", action="store_true", help="Run one retrieval/generation eval pass and exit.")
+    parser.add_argument(
+        "--init-e2e-checkpoint",
+        default="",
+        help=(
+            "Optional checkpoint containing model_state_dict and/or adapter_state_dict. "
+            "For MEG2SEM e2e checkpoints, semantic_projector.* keys are stripped before "
+            "loading into the semantic-only projector."
+        ),
+    )
     parser.add_argument("--last_n_blocks", type=int, default=1)
     parser.add_argument("--generation-t5-retrieval", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
@@ -166,6 +177,60 @@ def resolve_device(device_arg: str) -> torch.device:
     if device_arg == "cuda" and not torch.cuda.is_available():
         return torch.device("cpu")
     return torch.device(device_arg)
+
+
+def load_e2e_initialization(
+    model: torch.nn.Module,
+    adapter: SemanticVectorContextProjector,
+    checkpoint_path: str,
+    device: torch.device,
+) -> dict[str, object]:
+    ckpt = torch.load(checkpoint_path, map_location="cpu")
+    if not isinstance(ckpt, dict):
+        raise ValueError(f"Unsupported checkpoint payload in {checkpoint_path}: {type(ckpt).__name__}")
+
+    loaded: list[str] = []
+    if "model_state_dict" in ckpt:
+        model.load_state_dict(ckpt["model_state_dict"])
+        loaded.append("model_state_dict")
+    elif "params" in ckpt:
+        model.load_state_dict(ckpt["params"])
+        loaded.append("params")
+
+    adapter_state = ckpt.get("adapter_state_dict")
+    if adapter_state is None:
+        # Accept bare adapter state dicts for quick local probes.
+        adapter_keys = set(adapter.state_dict().keys())
+        if adapter_keys and adapter_keys <= set(ckpt.keys()):
+            adapter_state = ckpt
+
+    if adapter_state is not None:
+        adapter_state = dict(adapter_state)
+        direct_keys = set(adapter.state_dict().keys())
+        if not (direct_keys & set(adapter_state.keys())):
+            prefix = "semantic_projector."
+            stripped = {
+                key[len(prefix):]: value
+                for key, value in adapter_state.items()
+                if key.startswith(prefix)
+            }
+            if stripped:
+                adapter_state = stripped
+        missing, unexpected = adapter.load_state_dict(adapter_state, strict=False)
+        if missing or unexpected:
+            raise ValueError(
+                f"Could not strictly load semantic projector from {checkpoint_path}: "
+                f"missing={missing} unexpected={unexpected}"
+            )
+        loaded.append("adapter_state_dict")
+
+    if not loaded:
+        raise ValueError(
+            f"Checkpoint {checkpoint_path} has neither loadable model nor adapter state. "
+            f"Available keys: {sorted(ckpt.keys())}"
+        )
+    logger.info("Initialized semantic oracle state from %s: %s", checkpoint_path, ", ".join(loaded))
+    return {"checkpoint": checkpoint_path, "loaded": loaded}
 
 
 def cache_meta_path(cache_path: Path) -> Path:
@@ -337,6 +402,14 @@ def main() -> None:
         hidden_dim=args.semantic_hidden_dim,
         dropout=args.adapter_dropout,
     ).to(device)
+    init_summary = None
+    if args.init_e2e_checkpoint:
+        init_summary = load_e2e_initialization(model, adapter, args.init_e2e_checkpoint, device)
+    if args.eval_only:
+        for param in model.parameters():
+            param.requires_grad_(False)
+        for param in adapter.parameters():
+            param.requires_grad_(False)
     logger.info("Trainable adapter parameters: %d", sum(p.numel() for p in adapter.parameters() if p.requires_grad))
 
     target_latents: torch.Tensor | np.memmap | None
@@ -408,8 +481,6 @@ def main() -> None:
     meg_lengths = torch.ones((total_n,), dtype=torch.long)
     subject_ids = torch.zeros((total_n,), dtype=torch.long)
 
-    params = [p for p in model.parameters() if p.requires_grad] + list(adapter.parameters())
-    optimizer = torch.optim.AdamW(params, lr=args.lr, weight_decay=args.weight_decay)
     noise_generator = torch.Generator(device=device.type if device.type == "cuda" else "cpu").manual_seed(args.seed + 17)
     order_generator = torch.Generator().manual_seed(args.seed + 29)
     sampling_config = SamplingConfig(
@@ -430,6 +501,7 @@ def main() -> None:
                 "num_val_examples": val_n,
                 "eval_split": eval_split,
                 "train_target_mask_density": train_target_mask_density,
+                "init_e2e_summary": init_summary,
             },
             f,
             indent=2,
@@ -476,6 +548,117 @@ def main() -> None:
     eval_target_latents = get_target_latents(eval_indices)
     retrieval_target_latents = get_target_latents(retrieval_indices) if retrieval_n > 0 else eval_target_latents
     best_score = None
+
+    if args.eval_only:
+        epoch = 0.0
+        if retrieval_n > 0:
+            retrieval_metrics = evaluate_retrieval(
+                model=model,
+                adapter=adapter,
+                meg=meg.index_select(0, retrieval_indices),
+                meg_lengths=meg_lengths.index_select(0, retrieval_indices),
+                semantic_vectors=semantic_vectors.index_select(0, retrieval_indices),
+                subject_ids=subject_ids.index_select(0, retrieval_indices),
+                target_latents=retrieval_target_latents,
+                target_ids=target_ids.index_select(0, retrieval_indices),
+                target_mask=target_mask.index_select(0, retrieval_indices),
+                target_sentences=select_strings(sentences, retrieval_indices),
+                config=config,
+                device=device,
+                condition_source="semantic",
+                retrieval_batch_size=args.retrieval_batch_size,
+                retrieval_t=args.retrieval_t,
+            )
+            retrieval_metrics["step"] = 0
+            retrieval_metrics["epoch"] = epoch
+            retrieval_metrics["split"] = eval_split
+            retrieval_metrics["num_train_examples"] = train_n
+            retrieval_metrics["num_eval_examples"] = retrieval_n
+            with (output_dir / "retrieval_step_000000.json").open("w", encoding="utf-8") as f:
+                json.dump(retrieval_metrics, f, ensure_ascii=False, indent=2)
+            logger.info(
+                "eval-only retrieval combined_top1=%.3f combined_top5=%.3f mean_rank=%.2f",
+                retrieval_metrics["combined"]["top1"],
+                retrieval_metrics["combined"]["top5"],
+                retrieval_metrics["combined"]["mean_rank"],
+            )
+
+        eval_metrics = evaluate_generation(
+            model=model,
+            adapter=adapter,
+            meg=meg.index_select(0, eval_indices),
+            meg_lengths=meg_lengths.index_select(0, eval_indices),
+            semantic_vectors=semantic_vectors.index_select(0, eval_indices),
+            subject_ids=subject_ids.index_select(0, eval_indices),
+            tokenizer=tokenizer,
+            encoder=encoder if args.generation_t5_retrieval else None,
+            target_sentences=select_strings(sentences, eval_indices),
+            target_latents=eval_target_latents if args.generation_t5_retrieval else None,
+            target_mask=target_mask.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
+            target_length=target_length,
+            context_length=args.context_length,
+            config=config,
+            sampling_config=sampling_config,
+            device=device,
+            generator=noise_generator,
+            condition_source="semantic",
+        )
+        eval_metrics["step"] = 0
+        eval_metrics["epoch"] = epoch
+        eval_metrics["split"] = eval_split
+        eval_metrics["num_train_examples"] = train_n
+        eval_metrics["num_eval_examples"] = eval_n
+        eval_metrics["eval_num_examples"] = eval_n
+        eval_metrics["eval_checkpoint_scores"] = eval_checkpoint_scores(eval_metrics)
+        with (output_dir / "eval_step_000000.json").open("w", encoding="utf-8") as f:
+            json.dump(eval_metrics, f, ensure_ascii=False, indent=2)
+        with (output_dir / "best_metrics.json").open("w", encoding="utf-8") as f:
+            json.dump(eval_metrics, f, ensure_ascii=False, indent=2)
+
+        quality = eval_metrics.get("generation_quality", {})
+        retrieval = eval_metrics.get("generation_t5_retrieval", {})
+        logger.info(
+            "eval-only exact=%.3f well_structured=%.3f words_overlap=%.3f "
+            "content_words_overlap=%.3f gen_t5_top5=%s",
+            eval_metrics["exact_match"],
+            quality.get("well_structured_sentence", float("nan")),
+            quality.get("words_overlap", float("nan")),
+            quality.get("content_words_overlap", float("nan")),
+            retrieval.get("top5"),
+        )
+        for idx in range(min(5, eval_n)):
+            logger.info("[%d] target=%r generated=%r", idx, eval_metrics["targets"][idx], eval_metrics["generated"][idx])
+        if run is not None:
+            payload = {
+                "eval/exact_match": eval_metrics["exact_match"],
+                "eval/epoch": epoch,
+            }
+            if retrieval:
+                payload.update(
+                    {
+                        "generation_t5_retrieval/top1": retrieval["top1"],
+                        "generation_t5_retrieval/top5": retrieval["top5"],
+                        "generation_t5_retrieval/mean_rank": retrieval["mean_rank"],
+                        "generation_t5_retrieval/median_rank": retrieval["median_rank"],
+                    }
+                )
+            payload.update(
+                {
+                    f"generation_quality/{key}": value
+                    for key, value in quality.items()
+                    if isinstance(value, (int, float))
+                }
+            )
+            wandb.log(payload, step=0)
+            run.summary["best_score"] = retrieval.get("top1", eval_metrics["exact_match"]) if retrieval else eval_metrics["exact_match"]
+            run.finish()
+        logger.info("Finished eval-only pass.")
+        return
+
+    params = [p for p in model.parameters() if p.requires_grad] + [p for p in adapter.parameters() if p.requires_grad]
+    if not params:
+        raise ValueError("No trainable parameters. Use --eval-only for frozen evaluation.")
+    optimizer = torch.optim.AdamW(params, lr=args.lr, weight_decay=args.weight_decay)
 
     for step in range(1, args.steps + 1):
         epoch = step * args.batch_size / max(1, train_n)
