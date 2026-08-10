@@ -20,6 +20,7 @@ ADA_NPZ=${ADA_NPZ:-$SHERLOCK_DIR/${ORACLE_TAG}_combined_ada002_seed7.npz}
 ADA_MODEL=${ADA_MODEL:-text-embedding-ada-002}
 ADA_BATCH_SIZE=${ADA_BATCH_SIZE:-128}
 PYTHON_BIN=${PYTHON_BIN:-/data/engs-pnpl/glandau/BrainDiffusion/elf-env/bin/python}
+OPENAI_API_KEY_FILE=${OPENAI_API_KEY_FILE:-/data/engs-pnpl/glandau/BrainDiffusion/secrets/openai_api_key}
 
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$DATA_ROOT/xdg-cache}"
 export HF_HOME="${HF_HOME:-$DATA_ROOT/huggingface}"
@@ -46,8 +47,12 @@ if [[ ! -f "$SOURCE_NPZ" ]]; then
   echo "Missing source MiniLM oracle NPZ: $SOURCE_NPZ" >&2
   exit 1
 fi
+if [[ -z "${OPENAI_API_KEY:-}" && -f "$OPENAI_API_KEY_FILE" ]]; then
+  export OPENAI_API_KEY
+  OPENAI_API_KEY="$(tr -d '\r\n' < "$OPENAI_API_KEY_FILE")"
+fi
 if [[ ! -f "$ADA_NPZ" && -z "${OPENAI_API_KEY:-}" ]]; then
-  echo "Missing OPENAI_API_KEY; needed to create $ADA_NPZ" >&2
+  echo "Missing OPENAI_API_KEY; set it directly or provide OPENAI_API_KEY_FILE=$OPENAI_API_KEY_FILE" >&2
   exit 2
 fi
 
@@ -56,6 +61,11 @@ echo "SOURCE_NPZ=$SOURCE_NPZ"
 echo "ADA_NPZ=$ADA_NPZ"
 echo "ADA_MODEL=$ADA_MODEL"
 echo "PYTHON_BIN=$PYTHON_BIN"
+if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+  echo "OPENAI_API_KEY=present"
+else
+  echo "OPENAI_API_KEY=not-needed-existing-output"
+fi
 
 "$PYTHON_BIN" scripts/reembed_semantic_npz_openai.py \
   --input-npz "$SOURCE_NPZ" \
