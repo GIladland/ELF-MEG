@@ -23,6 +23,7 @@ ADA_ELF_CHECKPOINT=${ADA_ELF_CHECKPOINT:-/data/engs-pnpl/glandau/elf-runs/sherlo
 ELF_CHECKPOINT=${ELF_CHECKPOINT:-$ADA_ELF_CHECKPOINT}
 SEMANTIC_PROJECTOR_CHECKPOINT=${SEMANTIC_PROJECTOR_CHECKPOINT:-$ADA_ELF_CHECKPOINT}
 MEG2SEM_CHECKPOINT=${MEG2SEM_CHECKPOINT:-/data/engs-pnpl/glandau/MEG2SEM/MEG2SEM/wandb/62l6izf0/checkpoints/sherlock_sva_ada002_seg6000_raw_siglip_ctr_w5_cosloss0_lr3e4_do0_bs45_seed58_r1-epoch=33-val_loss=20.88.ckpt}
+INIT_E2E_CHECKPOINT=${INIT_E2E_CHECKPOINT:-}
 OUTPUT_DIR=${OUTPUT_DIR:-/data/engs-pnpl/glandau/elf-runs/$RUN_TAG}
 
 EVAL_ONLY=${EVAL_ONLY:-1}
@@ -88,6 +89,7 @@ echo "VAL_NPZ=$VAL_NPZ"
 echo "MEG2SEM_CHECKPOINT=$MEG2SEM_CHECKPOINT"
 echo "ELF_CHECKPOINT=$ELF_CHECKPOINT"
 echo "SEMANTIC_PROJECTOR_CHECKPOINT=$SEMANTIC_PROJECTOR_CHECKPOINT"
+echo "INIT_E2E_CHECKPOINT=$INIT_E2E_CHECKPOINT"
 echo "OUTPUT_DIR=$OUTPUT_DIR"
 echo "MEG2SEM_OUTPUT_NORMALIZATION=$MEG2SEM_OUTPUT_NORMALIZATION"
 echo "EVAL_ONLY=$EVAL_ONLY TRAIN_MEG2SEM=$TRAIN_MEG2SEM TRAIN_SEMANTIC_PROJECTOR=$TRAIN_SEMANTIC_PROJECTOR UNFREEZE_ELF=$UNFREEZE_ELF"
@@ -144,6 +146,10 @@ args=(
   --wandb_sample_examples 16
   --wandb_notes "Direct bridge: MEG2SEM run 62l6izf0 predicts 1536-d text-embedding-ada-002 vectors from segment6000 raw SVA MEG, then routes through the ADA oracle semantic projector and ELF checkpoint. First pass is eval-only by default on packed Sherlock12 SVA val."
 )
+
+if [[ -n "$INIT_E2E_CHECKPOINT" ]]; then
+  args+=(--init-e2e-checkpoint "$INIT_E2E_CHECKPOINT")
+fi
 
 if [[ "$EVAL_ONLY" == "1" ]]; then
   args+=(--eval-only)
