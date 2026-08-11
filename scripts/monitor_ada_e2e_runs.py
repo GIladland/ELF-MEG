@@ -16,43 +16,28 @@ from dataclasses import dataclass
 
 DEFAULT_RUNS = [
     (
-        "best_so_far_9kf5_freeze_adapter_train_elf",
-        "/data/engs-pnpl/glandau/elf-runs/"
-        "sherlock_sva_meg2sem_ada002_seg8000_9kf8gygo_epoch05_freeze_adapter_train_elf_normoracle_short3h",
-    ),
-    (
-        "kbre17_full_e2e_stopped",
+        "e2e_kbre17_original",
         "/data/engs-pnpl/glandau/elf-runs/sherlock_sva_meg2sem_ada002_seg8000_kbre5zbn_epoch17_full_e2e",
     ),
     (
-        "projector_only_stopped",
-        "/data/engs-pnpl/glandau/elf-runs/"
-        "sherlock_sva_meg2sem_ada002_seg8000_9kf8gygo_epoch05_freeze_elf_train_projector_only_normoracle_l40s_3h",
-    ),
-    (
-        "safegpu_align_full_adapter",
-        "/data/engs-pnpl/glandau/elf-runs/"
-        "sherlock_sva_meg2sem_ada002_seg8000_9kf8gygo_epoch05_freeze_elf_train_full_adapter_align05_normoracle_safegpu_3h",
-    ),
-    (
-        "safegpu_align_full_e2e",
+        "e2e_9kf5_align025_safegpu",
         "/data/engs-pnpl/glandau/elf-runs/"
         "sherlock_sva_meg2sem_ada002_seg8000_9kf8gygo_epoch05_full_e2e_align025_normoracle_safegpu_3h",
     ),
     (
-        "safegpu_eval_gen64",
+        "e2e_kbre_resume12350_align025_drop005_lowlr",
         "/data/engs-pnpl/glandau/elf-runs/"
-        "sherlock_sva_meg2sem_ada002_9kf5_freeze_adapter_step4500_eval_gen64_oracle_safegpu",
+        "sherlock_sva_meg2sem_ada002_seg8000_kbre5zbn_epoch17_resume12350_full_e2e_align025_drop005_lowlr_safegpu_3h",
     ),
     (
-        "safegpu_align_m2s_only",
+        "e2e_kbre_resume6200_align025_drop005_lowlr",
         "/data/engs-pnpl/glandau/elf-runs/"
-        "sherlock_sva_meg2sem_ada002_seg8000_9kf8gygo_epoch05_freeze_elf_train_meg2sem_only_align05_normoracle_safegpu_3h",
+        "sherlock_sva_meg2sem_ada002_seg8000_kbre5zbn_epoch17_resume6200_full_e2e_align025_drop005_lowlr_safegpu_3h",
     ),
     (
-        "safegpu_eval_gen128",
+        "e2e_kbre_fresh_align01_drop005_dec2",
         "/data/engs-pnpl/glandau/elf-runs/"
-        "sherlock_sva_meg2sem_ada002_9kf5_freeze_adapter_step4500_eval_gen128_oracle_safegpu",
+        "sherlock_sva_meg2sem_ada002_seg8000_kbre5zbn_epoch17_fresh_full_e2e_align01_drop005_dec2_safegpu_3h",
     ),
 ]
 

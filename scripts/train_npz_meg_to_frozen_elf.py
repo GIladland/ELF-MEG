@@ -249,6 +249,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--decoder_loss_weight", type=float, default=1.0)
     parser.add_argument("--decoder_noise_scale", type=float, default=2.5)
     parser.add_argument(
+        "--elf-attn-dropout",
+        type=float,
+        default=0.0,
+        help="Attention dropout value passed into ELF blocks during E2E training.",
+    )
+    parser.add_argument(
+        "--elf-proj-dropout",
+        type=float,
+        default=0.0,
+        help="Projection/MLP dropout value passed into ELF blocks during E2E training.",
+    )
+    parser.add_argument(
         "--train-target-mask-mode",
         choices=["valid", "full"],
         default="full",

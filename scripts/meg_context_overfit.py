@@ -308,6 +308,8 @@ def build_config(args: argparse.Namespace, max_length: int) -> Config:
     config.output_dir = args.output_dir
     config.denoiser_loss_weight = args.denoiser_loss_weight
     config.decoder_loss_weight = args.decoder_loss_weight
+    config.attn_dropout = float(getattr(args, "elf_attn_dropout", 0.0))
+    config.proj_dropout = float(getattr(args, "elf_proj_dropout", 0.0))
     return config
 
 
@@ -656,8 +658,8 @@ def load_pretrained_model(
     model = ELF_models[config.model](
         text_encoder_dim=encoder_dim,
         max_length=config.max_length,
-        attn_drop=0.0,
-        proj_drop=0.0,
+        attn_drop=float(getattr(config, "attn_dropout", 0.0)),
+        proj_drop=float(getattr(config, "proj_dropout", 0.0)),
         num_time_tokens=config.num_time_tokens,
         num_self_cond_cfg_tokens=config.num_self_cond_cfg_tokens,
         num_model_mode_tokens=config.num_model_mode_tokens,
