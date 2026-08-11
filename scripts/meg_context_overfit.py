@@ -943,6 +943,8 @@ def train_step(
     cond_dropout_prob: float,
     train_timestep_mode: str,
     train_timestep_steps: int,
+    semantic_alignment_loss_weight: float = 0.0,
+    semantic_alignment_loss_type: str = "cosine",
 ) -> dict[str, float]:
     model.train()
     adapter.train()
@@ -956,10 +958,14 @@ def train_step(
     target_token_mask = batch.target_mask.to(device=device, dtype=torch.float32)
 
     def build_conditioned_x0():
+        predicted_semantic = None
         if condition_source == "meg":
             adapter_output = adapter(meg, meg_lengths=meg_lengths, subjects=subject_ids)
             context = adapter_output.context
             cond_seq_mask = adapter_output.context_mask.to(dtype=context.dtype)
+            encoded_sequence = getattr(adapter_output, "encoded_sequence", None)
+            if encoded_sequence is not None and encoded_sequence.ndim == 3 and encoded_sequence.shape[1] == 1:
+                predicted_semantic = encoded_sequence[:, 0, :]
         elif condition_source == "semantic":
             context, cond_seq_mask = adapter(semantic_vectors)
         else:
@@ -984,13 +990,13 @@ def train_step(
         attention_mask = torch.cat([cond_seq_mask[:, : context.shape[1]], target_valid_mask], dim=1)
         target_loss_mask = torch.cat([torch.zeros_like(cond_seq_mask[:, : context.shape[1]]), target_valid_mask], dim=1)
         sc_scale = torch.ones((x0.shape[0],), dtype=x0.dtype, device=device)
-        return context, x0, cond_seq_mask, attention_mask, sc_scale, target_loss_mask
+        return context, x0, cond_seq_mask, attention_mask, sc_scale, target_loss_mask, predicted_semantic
 
     optimizer.zero_grad(set_to_none=True)
     use_bf16 = bool(config.use_bf16) and device.type == "cuda"
 
     def denoiser_loss_for_t(t: torch.Tensor) -> torch.Tensor:
-        _, x0, cond_seq_mask, attention_mask, sc_scale, target_loss_mask = build_conditioned_x0()
+        _, x0, cond_seq_mask, attention_mask, sc_scale, target_loss_mask, _ = build_conditioned_x0()
         noise = torch.randn(x0.shape, generator=noise_generator, device=device, dtype=x0.dtype)
         z = add_noise(x0, noise, t, config, cond_seq_mask=cond_seq_mask.unsqueeze(-1))
         pred, _ = model(
@@ -1072,7 +1078,9 @@ def train_step(
         denoiser_loss_value += float(denoiser_loss.detach().cpu()) / len(t_values)
 
     with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_bf16):
-        context, x0, cond_seq_mask, attention_mask, sc_scale, _target_loss_mask = build_conditioned_x0()
+        context, x0, cond_seq_mask, attention_mask, sc_scale, _target_loss_mask, predicted_semantic = (
+            build_conditioned_x0()
+        )
         decoder_lambda = torch.sigmoid(
             torch.randn(x0.shape[:2], generator=noise_generator, device=device, dtype=x0.dtype)
             * config.decoder_p_std + config.decoder_p_mean
@@ -1104,15 +1112,51 @@ def train_step(
         )
         decoder_loss = (ce_per_token * target_token_mask).sum() / target_token_mask.sum().clamp_min(1.0)
         scaled_decoder_loss = config.decoder_loss_weight * decoder_loss
-    scaled_decoder_loss.backward()
+        semantic_alignment_loss = None
+        semantic_alignment_cosine = None
+        scaled_semantic_alignment_loss = x0.new_tensor(0.0)
+        if semantic_alignment_loss_weight > 0.0:
+            if predicted_semantic is None:
+                raise ValueError("Semantic alignment loss requires an adapter with one semantic encoded token.")
+            target_semantic = semantic_vectors
+            if bool(getattr(adapter, "normalize_semantic_output", False)):
+                target_semantic = F.normalize(target_semantic.float(), p=2, dim=-1)
+            if tuple(predicted_semantic.shape) != tuple(target_semantic.shape):
+                raise ValueError(
+                    "Semantic alignment shape mismatch: "
+                    f"predicted={tuple(predicted_semantic.shape)} target={tuple(target_semantic.shape)}"
+                )
+            pred_semantic = predicted_semantic.float()
+            target_semantic = target_semantic.float()
+            semantic_alignment_cosine = F.cosine_similarity(pred_semantic, target_semantic, dim=-1)
+            if semantic_alignment_loss_type == "cosine":
+                semantic_alignment_loss = 1.0 - semantic_alignment_cosine.mean()
+            elif semantic_alignment_loss_type == "mse":
+                semantic_alignment_loss = F.mse_loss(pred_semantic, target_semantic)
+            else:
+                raise ValueError(f"Unsupported semantic_alignment_loss_type={semantic_alignment_loss_type!r}")
+            scaled_semantic_alignment_loss = semantic_alignment_loss_weight * semantic_alignment_loss
+        scaled_decoder_objective = scaled_decoder_loss + scaled_semantic_alignment_loss
+    scaled_decoder_objective.backward()
 
     grad_metrics = optimizer_grad_metrics(optimizer)
     optimizer.step()
-    loss_value = config.denoiser_loss_weight * denoiser_loss_value + float(scaled_decoder_loss.detach().cpu())
+    loss_value = (
+        config.denoiser_loss_weight * denoiser_loss_value
+        + float(scaled_decoder_loss.detach().cpu())
+        + float(scaled_semantic_alignment_loss.detach().cpu())
+    )
     metrics = {
         "loss": loss_value,
         "denoiser_loss": denoiser_loss_value,
         "decoder_loss": float(decoder_loss.detach().cpu()),
+        "semantic_alignment_loss": (
+            float(semantic_alignment_loss.detach().cpu()) if semantic_alignment_loss is not None else 0.0
+        ),
+        "semantic_alignment_loss_scaled": float(scaled_semantic_alignment_loss.detach().cpu()),
+        "semantic_alignment_cosine": (
+            float(semantic_alignment_cosine.mean().detach().cpu()) if semantic_alignment_cosine is not None else 0.0
+        ),
     }
     metrics.update(grad_metrics)
     return metrics

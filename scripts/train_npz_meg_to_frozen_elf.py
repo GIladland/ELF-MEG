@@ -275,6 +275,21 @@ def parse_args() -> argparse.Namespace:
             "is drifting while the brain-conditioned path trains."
         ),
     )
+    parser.add_argument(
+        "--semantic-alignment-loss-weight",
+        type=float,
+        default=0.0,
+        help=(
+            "For --adapter-kind meg2sem_projector, add this weighted loss between the "
+            "MEG2SEM-predicted semantic vector and the cached target semantic vector."
+        ),
+    )
+    parser.add_argument(
+        "--semantic-alignment-loss-type",
+        choices=["cosine", "mse"],
+        default="cosine",
+        help="Loss used by --semantic-alignment-loss-weight.",
+    )
     parser.add_argument("--save-eval-checkpoints", action="store_true")
     parser.add_argument("--eval-checkpoint-top-k", type=int, default=3)
     parser.add_argument("--eval-checkpoint-every", type=int, default=0)
@@ -967,6 +982,8 @@ def add_oracle_ada_wandb_metrics(payload: dict[str, object], oracle_metrics: dic
 
 def main() -> None:
     args = parse_args()
+    if args.semantic_alignment_loss_weight > 0.0 and args.adapter_kind != "meg2sem_projector":
+        raise ValueError("--semantic-alignment-loss-weight is only supported with --adapter-kind meg2sem_projector.")
     set_seed(args.seed)
     device = resolve_device(args.device)
     output_dir = Path(args.output_dir)
@@ -1442,6 +1459,8 @@ def main() -> None:
                 cond_dropout_prob=args.cond_dropout_prob,
                 train_timestep_mode=args.train_timestep_mode,
                 train_timestep_steps=args.train_timestep_steps,
+                semantic_alignment_loss_weight=args.semantic_alignment_loss_weight,
+                semantic_alignment_loss_type=args.semantic_alignment_loss_type,
             )
 
         run_interface_monitor = args.interface_monitor_every > 0 and (
@@ -1474,6 +1493,12 @@ def main() -> None:
                     f" sem_cos={metrics['interface_semantic_cosine']:.3f} "
                     f"ctx_cos={metrics['interface_context_cosine']:.3f}"
                     if "interface_semantic_cosine" in metrics
+                    else ""
+                )
+                + (
+                    f" sem_align={metrics['semantic_alignment_loss']:.6f} "
+                    f"sem_align_cos={metrics['semantic_alignment_cosine']:.3f}"
+                    if args.semantic_alignment_loss_weight > 0.0
                     else ""
                 )
             )
