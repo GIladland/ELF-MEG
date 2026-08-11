@@ -266,6 +266,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--disable-temporal-attention", action="store_true")
     parser.add_argument("--norm-type", choices=["batch", "layer"], default="batch")
     parser.add_argument("--generation-t5-retrieval", action="store_true")
+    parser.add_argument(
+        "--oracle-semantic-eval",
+        action="store_true",
+        help=(
+            "During MEG2SEM->ELF eval, also condition ELF on the true semantic vectors "
+            "through the ADA projector. This monitors whether the vanilla ADA->text path "
+            "is drifting while the brain-conditioned path trains."
+        ),
+    )
     parser.add_argument("--save-eval-checkpoints", action="store_true")
     parser.add_argument("--eval-checkpoint-top-k", type=int, default=3)
     parser.add_argument("--eval-checkpoint-every", type=int, default=0)
@@ -496,7 +505,7 @@ def maybe_init_wandb(args: argparse.Namespace, config, *, train_n: int, eval_n: 
             "num_eval_examples_available": eval_n,
             "subject_count": subject_count,
             "max_length": config.max_length,
-            "frozen_elf": True,
+            "frozen_elf": not bool(args.unfreeze_elf),
         },
     )
     wandb.define_metric("train/epoch")
@@ -508,6 +517,11 @@ def maybe_init_wandb(args: argparse.Namespace, config, *, train_n: int, eval_n: 
     wandb.define_metric("generation_t5_retrieval/*", step_metric="eval/epoch")
     wandb.define_metric("generation_quality/*", step_metric="eval/epoch")
     wandb.define_metric("meg2sem_interface/*", step_metric="eval/epoch")
+    wandb.define_metric("oracle_ada/*", step_metric="eval/epoch")
+    wandb.define_metric("oracle_ada_generation_quality/*", step_metric="eval/epoch")
+    wandb.define_metric("oracle_ada_generation_t5_retrieval/*", step_metric="eval/epoch")
+    wandb.define_metric("oracle_ada_retrieval/*", step_metric="eval/epoch")
+    wandb.define_metric("oracle_ada_gap/*", step_metric="eval/epoch")
     return run
 
 
@@ -809,6 +823,148 @@ def evaluate_teacher_context(
     return teacher_context_metrics(predicted, target_context)
 
 
+def clone_generator(generator: torch.Generator, device: torch.device) -> torch.Generator:
+    cloned = torch.Generator(device=device.type if device.type == "cuda" else "cpu")
+    cloned.set_state(generator.get_state())
+    return cloned
+
+
+def oracle_ada_gaps(meg_metrics: dict, oracle_metrics: dict) -> dict[str, float]:
+    meg_quality = meg_metrics.get("generation_quality") or {}
+    oracle_quality = oracle_metrics.get("generation_quality") or {}
+    meg_retrieval = meg_metrics.get("generation_t5_retrieval") or {}
+    oracle_retrieval = oracle_metrics.get("generation_t5_retrieval") or {}
+    gaps: dict[str, float] = {
+        "exact_match": float(oracle_metrics.get("exact_match") or 0.0)
+        - float(meg_metrics.get("exact_match") or 0.0),
+    }
+    for key in ("words_overlap", "content_words_overlap", "well_structured_sentence"):
+        if key in oracle_quality and key in meg_quality:
+            gaps[key] = float(oracle_quality[key]) - float(meg_quality[key])
+    for key in ("top1", "top5"):
+        if key in oracle_retrieval and key in meg_retrieval:
+            gaps[f"generation_t5_{key}"] = float(oracle_retrieval[key]) - float(meg_retrieval[key])
+    if "mean_rank" in oracle_retrieval and "mean_rank" in meg_retrieval:
+        gaps["generation_t5_mean_rank_improvement"] = float(meg_retrieval["mean_rank"]) - float(
+            oracle_retrieval["mean_rank"]
+        )
+    return gaps
+
+
+def maybe_evaluate_oracle_ada(
+    *,
+    args: argparse.Namespace,
+    model: torch.nn.Module,
+    adapter: torch.nn.Module,
+    meg: torch.Tensor,
+    meg_lengths: torch.Tensor,
+    semantic_vectors: torch.Tensor,
+    subject_ids: torch.Tensor,
+    tokenizer,
+    encoder: torch.nn.Module | None,
+    target_sentences: list[str],
+    target_latents: torch.Tensor | None,
+    target_ids: torch.Tensor | None,
+    target_mask: torch.Tensor | None,
+    target_length: int,
+    config,
+    sampling_config,
+    device: torch.device,
+    generator: torch.Generator,
+    meg_metrics: dict,
+    retrieval_batch_size: int,
+    retrieval_t: float,
+) -> dict | None:
+    if not args.oracle_semantic_eval:
+        return None
+    semantic_projector = getattr(adapter, "semantic_projector", None)
+    if semantic_projector is None:
+        return None
+    semantic_projector_input = semantic_vectors
+    if bool(getattr(adapter, "normalize_semantic_output", False)):
+        semantic_projector_input = F.normalize(semantic_projector_input.float(), p=2, dim=-1)
+
+    oracle_metrics = evaluate_generation(
+        model=model,
+        adapter=semantic_projector,
+        meg=meg,
+        meg_lengths=meg_lengths,
+        semantic_vectors=semantic_projector_input,
+        subject_ids=subject_ids,
+        tokenizer=tokenizer,
+        encoder=encoder,
+        target_sentences=target_sentences,
+        target_latents=target_latents,
+        target_mask=target_mask,
+        target_length=target_length,
+        context_length=args.context_length,
+        config=config,
+        sampling_config=sampling_config,
+        device=device,
+        generator=generator,
+        condition_source="semantic",
+    )
+    if target_latents is not None and target_ids is not None and target_mask is not None:
+        oracle_metrics["retrieval"] = evaluate_retrieval(
+            model=model,
+            adapter=semantic_projector,
+            meg=meg,
+            meg_lengths=meg_lengths,
+            semantic_vectors=semantic_projector_input,
+            subject_ids=subject_ids,
+            target_latents=target_latents,
+            target_ids=target_ids,
+            target_mask=target_mask,
+            target_sentences=target_sentences,
+            config=config,
+            device=device,
+            condition_source="semantic",
+            retrieval_batch_size=retrieval_batch_size,
+            retrieval_t=retrieval_t,
+        )
+    oracle_metrics["gap_vs_meg"] = oracle_ada_gaps(meg_metrics, oracle_metrics)
+    return oracle_metrics
+
+
+def add_oracle_ada_wandb_metrics(payload: dict[str, object], oracle_metrics: dict | None) -> None:
+    if not oracle_metrics:
+        return
+    payload["oracle_ada/exact_match"] = float(oracle_metrics.get("exact_match") or 0.0)
+    quality = oracle_metrics.get("generation_quality") or {}
+    payload.update(
+        {
+            f"oracle_ada_generation_quality/{key}": value
+            for key, value in quality.items()
+            if isinstance(value, (int, float))
+        }
+    )
+    generation_retrieval = oracle_metrics.get("generation_t5_retrieval") or {}
+    if generation_retrieval:
+        payload.update(
+            {
+                "oracle_ada_generation_t5_retrieval/top1": generation_retrieval["top1"],
+                "oracle_ada_generation_t5_retrieval/top5": generation_retrieval["top5"],
+                "oracle_ada_generation_t5_retrieval/mean_rank": generation_retrieval["mean_rank"],
+                "oracle_ada_generation_t5_retrieval/median_rank": generation_retrieval["median_rank"],
+            }
+        )
+    direct_retrieval = oracle_metrics.get("retrieval") or {}
+    combined = direct_retrieval.get("combined") or {}
+    denoiser = direct_retrieval.get("denoiser") or {}
+    decoder = direct_retrieval.get("decoder") or {}
+    if combined:
+        payload.update(
+            {
+                "oracle_ada_retrieval/combined_top1": combined["top1"],
+                "oracle_ada_retrieval/combined_top5": combined["top5"],
+                "oracle_ada_retrieval/combined_mean_rank": combined["mean_rank"],
+                "oracle_ada_retrieval/denoiser_top1": denoiser.get("top1"),
+                "oracle_ada_retrieval/decoder_top1": decoder.get("top1"),
+            }
+        )
+    add_numeric_metrics(payload, oracle_metrics.get("gap_vs_meg") or {}, prefix="oracle_ada_gap")
+
+
 def main() -> None:
     args = parse_args()
     set_seed(args.seed)
@@ -1100,6 +1256,7 @@ def main() -> None:
                     step=0,
                 )
 
+        oracle_generator = clone_generator(noise_generator, device)
         eval_metrics = evaluate_generation(
             model=model,
             adapter=adapter,
@@ -1145,12 +1302,41 @@ def main() -> None:
         )
         if interface_metrics:
             eval_metrics["meg2sem_interface"] = interface_metrics
+        oracle_metrics = maybe_evaluate_oracle_ada(
+            args=args,
+            model=model,
+            adapter=adapter,
+            meg=eval_examples.meg.index_select(0, eval_indices),
+            meg_lengths=eval_examples.meg_lengths.index_select(0, eval_indices),
+            semantic_vectors=eval_examples.semantic_vectors.index_select(0, eval_indices),
+            subject_ids=eval_subject_ids.index_select(0, eval_indices),
+            tokenizer=tokenizer,
+            encoder=encoder if args.generation_t5_retrieval else None,
+            target_sentences=select_strings(eval_examples.sentences, eval_indices),
+            target_latents=eval_target_latents.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
+            target_ids=eval_target_ids.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
+            target_mask=eval_target_mask.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
+            target_length=eval_target_length,
+            config=config,
+            sampling_config=sampling_config,
+            device=device,
+            generator=oracle_generator,
+            meg_metrics=eval_metrics,
+            retrieval_batch_size=args.retrieval_batch_size,
+            retrieval_t=args.retrieval_t,
+        )
+        if oracle_metrics:
+            eval_metrics["oracle_ada"] = oracle_metrics
         eval_metrics["eval_checkpoint_scores"] = eval_checkpoint_scores(eval_metrics)
         save_results(args.output_dir, 0, eval_metrics)
         save_best_results(args.output_dir, eval_metrics)
         quality = eval_metrics.get("generation_quality", {})
         retrieval = eval_metrics.get("generation_t5_retrieval", {})
         interface = eval_metrics.get("meg2sem_interface", {})
+        oracle = eval_metrics.get("oracle_ada") or {}
+        oracle_quality = oracle.get("generation_quality") or {}
+        oracle_retrieval = oracle.get("generation_t5_retrieval") or {}
+        oracle_gap = oracle.get("gap_vs_meg") or {}
         log_for_0(
             f"eval-only exact={eval_metrics['exact_match']:.3f} "
             f"words_overlap={quality.get('words_overlap', float('nan')):.3f} "
@@ -1161,6 +1347,14 @@ def main() -> None:
                 f" sem_cos={interface['interface_semantic_cosine']:.3f} "
                 f"ctx_cos={interface['interface_context_cosine']:.3f}"
                 if interface
+                else ""
+            )
+            + (
+                f" oracle_ada_words={oracle_quality.get('words_overlap', float('nan')):.3f} "
+                f"oracle_ada_content={oracle_quality.get('content_words_overlap', float('nan')):.3f} "
+                f"oracle_ada_top5={oracle_retrieval.get('top5')} "
+                f"oracle_gap_words={oracle_gap.get('words_overlap', float('nan')):.3f}"
+                if oracle
                 else ""
             )
         )
@@ -1197,6 +1391,7 @@ def main() -> None:
                 })
             if interface:
                 add_numeric_metrics(payload, interface, prefix="meg2sem_interface")
+            add_oracle_ada_wandb_metrics(payload, eval_metrics.get("oracle_ada"))
             wandb.log(payload, step=0)
             run.summary["best_exact_match"] = eval_metrics["exact_match"]
             run.summary["best_structured_rank"] = eval_metrics["eval_checkpoint_scores"]["structured_rank"]
@@ -1353,6 +1548,7 @@ def main() -> None:
         if not run_generation:
             continue
 
+        oracle_generator = clone_generator(noise_generator, device)
         eval_metrics = evaluate_generation(
             model=model,
             adapter=adapter,
@@ -1398,6 +1594,31 @@ def main() -> None:
         )
         if interface_metrics:
             eval_metrics["meg2sem_interface"] = interface_metrics
+        oracle_metrics = maybe_evaluate_oracle_ada(
+            args=args,
+            model=model,
+            adapter=adapter,
+            meg=eval_examples.meg.index_select(0, eval_indices),
+            meg_lengths=eval_examples.meg_lengths.index_select(0, eval_indices),
+            semantic_vectors=eval_examples.semantic_vectors.index_select(0, eval_indices),
+            subject_ids=eval_subject_ids.index_select(0, eval_indices),
+            tokenizer=tokenizer,
+            encoder=encoder if args.generation_t5_retrieval else None,
+            target_sentences=select_strings(eval_examples.sentences, eval_indices),
+            target_latents=eval_target_latents.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
+            target_ids=eval_target_ids.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
+            target_mask=eval_target_mask.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
+            target_length=eval_target_length,
+            config=config,
+            sampling_config=sampling_config,
+            device=device,
+            generator=oracle_generator,
+            meg_metrics=eval_metrics,
+            retrieval_batch_size=args.retrieval_batch_size,
+            retrieval_t=args.retrieval_t,
+        )
+        if oracle_metrics:
+            eval_metrics["oracle_ada"] = oracle_metrics
         eval_metrics["eval_checkpoint_scores"] = eval_checkpoint_scores(eval_metrics)
         save_results(args.output_dir, step, eval_metrics)
         eval_index += 1
@@ -1433,6 +1654,10 @@ def main() -> None:
         quality = eval_metrics.get("generation_quality", {})
         retrieval = eval_metrics.get("generation_t5_retrieval", {})
         interface = eval_metrics.get("meg2sem_interface", {})
+        oracle = eval_metrics.get("oracle_ada") or {}
+        oracle_quality = oracle.get("generation_quality") or {}
+        oracle_retrieval = oracle.get("generation_t5_retrieval") or {}
+        oracle_gap = oracle.get("gap_vs_meg") or {}
         log_for_0(
             f"eval step={step} exact={eval_metrics['exact_match']:.3f} "
             f"words_overlap={quality.get('words_overlap', float('nan')):.3f} "
@@ -1449,6 +1674,14 @@ def main() -> None:
                 f" sem_cos={interface['interface_semantic_cosine']:.3f} "
                 f"ctx_cos={interface['interface_context_cosine']:.3f}"
                 if interface
+                else ""
+            )
+            + (
+                f" oracle_ada_words={oracle_quality.get('words_overlap', float('nan')):.3f} "
+                f"oracle_ada_content={oracle_quality.get('content_words_overlap', float('nan')):.3f} "
+                f"oracle_ada_top5={oracle_retrieval.get('top5')} "
+                f"oracle_gap_words={oracle_gap.get('words_overlap', float('nan')):.3f}"
+                if oracle
                 else ""
             )
         )
@@ -1485,6 +1718,7 @@ def main() -> None:
                 })
             if interface:
                 add_numeric_metrics(payload, interface, prefix="meg2sem_interface")
+            add_oracle_ada_wandb_metrics(payload, eval_metrics.get("oracle_ada"))
             if not args.no_wandb_samples and args.wandb_sample_examples > 0:
                 sample_count = min(args.wandb_sample_examples, len(eval_metrics["generated"]))
                 overlap_per_sample = eval_metrics.get("word_overlap", {}).get("per_sample", [])
