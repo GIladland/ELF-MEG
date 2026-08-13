@@ -25,7 +25,7 @@ import torch.nn.functional as F
 from transformers import AutoTokenizer
 
 from configs.config import SamplingConfig
-from modules.meg2sem_bridge import MEG2SEMToELFContextAdapter, load_meg2sem_model
+from modules.meg2sem_bridge import MEG2SEMToELFContextAdapter, load_meg2sem_model, load_residual_mean
 from modules.meg_adapter import MEGContextAdapter
 from modules.t5_encoder import get_encoder
 from scripts.meg_context_overfit import (
@@ -114,6 +114,22 @@ def parse_args() -> argparse.Namespace:
         default="auto",
         help="Normalize predicted semantic vectors before the ELF projector. auto follows the MEG2SEM checkpoint.",
     )
+    parser.add_argument(
+        "--meg2sem-prediction-mode",
+        choices=["full_ada", "mean_residual"],
+        default="full_ada",
+        help=(
+            "Interpret MEG2SEM outputs as full semantic vectors or scaled mean-only residuals. "
+            "mean_residual reconstructs normalize(train_mean + output / residual_target_scale) before ELF."
+        ),
+    )
+    parser.add_argument(
+        "--meg2sem-residual-component-npz",
+        default="",
+        help="NPZ containing the train mean used by --meg2sem-prediction-mode mean_residual.",
+    )
+    parser.add_argument("--meg2sem-residual-mean-key", default="train_mean")
+    parser.add_argument("--meg2sem-residual-target-scale", type=float, default=1.0)
     parser.add_argument(
         "--train-meg2sem",
         action="store_true",
@@ -644,6 +660,25 @@ def build_meg2sem_projector_adapter(
             f"but the training NPZ uses {semantic_input_dim}-d vectors. "
             "Use a matching MiniLM semantic-projector checkpoint/NPZ pair."
         )
+    residual_mean = None
+    uses_residual_reconstruction = args.meg2sem_prediction_mode == "mean_residual"
+    if uses_residual_reconstruction:
+        if not args.meg2sem_residual_component_npz:
+            raise ValueError(
+                "--meg2sem-residual-component-npz is required with "
+                "--meg2sem-prediction-mode mean_residual."
+            )
+        residual_mean = load_residual_mean(
+            args.meg2sem_residual_component_npz,
+            key=args.meg2sem_residual_mean_key,
+        ).to(device=device)
+        if int(residual_mean.numel()) != int(load_info.embedding_dim):
+            raise ValueError(
+                f"Residual mean dim {residual_mean.numel()} does not match MEG2SEM output dim "
+                f"{load_info.embedding_dim}."
+            )
+        if float(args.meg2sem_residual_target_scale) <= 0.0:
+            raise ValueError("--meg2sem-residual-target-scale must be positive.")
 
     projector_checkpoint = semantic_projector_checkpoint_path(args)
     semantic_projector = load_teacher_projector(
@@ -660,7 +695,9 @@ def build_meg2sem_projector_adapter(
     adapter = MEG2SEMToELFContextAdapter(
         meg2sem=meg2sem,
         semantic_projector=semantic_projector,
-        normalize_semantic_output=bool(load_info.normalize_output),
+        normalize_semantic_output=bool(load_info.normalize_output) or uses_residual_reconstruction,
+        residual_mean=residual_mean,
+        residual_target_scale=float(args.meg2sem_residual_target_scale),
     ).to(device)
 
     summary = {
@@ -671,6 +708,11 @@ def build_meg2sem_projector_adapter(
         "meg2sem_embedding_dim": load_info.embedding_dim,
         "meg2sem_n_subjects": load_info.n_subjects,
         "meg2sem_normalize_output": load_info.normalize_output,
+        "meg2sem_prediction_mode": args.meg2sem_prediction_mode,
+        "meg2sem_residual_component_npz": args.meg2sem_residual_component_npz,
+        "meg2sem_residual_mean_key": args.meg2sem_residual_mean_key,
+        "meg2sem_residual_target_scale": float(args.meg2sem_residual_target_scale),
+        "meg2sem_uses_residual_reconstruction": bool(uses_residual_reconstruction),
         "meg2sem_missing_keys": load_info.missing_keys,
         "meg2sem_unexpected_keys": load_info.unexpected_keys,
         "semantic_projector_checkpoint": projector_checkpoint,
@@ -711,20 +753,14 @@ def evaluate_meg2sem_interface(
             subject_ids = subject_ids.to(device=device, dtype=torch.long)
             target_semantic = semantic_vectors.to(device=device, dtype=torch.float32)
 
-            predicted_semantic = adapter.meg2sem(
+            predicted_projector_input, predicted_semantic = adapter.semantic_projector_input(
                 meg,
                 meg_lengths=meg_lengths,
                 subjects=subject_ids,
             )
-            normalize = bool(getattr(adapter, "normalize_semantic_output", False))
-            predicted_projector_input = (
-                F.normalize(predicted_semantic, p=2, dim=-1)
-                if normalize
-                else predicted_semantic
-            )
             target_projector_input = (
                 F.normalize(target_semantic, p=2, dim=-1)
-                if normalize
+                if bool(getattr(adapter, "normalize_semantic_output", False))
                 else target_semantic
             )
 
@@ -734,8 +770,10 @@ def evaluate_meg2sem_interface(
                 dim=-1,
             )
             pred_norm = predicted_semantic.float().norm(dim=-1)
+            projector_input_norm = predicted_projector_input.float().norm(dim=-1)
             target_norm = target_semantic.float().norm(dim=-1)
             pred_std = predicted_semantic.float().std(dim=0, unbiased=False).mean()
+            projector_input_std = predicted_projector_input.float().std(dim=0, unbiased=False).mean()
             target_std = target_semantic.float().std(dim=0, unbiased=False).mean()
 
             pred_normed = F.normalize(predicted_projector_input.float(), p=2, dim=-1)
@@ -764,9 +802,11 @@ def evaluate_meg2sem_interface(
         "interface_semantic_top5": float((ranks <= min(5, scores.shape[1])).float().mean().cpu()),
         "interface_semantic_mean_rank": float(ranks.float().mean().cpu()),
         "interface_pred_norm_mean": float(pred_norm.mean().cpu()),
+        "interface_projector_input_norm_mean": float(projector_input_norm.mean().cpu()),
         "interface_target_norm_mean": float(target_norm.mean().cpu()),
         "interface_pred_target_norm_ratio": float((pred_norm.mean() / target_norm.mean().clamp_min(1e-8)).cpu()),
         "interface_pred_dim_std_mean": float(pred_std.cpu()),
+        "interface_projector_input_dim_std_mean": float(projector_input_std.cpu()),
         "interface_target_dim_std_mean": float(target_std.cpu()),
         "interface_context_mse": float(F.mse_loss(predicted_context.float(), target_context.float()).cpu()),
         "interface_context_cosine": float(context_cosine.mean().cpu()),

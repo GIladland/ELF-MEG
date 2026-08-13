@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal, Optional
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -225,11 +226,39 @@ class MEG2SEMToELFContextAdapter(nn.Module):
         meg2sem: nn.Module,
         semantic_projector: nn.Module,
         normalize_semantic_output: bool,
+        residual_mean: Optional[torch.Tensor] = None,
+        residual_target_scale: float = 1.0,
     ) -> None:
         super().__init__()
         self.meg2sem = meg2sem
         self.semantic_projector = semantic_projector
         self.normalize_semantic_output = normalize_semantic_output
+        self.residual_target_scale = float(residual_target_scale)
+        if residual_mean is None:
+            self.register_buffer("residual_mean", None)
+        else:
+            self.register_buffer("residual_mean", residual_mean.detach().float().reshape(1, -1))
+
+    @property
+    def uses_residual_reconstruction(self) -> bool:
+        return self.residual_mean is not None
+
+    def semantic_projector_input(
+        self,
+        meg: torch.Tensor,
+        *,
+        meg_lengths: Optional[torch.Tensor] = None,
+        subjects: Optional[torch.Tensor] = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        raw_output = self.meg2sem(meg, meg_lengths=meg_lengths, subjects=subjects)
+        if self.uses_residual_reconstruction:
+            residual = raw_output.float() / max(self.residual_target_scale, 1e-12)
+            semantic_vectors = F.normalize(self.residual_mean.to(device=raw_output.device) + residual, p=2, dim=-1)
+        else:
+            semantic_vectors = raw_output
+            if self.normalize_semantic_output:
+                semantic_vectors = F.normalize(semantic_vectors, p=2, dim=-1)
+        return semantic_vectors, raw_output
 
     def forward(
         self,
@@ -238,15 +267,24 @@ class MEG2SEMToELFContextAdapter(nn.Module):
         meg_lengths: Optional[torch.Tensor] = None,
         subjects: Optional[torch.Tensor] = None,
     ) -> MEGAdapterOutput:
-        semantic_vectors = self.meg2sem(meg, meg_lengths=meg_lengths, subjects=subjects)
-        if self.normalize_semantic_output:
-            semantic_vectors = F.normalize(semantic_vectors, p=2, dim=-1)
+        semantic_vectors, _ = self.semantic_projector_input(
+            meg,
+            meg_lengths=meg_lengths,
+            subjects=subjects,
+        )
         context, context_mask = self.semantic_projector(semantic_vectors)
         return MEGAdapterOutput(
             context=context,
             context_mask=context_mask.to(dtype=torch.bool),
             encoded_sequence=semantic_vectors.unsqueeze(1),
         )
+
+
+def load_residual_mean(path: str, *, key: str = "train_mean") -> torch.Tensor:
+    data = np.load(path, allow_pickle=True)
+    if key not in data.files:
+        raise KeyError(f"{path} missing residual component key {key!r}; keys={data.files}")
+    return torch.as_tensor(np.asarray(data[key], dtype=np.float32), dtype=torch.float32)
 
 
 def _payload_arg(payload: Mapping[str, object], key: str, default):
@@ -286,7 +324,7 @@ def _load_lightning_meg2sem(
         raise ValueError("Lightning MEG2SEM checkpoint is missing a mapping `state_dict`.")
 
     target_type = str(_payload_arg(payload, "target_type", "semantic_vector")).lower()
-    if target_type not in {"semantic", "semantic_vector"}:
+    if target_type not in {"semantic", "semantic_vector", "semantic_residual", "residual", "ada_residual", "mean_residual"}:
         raise ValueError(
             f"MEG2SEM checkpoint target_type={target_type!r} is not a semantic-vector checkpoint."
         )
