@@ -188,6 +188,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--epochs", type=float, default=20.0)
     parser.add_argument("--eval-only", action="store_true", help="Run retrieval/generation once without training.")
     parser.add_argument(
+        "--skip-eval-retrieval",
+        action="store_true",
+        help="Skip the standalone retrieval pass in --eval-only mode; generation still runs.",
+    )
+    parser.add_argument(
         "--interface-monitor-every",
         type=int,
         default=10,
@@ -1166,26 +1171,49 @@ def main() -> None:
             f"teacher_context_loss_weight={args.teacher_context_loss_weight}"
         )
 
-    log_for_0(f"Encoding train target T5 latents in batches of {args.target_encode_batch_size}")
-    target_latents = encode_text_batched(
-        input_ids=input_ids,
-        attention_mask=attention_mask,
-        encoder=encoder,
-        latent_mean=config.latent_mean,
-        latent_std=config.latent_std,
-        device=device,
-        batch_size=args.target_encode_batch_size,
+    eval_count = eval_available if args.eval_num_examples <= 0 else min(args.eval_num_examples, eval_available)
+    if args.eval_only and args.skip_eval_retrieval:
+        retrieval_count = 0
+    elif args.retrieval_num_examples <= 0:
+        retrieval_count = eval_count
+    else:
+        retrieval_count = min(args.retrieval_num_examples, eval_available)
+    eval_indices = torch.arange(0, eval_count, dtype=torch.long)
+    retrieval_indices = torch.arange(0, retrieval_count, dtype=torch.long)
+
+    if args.eval_only:
+        log_for_0("Skipping train target T5 latent encoding for eval-only run")
+        target_latents = None
+    else:
+        log_for_0(f"Encoding train target T5 latents in batches of {args.target_encode_batch_size}")
+        target_latents = encode_text_batched(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            encoder=encoder,
+            latent_mean=config.latent_mean,
+            latent_std=config.latent_std,
+            device=device,
+            batch_size=args.target_encode_batch_size,
+        )
+    needs_eval_target_latents = (
+        args.generation_t5_retrieval
+        or (args.eval_only and retrieval_count > 0)
+        or ((not args.eval_only) and args.retrieval_eval_every > 0 and retrieval_count > 0)
     )
-    log_for_0(f"Encoding eval target T5 latents in batches of {args.target_encode_batch_size}")
-    eval_target_latents = encode_text_batched(
-        input_ids=eval_input_ids,
-        attention_mask=eval_attention_mask,
-        encoder=encoder,
-        latent_mean=config.latent_mean,
-        latent_std=config.latent_std,
-        device=device,
-        batch_size=args.target_encode_batch_size,
-    )
+    if needs_eval_target_latents:
+        log_for_0(f"Encoding eval target T5 latents in batches of {args.target_encode_batch_size}")
+        eval_target_latents = encode_text_batched(
+            input_ids=eval_input_ids,
+            attention_mask=eval_attention_mask,
+            encoder=encoder,
+            latent_mean=config.latent_mean,
+            latent_std=config.latent_std,
+            device=device,
+            batch_size=args.target_encode_batch_size,
+        )
+    else:
+        log_for_0("Skipping eval target T5 latent encoding; no eval retrieval requested")
+        eval_target_latents = None
 
     target_ids = input_ids.detach().cpu()
     valid_target_mask = attention_mask.detach().cpu().to(torch.float32)
@@ -1252,15 +1280,6 @@ def main() -> None:
     )
     noise_generator = torch.Generator(device=device.type if device.type == "cuda" else "cpu").manual_seed(args.seed + 17)
     batch_generator = torch.Generator().manual_seed(args.seed + 29)
-
-    eval_count = eval_available if args.eval_num_examples <= 0 else min(args.eval_num_examples, eval_available)
-    retrieval_count = (
-        eval_count
-        if args.retrieval_num_examples <= 0
-        else min(args.retrieval_num_examples, eval_available)
-    )
-    eval_indices = torch.arange(0, eval_count, dtype=torch.long)
-    retrieval_indices = torch.arange(0, retrieval_count, dtype=torch.long)
 
     config_payload = {
         **vars(args),

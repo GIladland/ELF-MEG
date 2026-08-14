@@ -42,6 +42,7 @@ SEMANTIC_ALIGNMENT_LOSS_TYPE=${SEMANTIC_ALIGNMENT_LOSS_TYPE:-cosine}
 BATCH_SIZE=${BATCH_SIZE:-12}
 EPOCHS=${EPOCHS:-0}
 STEPS=${STEPS:-2400}
+NUM_EXAMPLES=${NUM_EXAMPLES:-0}
 LR=${LR:-1e-5}
 MEG2SEM_LR=${MEG2SEM_LR:-3e-6}
 SEMANTIC_PROJECTOR_LR=${SEMANTIC_PROJECTOR_LR:-1e-5}
@@ -59,6 +60,9 @@ NUM_SAMPLING_STEPS=${NUM_SAMPLING_STEPS:-32}
 EVAL_NUM_EXAMPLES=${EVAL_NUM_EXAMPLES:-75}
 RETRIEVAL_NUM_EXAMPLES=${RETRIEVAL_NUM_EXAMPLES:-75}
 TARGET_ENCODE_BATCH_SIZE=${TARGET_ENCODE_BATCH_SIZE:-64}
+SKIP_EVAL_RETRIEVAL=${SKIP_EVAL_RETRIEVAL:-0}
+GENERATION_T5_RETRIEVAL=${GENERATION_T5_RETRIEVAL:-1}
+USE_WANDB=${USE_WANDB:-1}
 
 export WANDB_ENTITY=${WANDB_ENTITY:-giladland-university-of-oxford}
 export WANDB_PROJECT=${WANDB_PROJECT:-BrainDiffusion}
@@ -122,7 +126,7 @@ args=(
   --meg-standardization none
   --meg-clip-boundary -1
   --device cuda
-  --num-examples 0
+  --num-examples "$NUM_EXAMPLES"
   --eval-num-examples "$EVAL_NUM_EXAMPLES"
   --retrieval-num-examples "$RETRIEVAL_NUM_EXAMPLES"
   --batch_size "$BATCH_SIZE"
@@ -154,13 +158,7 @@ args=(
   --train-target-mask-mode full
   --interface-monitor-every "$INTERFACE_MONITOR_EVERY"
   --interface-monitor-batch-size "$INTERFACE_MONITOR_BATCH_SIZE"
-  --generation-t5-retrieval
   --seed 7
-  --use_wandb
-  --wandb_project "$WANDB_PROJECT"
-  --wandb_entity "$WANDB_ENTITY"
-  --wandb_group "$WANDB_RUN_GROUP"
-  --wandb_run_name "$WANDB_RUN_NAME"
   --wandb_sample_examples 16
   --wandb_notes "Residual E2E bridge. MEG2SEM l8jrkmb2 epoch21 outputs scaled mean-only ADA residuals; BrainDiffusion reconstructs ADA as normalize(train_mean + output / 2.073361729178968), then routes through the ADA oracle projector and fine-tunes MEG2SEM, projector, and selected ELF blocks."
 )
@@ -185,6 +183,15 @@ if [[ "$SAVE_EVAL_CHECKPOINTS" == "1" ]]; then
 fi
 if [[ "$ORACLE_SEMANTIC_EVAL" == "1" ]]; then
   args+=(--oracle-semantic-eval)
+fi
+if [[ "$SKIP_EVAL_RETRIEVAL" == "1" ]]; then
+  args+=(--skip-eval-retrieval)
+fi
+if [[ "$GENERATION_T5_RETRIEVAL" == "1" ]]; then
+  args+=(--generation-t5-retrieval)
+fi
+if [[ "$USE_WANDB" == "1" ]]; then
+  args+=(--use_wandb --wandb_project "$WANDB_PROJECT" --wandb_entity "$WANDB_ENTITY" --wandb_group "$WANDB_RUN_GROUP" --wandb_run_name "$WANDB_RUN_NAME")
 fi
 
 "$PYTHON_BIN" "${args[@]}"
