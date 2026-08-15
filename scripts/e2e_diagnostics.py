@@ -563,6 +563,15 @@ def save_component_json(path: str | Path, center: torch.Tensor, basis: torch.Ten
 
 def load_component_center(path: str, *, semantic_key: str, max_rows: int) -> tuple[torch.Tensor, dict]:
     data = np.load(path, allow_pickle=True)
+    if "train_mean" in data.files:
+        center = torch.as_tensor(np.asarray(data["train_mean"], dtype=np.float32), dtype=torch.float32).reshape(1, -1)
+        return center, {
+            "component_source": path,
+            "component_rows": None,
+            "component_dim": int(center.shape[1]),
+            "component_key": "train_mean",
+            "residual_reconstruction": "normalize(train_mean + predicted_residual)",
+        }
     if semantic_key not in data.files:
         raise KeyError(f"{path} missing semantic key {semantic_key!r}; keys={data.files}")
     array = np.asarray(data[semantic_key], dtype=np.float32)
