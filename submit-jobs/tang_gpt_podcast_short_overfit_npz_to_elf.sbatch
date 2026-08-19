@@ -127,7 +127,14 @@ echo "OUTPUT_DIR=$OUTPUT_DIR"
 echo "TARGET_LATENTS_CACHE=$TARGET_LATENTS_CACHE"
 echo "REEMBED_MODEL_NAME=$REEMBED_MODEL_NAME"
 
-bash ./scripts/arc_run_npz_semantic_to_elf.sh \
+python scripts/train_npz_semantic_to_elf.py \
+  --npz-path "$NPZ_PATH" \
+  --output_dir "$OUTPUT_DIR" \
+  --use_wandb \
+  --wandb_project "$WANDB_PROJECT" \
+  --wandb_entity "$WANDB_ENTITY" \
+  --wandb_group "$WANDB_RUN_GROUP" \
+  --wandb_run_name "$WANDB_RUN_NAME" \
   --device cuda \
   --input-key "$INPUT_KEY" \
   --sentence-key "$SENTENCE_KEY" \
@@ -162,4 +169,4 @@ bash ./scripts/arc_run_npz_semantic_to_elf.sh \
   --wandb_sample_examples "$WANDB_SAMPLE_EXAMPLES" \
   --save-best-checkpoint \
   --seed "$SEED" \
-  --wandb_notes "Podcast overfit diagnostic. Train ELF from semantic embeddings to podcast text on 8-40 word Tang-GPT segment rows. Full ELF fine-tuning, K=64 context, full-mask target loss. If REEMBED_MODEL_NAME is set, the same rows are first re-embedded with that model for a matched embedding baseline."
+  --wandb_notes "Podcast overfit diagnostic. Train ELF from semantic embeddings to podcast text on short Tang-GPT story chunks. Full ELF fine-tuning, K=64 context, full-mask target loss. If REEMBED_MODEL_NAME is set, the same rows are first re-embedded with that model for a matched embedding baseline."
