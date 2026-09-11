@@ -1,0 +1,111 @@
+index,target,generated,content_f1,word_f1,bleu1,rouge1_f1,overlapping_content_words,bertscore_raw_f1
+15,eyes closed and her mouth open and blood was trickling,"fingers and sucked. baby was choking, her mouth was closed",0.3333333333333333,0.5,0.5,0.5,"closed, mouth",0.88864666223526
+31,multiple surgeries on the arm every time the arm got,"long time to go, sucks and messes with every time",0.2857142857142857,0.20000000000000004,0.20000000298023224,0.20000000298023224,"every, time",0.8281017541885376
+43,friend she used to study english literature so she and,look at my friend i know they are on the,0.25,0.10000000000000002,0.10000000149011612,0.10000000149011612,friend,0.8305613994598389
+37,college loans and you know bought me an apartment paid,Went to college and got it and did what i,0.2222222222222222,0.20000000000000004,0.20000000298023224,0.20000000298023224,college,0.8527197241783142
+69,remember feeling any pain i just ran i ran for,two minutes â remember when i woke up and listened,0.20000000000000004,0.2105263157894737,0.19885317981243134,0.21052631735801697,remember,0.841498851776123
+42,please deliver me and my child intact and healthy out,help please call and get someone to send you a,0.1818181818181818,0.20000000000000004,0.20000000298023224,0.20000000298023224,please,0.8233212232589722
+93,anything but things at home start to get a little,"a lot of things are kind of abstract or dangling,",0.1818181818181818,0.20000000000000004,0.20000000298023224,0.20000000298023224,things,0.8334945440292358
+71,stay i left baghdad early the next morning going back,"call me next day, i figured i will be ok",0.15384615384615385,0.20000000000000004,0.20000000298023224,0.20000000298023224,next,0.8500497937202454
+97,go back to my normal life and i'm highly suspicious,one million minutes to go. wtf i think it is,0.15384615384615383,0.20000000000000004,0.20000000298023224,0.2857142984867096,go,0.8393840789794922
+49,leave baghdad on thursday november twenty third of two thousand,first day to get people to leave if not able,0.14285714285714288,0.10000000000000002,0.10000000149011612,0.10000000149011612,leave,0.7871593832969666
+7,long enough ago i was fourteen a long time ago,first time ever on twilight concert in downtown ny â,0.14285714285714285,0.10526315789473685,0.09942658990621567,0.10526315867900848,time,0.7972552180290222
+27,one nursing twenty four hours around the clock at home,home and work. tenth summer reunited with fiance mrs. eric,0.125,0.10000000000000002,0.10000000149011612,0.10000000149011612,home,0.8312351107597351
+36,somebody else thinking you're cool can make you think differently,make sure to get going. wrong wrong wrong wrong wrong,0.125,0.10000000000000002,0.10000000149011612,0.095238097012043,make,0.8283626437187195
+82,class will focus on process the process of art making,execs will make sure they âdoâ each of the first,0.0,0.3,0.30000001192092896,0.4000000059604645,,0.8263055086135864
+11,remember the plate flying and yellow rice everywhere like confetti,"force motion, turn cocked ejectors and get the ejectors back.",0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8261207938194275
+40,complete bed rest the last trimester of my pregnancy and,uhh kind of screwed something and didn t want to,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.7829782366752625
+60,dad one evening i took a two mile walk to,"ten days a week i never will, next time i",0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8193280100822449
+67,freeway all of a sudden i see a nearby chekcpoint,tripped a couple of âreelâ lights on st. mcdonalds. tripped,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8142905235290527
+26,took us a long time to heal my stepfather broke,home and the house to do my valentineâs bills canceled,0.0,0.1904761904761905,0.1818181872367859,0.190476194024086,,0.8244763612747192
+85,man the artists model starts to undress and i say,kids â ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahaha last day.ask two and,0.0,0.11764705882352941,0.09306272119283676,0.11764705926179886,,0.6927137970924377
+17,you awake if you're awake say something say something please,SPOILER ALERT â gtm idk if anything is going to.,0.0,0.10526315789473685,0.09942658990621567,0.10000000149011612,,0.8053968548774719
+47,shia civil war and to see a strong iraqi military,next day just about a hundred seconds â look if,0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.7981503009796143
+70,soldiers rushed to help me asking what happened what happened,"make sure to let go, he said my posture â",0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.8270061612129211
+88,going to look different i'm paralyzed what is mine supposed,"HAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHA EVER noticed a weird thing, unable to think",0.0,0.10526315789473685,0.09942658990621567,0.10000000149011612,,0.7193580269813538
+13,heard another thud and then i kind of heard and,see i know u m a m a m a,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.7820533514022827
+16,driving vijay we were at the temple vijay vijay vijay,time look what s going on around the airport new,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8126692175865173
+50,alive better than you be close and always in danger,like you are going to die but want to make,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8386202454566956
+62,the street he turned left and instead of turning around,temporary closure teh would not let him go unless he,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8193080425262451
+68,voice said the pain of the jump is nothing compared,dream sequences i remember from my first night of oct.,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8520391583442688
+81,wrong way to make art now this makes me extremely,pay if u want people to understand why it works,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8378633856773376
+83,entire life i had never held a stick of charcoal,woke up and walked to ocahontas waffle shop. i drew,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8353610038757324
+84,next week bob one of the three instructors says today,kind of stuff people say i m going to be,0.0,0.10000000000000002,0.10000000149011612,0.20000000298023224,,0.8087937831878662
+86,busily getting out their easels and knowingly getting out sheets,know u guys and u guys and u guys and,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.7810582518577576
+101,dear friend sarah who's also a southerner i say sarah,ok i think we're in utah and i just want,0.0,0.10000000000000002,0.10000000149011612,0.09090909361839294,,0.8371420502662659
+103,two instructors and several students review the work give us,"make sure they say âwonâ each of the first three,",0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8127368688583374
+105,the process won't allow that you've got to let go,LIKE! send people to uh uh uh uh uh uh,0.0,0.10000000000000002,0.10000000149011612,0.09090909361839294,,0.7936537265777588
+1,with a hyper allergy something called stevens johnson syndrome and,set a timer but still donât know what to do.,0.0,0.09523809523809525,0.09090909361839294,0.095238097012043,,0.7977948188781738
+74,losing my new safe home america like i lost baghdad,saved this one another could happen iâm not sure why,0.0,0.09523809523809525,0.09090909361839294,0.095238097012043,,0.8064403533935547
+51,arrived in kurdistan state in northern iraq and i managed,Protesters like u.s. president john obama and u.s. president emanuel,0.0,0.0909090909090909,0.0833333358168602,0.09090909361839294,,0.8350653052330017
+0,years old i got really sick um and no one,"send me back. happened during mt school, woke up a",0.0,0.0,0.0,0.0,,0.8460496664047241
+2,weeks in the hospital weeks blind and mute as well,"Tweet. HAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHA. Airplanes start every other day, find",0.0,0.0,0.0,0.0,,0.7357719540596008
+3,slept every night in the hospital to take care of,shit shit shit shit shit shit shit shit shit shit,0.0,0.0,0.0,0.0,,0.7632325887680054
+4,made a promise to god that um if god delivers,get arranged and no luck. arranged and no luck. arranged,0.0,0.0,0.0,0.0,,0.8232265710830688
+5,offering to give thanks for delivering my child home safely,one hundred and a half â thank â thank â,0.0,0.0,0.0,0.11764705926179886,,0.805820107460022
+6,mother and i drove in our red ford mercury car,send. want,0.0,0.0,0.0,0.0,,0.8347487449645996
+8,still really sick i could barely hold my head up,10 p.m. wanna do something ok gotta do something ok,0.0,0.0,0.0,0.0,,0.8548864126205444
+9,squeaky round styrofoam plate with bunch of yellow rice on,"pushed u.s. taxpayer money ten thousand, u.s. taxpayer money ten",0.0,0.0,0.0,0.0,,0.796595573425293
+10,eating this rice um suddenly i heard a loud bang,"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ if anyone is going to perform, get started, ring",0.0,0.0,0.0,0.0,,0.7526791095733643
+12,us no trees no nothing just endless miraculous blue sky,stupid. not sure ahh ahh ahh ahh ahh ahh ahh,0.0,0.0,0.0,0.0,,0.7726561427116394
+14,embankment and then finally came to a last thud and,rewind. rewind. rewind. rewind. rewind. rewind. rewind. rewind. rewind. rewind.,0.0,0.0,0.0,0.0,,0.8022571206092834
+18,this nonstop loop of my stepfather almost like that cliche,tucson apnea screams. gonna try screaming screaming screaming screaming screaming,0.0,0.0,0.0,0.0,,0.8013214468955994
+19,i started feeling things i started feeling hot and cold,freaky ahh ahh ahh ahh ahh ahh ahh ahh ahh,0.0,0.0,0.0,0.0,,0.7739831209182739
+20,kept getting louder and louder the silence then i finally,woken up a few times â gotta know â â,0.0,0.0,0.0,0.0,,0.7977076768875122
+21,get help please please get help and then a bunch,mcdonalds vs sp sv sv sv sv sv sv sv,0.0,0.0,0.0,0.0,,0.7944341897964478
+22,famous things called the jaws of life to cut open,sit number one a nice guy who works in a,0.0,0.0,0.0,0.0,,0.8089089393615723
+23,parents got taken somewhere else my arm you know because,Tucked away parking lots. uh uh uh uh uh uh,0.0,0.0,0.0,0.0,,0.8102431297302246
+24,i remember being incredibly uncomfortable in a cold hospital bed,Anyone three,0.0,0.0,0.0,0.0,,0.8337352871894836
+25,remember you know in the emergency room i remember vague,five to ten years. never really a big deal but,0.0,0.0,0.0,0.0,,0.8349524140357971
+28,kind of semi lame at my side and you know,"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$. emanuel, utah new",0.0,0.0,0.0,0.0,,0.7262042164802551
+29,got this very beautiful thin scratch of a surgery incision,office dr. super cute ponytail. wore and dr. super cute,0.0,0.0,0.0,0.0,,0.8227154016494751
+30,arm got better the scar got worse and you know,"money â original â one or two swivels, get rid",0.0,0.0,0.0,0.0,,0.8234532475471497
+32,wear a short sleeve blouse or a long sleeve blouse,suck suck suck suck suck suck suck suck suck suck,0.0,0.0,0.0,0.0,,0.7684025168418884
+33,i really started modeling to pay off my college loans,tear down. tear down. tear down. tear down. tear down.,0.0,0.0,0.0,0.0,,0.8338147401809692
+34,helmut newton they said you know helmut newton the guy,"1000 New York City, u.s. famous",0.0,0.0,0.0,0.0,,0.8242575526237488
+35,dangerous edgy pictures of women and he wants to shoot,suck suck suck suck suck suck suck suck suck suck,0.0,0.0,0.0,0.0,,0.7884262204170227
+38,back in another hospital bed staring at another white ceiling,really did and got a uh uh uh uh uh,0.0,0.0,0.0,0.0,,0.7940811514854431
+39,pregnant which was a real surprise but a happy one,screaming sounds. screaming sounds. screaming sounds. screaming sounds. screaming sounds.,0.0,0.0,0.0,0.0,,0.8262783288955688
+41,one time for five days with a fetal heart monitor,Random and annoying uh oh oh oh oh oh oh,0.0,0.0,0.0,0.0,,0.8020899891853333
+44,explosion sent people flying from their seats my friend jumped,noise. firefighters trying to get into a stairwell and a,0.0,0.0,0.0,0.0,,0.8457285761833191
+45,driver sped away trying to get to safety not knowing,tv tv tv tv tv tv tv tv tv tv,0.0,0.0,0.0,0.0,,0.7600875496864319
+46,twenty five minutes ride to school took two hours because,THREE DAY NOW â http://www.news.u.s.a.gov/news/articles/thirty-day-now â â â â â,0.0,0.0,0.0,0.0,,0.7831469178199768
+48,the sectarian killings and kidnappings one morning my mom said,two hour teen pushed to st. elizabeth mcdonalds st. elizabeth,0.0,0.0,0.0,0.0,,0.8192532658576965
+52,sunset cars driving after sunset i remember watching the colors,twenty five minute walk around tuesday night. nothing new this,0.0,0.0,0.0,0.0,,0.8525404334068298
+53,thinking about my family back home and their saety later,vote yes or no i d like to see one,0.0,0.0,0.0,0.0,,0.78920578956604
+54,they speak they swallow letters one time a soldier asked,how many people would say your â â â â,0.0,0.0,0.0,0.0,,0.7886006236076355
+55,botter because i couldn't hear the t's just the r's,"HAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHA. Look, no sure they threw anything, their backpack",0.0,0.0,0.0,0.0,,0.740905225276947
+56,a whole new language i don't remember i ever said,ticket â no one â hear â hear â listen,0.0,0.0,0.0,0.0,,0.7910041809082031
+57,iraqi police iraqi military local mayors leaders with top us,show people are indicted and accused of violating national security,0.0,0.0,0.0,0.0,,0.8120205998420715
+58,my new family on base even though it was dangerous,people who were afraid to leave their home this day.,0.0,0.0,0.0,0.0,,0.8674585223197937
+59,i wanted i asked to go on vacation to see,Sign me up now. Sept. 23 â Sept. 26 olympics,0.0,0.0,0.0,0.0,,0.8226324319839478
+61,passenger seat the driver was listening to really loud music,teen home in central nebraska utah san elizabeth nebraska san,0.0,0.0,0.0,0.0,,0.7958232760429382
+63,driving at least a hundred mile per hour or even,THREE DAYS NOW! â â â â â â â,0.0,0.0,0.0,0.0,,0.7390305995941162
+64,hear about a kidnapping almost every day in the news,Great if you want to rehash it say you know,0.0,0.0,0.0,0.0,,0.8226416707038879
+65,movie the lead actor always survive because it's a movie,"shuttered military personnel and national security officials, this is what",0.0,0.0,0.0,0.0,,0.8284128308296204
+66,gonna see another day am i gonna see my family,"last time anyone ever thinks about something, even if itâs",0.0,0.0,0.0,0.0,,0.8086350560188293
+72,us military you will forever be an al qaeda target,"WASHINGTON â President john russo and john russo, u.s. federal",0.0,0.0,0.0,0.0,,0.7999821901321411
+73,enrolled in a state university to get my master's degree,number of people â intrudedâ â intrudedâ â intrudedâ â,0.0,0.0,0.0,0.0,,0.780865490436554
+75,something different by age thirty i had done most everything,"more than anything other people really figured out, even if",0.0,0.0,0.0,0.0,,0.8235502243041992
+76,north to boston which caused my family to collectively take,stayed in central u.s. and said i would go one,0.0,0.0,0.0,0.0,,0.8703058958053589
+77,working with companies like retail banking traffic reporting hazardous waste,"nasty, admit itâs everyoneâs egos but still want to. nasty,",0.0,0.0,0.0,0.0,,0.8104855418205261
+78,started consulting and i started taking classes to figure out,"Grab them, make sure they know who they are! â",0.0,0.0,0.0,0.0,,0.8301947116851807
+79,needlepoint directing french i found this brochure for the school,"WARNING not really a problem, stupid people think u.s. wrt,",0.0,0.0,0.0,0.0,,0.8388886451721191
+80,best to look artsy to fit in but even though,average people like and hate it. never really push you.,0.0,0.0,0.0,0.0,,0.8398432731628418
+87,competitive and so i ask judy who is standing next,please say u know someone. guy s tv hanger courtesy,0.0,0.0,0.0,0.0,,0.8238311409950256
+89,no way i'm gonna excel drawing this naked man's essence,love your dharma etiquette. know where youâre going because theyâre,0.0,0.0,0.0,0.0,,0.8140694499015808
+90,start making these hopeless stick figures every forty five seconds,"show wtf stuff going. kind of annoying, but still want",0.0,0.0,0.0,0.0,,0.8294308185577393
+91,ever trying anything different for even attempting anything new and,gonna have to eat a bit more before it happens,0.0,0.0,0.0,0.0,,0.8226453065872192
+92,end of class bob picks one of my gesture drawings,get the shit you want. shit you want. shit you,0.0,0.0,0.0,0.0,,0.8212775588035583
+94,business one but when i started going to art school,two or three if done right now â christopher west,0.0,0.0,0.0,0.0,,0.8274858593940735
+95,new york times business sections and the wall street journal,retweets â one day before next bfs session â never,0.0,0.0,0.0,0.0,,0.7863078117370605
+96,piece gets progressively more undone until the final piece explodes,Planned machines to get rid of all unused retro retro,0.0,0.0,0.0,0.10000000149011612,,0.8230017423629761
+98,committed relationship for the past eighteen years with his boyfriend,apologise â not sure if youâll be married anytime soon,0.0,0.0,0.0,0.0,,0.8158300518989563
+99,big donor cause i was working at harvard business school,http://www.exchange.com/news/articles/ask-the-people-to-go-on-the-people-to-go-on-the-people-to-go-on-the-people-to-go-on-the-people-to-go-on-the-people-to-go-on-the-people-to-go-on-the-people-to-go-on-the-people-to-go-on-the-people-to-go-on-one-day-next week or just,0.0,0.0,0.0,0.0,,0.7744410037994385
+100,school as a part time student but i'm still consulting,"working agent, d.c. office, d.c. office, d.c. office, d.c. office,",0.0,0.0,0.0,0.0,,0.8211489915847778
+102,moving fast enough i kept pushing him to move faster,music reminders. first set of tv reminders for next week.,0.0,0.0,0.0,0.0,,0.847028374671936
+104,piled high with artwork and at my review board one,tell people if want to say uh huh huh huh,0.0,0.0,0.0,0.0,,0.7964780926704407
+106,dear friend of mine says you know tricia i love,wanna be a really good person musician,0.0,0.0,0.0,0.0,,0.8050780296325684
+107,consulting work and even though i'm getting paid a fire,"late tens, working to get us to give money to",0.0,0.0,0.0,0.190476194024086,,0.8330784440040588
+108,wrong job or the wrong marriage i'm in the wrong,make sure your df knows heâs always going to get,0.0,0.0,0.0,0.0,,0.8171382546424866
+109,home of twenty five years and my jeep gets stolen,Love your friends! w.e.w. d.e. w.e. w.e. w.e. w.e. w.e.,0.0,0.0,0.0,0.0,,0.8194099068641663

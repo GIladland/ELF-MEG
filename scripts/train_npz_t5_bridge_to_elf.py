@@ -31,6 +31,7 @@ from scripts.meg_context_overfit import (
     build_config,
     evaluate_generation,
     evaluate_retrieval,
+    freeze_for_toy_tuning,
     format_overlap_counts,
     load_pretrained_model,
     train_step,
@@ -312,6 +313,8 @@ def main() -> None:
     if args.freeze_elf:
         for param in model.parameters():
             param.requires_grad_(False)
+    else:
+        freeze_for_toy_tuning(model, args.last_n_blocks)
     logger.info("Trainable ELF parameters: %d", sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     if args.bridge_type == "identity":

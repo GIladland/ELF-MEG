@@ -1,0 +1,70 @@
+{
+  "contract": "paired validation-row comparison; no test data",
+  "baseline": "/tmp/fmri_stage2_baseline_metrics.json",
+  "candidate": "fmri_stage2_content_first_leader_metrics_2026-08-30.json",
+  "bootstrap_samples": 50000,
+  "seed": 49,
+  "metrics": {
+    "content_f1": {
+      "num_rows": 266,
+      "baseline_mean": 0.020534056463954738,
+      "candidate_mean": 0.023666186508955196,
+      "candidate_minus_baseline": 0.003132130045000456,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.0011978079785465898,
+        0.007705266685253415
+      ],
+      "bootstrap_probability_candidate_better": 0.9217,
+      "rows_candidate_better": 15,
+      "rows_tied": 240,
+      "rows_candidate_worse": 11
+    },
+    "word_f1": {
+      "num_rows": 266,
+      "baseline_mean": 0.06635897042184331,
+      "candidate_mean": 0.06882827408606793,
+      "candidate_minus_baseline": 0.0024693036642246037,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.002863981478853903,
+        0.007848047070681746
+      ],
+      "bootstrap_probability_candidate_better": 0.81898,
+      "rows_candidate_better": 46,
+      "rows_tied": 181,
+      "rows_candidate_worse": 39
+    },
+    "per_row_wer": {
+      "num_rows": 266,
+      "baseline_mean": 1.031954887218045,
+      "candidate_mean": 1.031954887218045,
+      "candidate_minus_baseline": -3.3390166154140044e-18,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.0060150375939849714,
+        0.00639097744360902
+      ],
+      "bootstrap_probability_candidate_better": 0.5246,
+      "rows_candidate_better": 30,
+      "rows_tied": 212,
+      "rows_candidate_worse": 24
+    },
+    "bertscore_f1": {
+      "num_rows": 266,
+      "baseline_mean": -0.0771776341837113,
+      "candidate_mean": -0.06045330514051668,
+      "candidate_minus_baseline": 0.01672432904319463,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        0.010537254846253506,
+        0.023012953128817112
+      ],
+      "bootstrap_probability_candidate_better": 1.0,
+      "rows_candidate_better": 136,
+      "rows_tied": 38,
+      "rows_candidate_worse": 92
+    }
+  },
+  "corpus_wer": {
+    "baseline": 1.031954887218045,
+    "candidate": 1.031954887218045,
+    "candidate_minus_baseline": 0.0
+  }
+}

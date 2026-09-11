@@ -1,0 +1,208 @@
+{
+  "contract": {
+    "run_tag": "elf_archscale_meg_ada_x16_elfm_continue_const1e5_ep8_wcmean_seed7_20260906_resid_adapter_val110_wcmean_seed49_truee2e_output_projector_lora4last4_val110_wcmean_seed49",
+    "checkpoint": "/data/engs-pnpl/glandau/elf-runs/elf_archscale_meg_ada_x16_elfm_continue_const1e5_ep8_wcmean_seed7_20260906_resid_adapter_val110_wcmean_seed49_truee2e_output_projector_lora4last4_val110_wcmean_seed49/best_adapter.pt",
+    "n": 110,
+    "null": "random one-to-one reassignment of generated sentences to target rows",
+    "permutations": 100000,
+    "seed": 20260910,
+    "bleu1": "macro sentence BLEU-1 with modified unigram precision and brevity penalty",
+    "rouge1": "macro ROUGE-1 F1 with Porter stemming",
+    "bertscore": "raw non-rescaled roberta-large, layer 17"
+  },
+  "permutation_tests": {
+    "content_f1": {
+      "observed": 0.02860495393926447,
+      "null_mean": 0.008539234288036823,
+      "null_std": 0.0033819444943219423,
+      "null_ci95": [
+        0.002610722789540887,
+        0.015653446689248084
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "word_f1": {
+      "observed": 0.06578430262478915,
+      "null_mean": 0.04716992750763893,
+      "null_std": 0.005516938865184784,
+      "null_ci95": [
+        0.03654084727168083,
+        0.05817318763583898
+      ],
+      "one_sided_p": 0.0008799912000879991,
+      "direction": "higher"
+    },
+    "bleu1": {
+      "observed": 0.06188390905206854,
+      "null_mean": 0.04458165913820267,
+      "null_std": 0.005219022277742624,
+      "null_ci95": [
+        0.03451607236638665,
+        0.05501354960724708
+      ],
+      "one_sided_p": 0.0009299907000929991,
+      "direction": "higher"
+    },
+    "rouge1_f1": {
+      "observed": 0.07530297366055576,
+      "null_mean": 0.050432007759809494,
+      "null_std": 0.005716754589229822,
+      "null_ci95": [
+        0.03942271647974849,
+        0.061880261357873674
+      ],
+      "one_sided_p": 5.999940000599994e-05,
+      "direction": "higher"
+    },
+    "wer": {
+      "observed": 1.0445454545454544,
+      "null_mean": 1.0446579456329346,
+      "null_std": 0.003274451242759824,
+      "null_ci95": [
+        1.0381817817687988,
+        1.0509090423583984
+      ],
+      "one_sided_p": 0.5269247307526925,
+      "direction": "lower"
+    },
+    "bertscore_raw_f1": {
+      "observed": 0.8180879072709517,
+      "null_mean": 0.815060019493103,
+      "null_std": 0.0005800763028673828,
+      "null_ci95": [
+        0.8139583989977837,
+        0.8162251725792885
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    }
+  },
+  "retrieval_chance_tests": {
+    "note": "Exact one-sided binomial chance tests; these are not row-permutation tests.",
+    "generated_top1": {
+      "hits": 5,
+      "rate": 0.045454543083906174,
+      "chance": 0.00909090909090909,
+      "p": 0.0034528046606277217
+    },
+    "generated_top5": {
+      "hits": 15,
+      "rate": 0.13636362552642822,
+      "chance": 0.045454545454545456,
+      "p": 0.00014282670569137004
+    }
+  },
+  "top_generations": [
+    {
+      "index": 59,
+      "target": "i wanted i asked to go on vacation to see",
+      "generated": "see going a go our nine days now",
+      "content_f1": 0.3636363636363636,
+      "word_f1": 0.22222222222222224,
+      "bleu1": 0.1947001963853836,
+      "rouge1_f1": 0.2222222238779068,
+      "overlapping_content_words": "go, see",
+      "bertscore_raw_f1": 0.8273782134056091
+    },
+    {
+      "index": 66,
+      "target": "gonna see another day am i gonna see my family",
+      "generated": "one day i get my final moment anything of yet another",
+      "content_f1": 0.26666666666666666,
+      "word_f1": 0.380952380952381,
+      "bleu1": 0.3636363744735718,
+      "rouge1_f1": 0.380952388048172,
+      "overlapping_content_words": "another, day",
+      "bertscore_raw_f1": 0.8385276794433594
+    },
+    {
+      "index": 62,
+      "target": "the street he turned left and instead of turning around",
+      "generated": "Instead at at time we had should he went back",
+      "content_f1": 0.2,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "instead",
+      "bertscore_raw_f1": 0.8346575498580933
+    },
+    {
+      "index": 32,
+      "target": "wear a short sleeve blouse or a long sleeve blouse",
+      "generated": "people were being gone to be my short a year",
+      "content_f1": 0.18181818181818182,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "short",
+      "bertscore_raw_f1": 0.8067469000816345
+    },
+    {
+      "index": 14,
+      "target": "embankment and then finally came to a last thud and",
+      "generated": "Sound to s sing and all the cop is starting finally",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.28571428571428564,
+      "bleu1": 0.27272728085517883,
+      "rouge1_f1": 0.2857142984867096,
+      "overlapping_content_words": "finally",
+      "bertscore_raw_f1": 0.8013169169425964
+    },
+    {
+      "index": 58,
+      "target": "my new family on base even though it was dangerous",
+      "generated": "people who had executed my husband would be a dangerous visit",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.1904761904761905,
+      "bleu1": 0.1818181872367859,
+      "rouge1_f1": 0.190476194024086,
+      "overlapping_content_words": "dangerous",
+      "bertscore_raw_f1": 0.8455571532249451
+    },
+    {
+      "index": 0,
+      "target": "years old i got really sick um and no one",
+      "generated": "week got out i occurred my brain grieving late",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.2105263157894737,
+      "bleu1": 0.19885317981243134,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "got",
+      "bertscore_raw_f1": 0.8440861105918884
+    },
+    {
+      "index": 71,
+      "target": "stay i left baghdad early the next morning going back",
+      "generated": "so could had taken my bron dog at the next",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "next",
+      "bertscore_raw_f1": 0.8275485634803772
+    },
+    {
+      "index": 44,
+      "target": "explosion sent people flying from their seats my friend jumped",
+      "generated": "flying with six hundred and a hundred and rushing",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.10526315789473685,
+      "bleu1": 0.09942658990621567,
+      "rouge1_f1": 0.10526315867900848,
+      "overlapping_content_words": "flying",
+      "bertscore_raw_f1": 0.8252547979354858
+    },
+    {
+      "index": 103,
+      "target": "two instructors and several students review the work give us",
+      "generated": "Complete your sitting  now two you about bienember hundred",
+      "content_f1": 0.15384615384615383,
+      "word_f1": 0.10526315789473685,
+      "bleu1": 0.09942658990621567,
+      "rouge1_f1": 0.10526315867900848,
+      "overlapping_content_words": "two",
+      "bertscore_raw_f1": 0.7983397841453552
+    }
+  ]
+}

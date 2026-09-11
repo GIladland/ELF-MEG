@@ -1,0 +1,330 @@
+{
+  "contract": {
+    "brain_vectors": "fixed and untouched within modality",
+    "generation_seed": 49,
+    "meg_rows_and_candidates": 110,
+    "meg_test26_opened": false,
+    "mri_rows_and_candidates": 266,
+    "mri_test107_opened": false,
+    "only_variable": "ELF semantic-text training corpus scale",
+    "reference_reranking": false
+  },
+  "modalities": {
+    "meg_ada": [
+      {
+        "direct_brain": {
+          "bertscore_f1": -0.08030281960964203,
+          "content_f1": 0.01551815831227596,
+          "generated_mean_rank": 41.900001525878906,
+          "generated_median_rank": 37.0,
+          "generated_top1": 0.04545454680919647,
+          "generated_top5": 0.11818181723356247,
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/eval_tang_apples_exact_ada002_fresh_elfb_full_memorize_all2788_ep1000_seed7_20260901_rawbrain_seed49",
+          "semantic_top1": 0.290909081697464,
+          "semantic_top5": 0.4545454680919647,
+          "status": "complete",
+          "step": 0,
+          "tag": "eval_tang_apples_exact_ada002_fresh_elfb_full_memorize_all2788_ep1000_seed7_20260901_rawbrain_seed49",
+          "wer": 1.0454545454545454,
+          "word_f1": 0.0454137409639802
+        },
+        "exact": {
+          "bertscore_f1": 0.7813596129417419,
+          "content_f1": 0.8916564748382931,
+          "generated_mean_rank": 1.0090909004211426,
+          "generated_median_rank": 1.0,
+          "generated_top1": 0.9909090995788574,
+          "generated_top5": 1.0,
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/eval_elf_semantic_scaling_meg_ada_x1_exact_val110_seed49_20260902",
+          "semantic_top1": null,
+          "semantic_top5": null,
+          "status": "complete",
+          "step": 0,
+          "tag": "eval_elf_semantic_scaling_meg_ada_x1_exact_val110_seed49_20260902",
+          "wer": 0.14545454545454545,
+          "word_f1": 0.8814912625917413
+        },
+        "scale": "x1",
+        "unique_pairs": 2788
+      },
+      {
+        "direct_brain": {
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/eval_elf_semantic_scaling_meg_ada_x4_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49",
+          "status": "pending",
+          "tag": "eval_elf_semantic_scaling_meg_ada_x4_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49"
+        },
+        "exact": {
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/elf_semantic_scaling_meg_ada_x4_anchorbalanced_compute12k_continuex1_seed7_20260902",
+          "status": "pending",
+          "tag": "elf_semantic_scaling_meg_ada_x4_anchorbalanced_compute12k_continuex1_seed7_20260902"
+        },
+        "scale": "x4",
+        "unique_pairs": 11152
+      },
+      {
+        "direct_brain": {
+          "bertscore_f1": -0.09692075103521347,
+          "content_f1": 0.019420810918137122,
+          "generated_mean_rank": 41.936363220214844,
+          "generated_median_rank": 33.0,
+          "generated_top1": 0.036363635212183,
+          "generated_top5": 0.1090909093618393,
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/eval_elf_semantic_scaling_meg_ada_x16_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49",
+          "semantic_top1": 0.290909081697464,
+          "semantic_top5": 0.4545454680919647,
+          "status": "complete",
+          "step": 0,
+          "tag": "eval_elf_semantic_scaling_meg_ada_x16_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49",
+          "wer": 1.0663636363636364,
+          "word_f1": 0.042051832779937626
+        },
+        "exact": {
+          "bertscore_f1": 0.8020291328430176,
+          "content_f1": 0.8876269882820684,
+          "generated_mean_rank": 0.9999999403953552,
+          "generated_median_rank": 1.0,
+          "generated_top1": 0.9999999403953552,
+          "generated_top5": 0.9999999403953552,
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/elf_semantic_scaling_meg_ada_x16_anchorbalanced_compute12k_continuex1_seed7_20260902",
+          "semantic_top1": null,
+          "semantic_top5": null,
+          "status": "complete",
+          "step": 11000,
+          "tag": "elf_semantic_scaling_meg_ada_x16_anchorbalanced_compute12k_continuex1_seed7_20260902",
+          "wer": 0.1409090909090909,
+          "word_f1": 0.8845812508485819
+        },
+        "scale": "x16",
+        "unique_pairs": 44608
+      }
+    ],
+    "meg_ada_paired_bootstrap": {
+      "baseline": "/data/engs-pnpl/glandau/elf-runs/eval_tang_apples_exact_ada002_fresh_elfb_full_memorize_all2788_ep1000_seed7_20260901_rawbrain_seed49/best_metrics.json",
+      "bootstrap_samples": 20000,
+      "candidate": "/data/engs-pnpl/glandau/elf-runs/eval_elf_semantic_scaling_meg_ada_x16_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49/best_metrics.json",
+      "contract": "paired validation-row comparison; no test data",
+      "corpus_wer": {
+        "baseline": 1.0454545454545454,
+        "candidate": 1.0663636363636364,
+        "candidate_minus_baseline": 0.020909090909090988
+      },
+      "metrics": {
+        "bertscore_f1": {
+          "baseline_mean": -0.08030280858087777,
+          "bootstrap_95ci_candidate_minus_baseline": [
+            -0.028977363716985567,
+            -0.003878367903076165
+          ],
+          "bootstrap_probability_candidate_better": 0.0055,
+          "candidate_mean": -0.09692073565569113,
+          "candidate_minus_baseline": -0.01661792707481337,
+          "num_rows": 110,
+          "rows_candidate_better": 43,
+          "rows_candidate_worse": 67,
+          "rows_tied": 0
+        },
+        "content_f1": {
+          "baseline_mean": 0.01551815831227596,
+          "bootstrap_95ci_candidate_minus_baseline": [
+            -0.0061088815373574745,
+            0.014304664030265622
+          ],
+          "bootstrap_probability_candidate_better": 0.77145,
+          "candidate_mean": 0.019420810918137122,
+          "candidate_minus_baseline": 0.0039026526058611615,
+          "num_rows": 110,
+          "rows_candidate_better": 12,
+          "rows_candidate_worse": 7,
+          "rows_tied": 91
+        },
+        "per_row_wer": {
+          "baseline_mean": 1.0454545454545454,
+          "bootstrap_95ci_candidate_minus_baseline": [
+            0.0027272727272727258,
+            0.03999999999999999
+          ],
+          "bootstrap_probability_candidate_better": 0.01265,
+          "candidate_mean": 1.0663636363636362,
+          "candidate_minus_baseline": 0.020909090909090905,
+          "num_rows": 110,
+          "rows_candidate_better": 18,
+          "rows_candidate_worse": 32,
+          "rows_tied": 60
+        },
+        "word_f1": {
+          "baseline_mean": 0.0454137409639802,
+          "bootstrap_95ci_candidate_minus_baseline": [
+            -0.016220877156959957,
+            0.009642688287373113
+          ],
+          "bootstrap_probability_candidate_better": 0.2985,
+          "candidate_mean": 0.042051832779937626,
+          "candidate_minus_baseline": -0.0033619081840425722,
+          "num_rows": 110,
+          "rows_candidate_better": 18,
+          "rows_candidate_worse": 27,
+          "rows_tied": 65
+        }
+      },
+      "seed": 20260903
+    },
+    "mri_minilm": [
+      {
+        "direct_brain": {
+          "bertscore_f1": -0.0760122537612915,
+          "content_f1": 0.008852550957814113,
+          "generated_mean_rank": 94.54887390136719,
+          "generated_median_rank": 77.0,
+          "generated_top1": 0.01879699155688286,
+          "generated_top5": 0.09398496150970459,
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/eval_fmri_exact_minilm384_fresh_elfb_full_memorize_all12098_ep600_seed7_20260901_rawbrain_seed49",
+          "semantic_top1": 0.033834587782621384,
+          "semantic_top5": 0.12781955301761627,
+          "status": "complete",
+          "step": 0,
+          "tag": "eval_fmri_exact_minilm384_fresh_elfb_full_memorize_all12098_ep600_seed7_20260901_rawbrain_seed49",
+          "wer": 1.006015037593985,
+          "word_f1": 0.06455460444682475
+        },
+        "exact": {
+          "bertscore_f1": 0.6405699253082275,
+          "content_f1": 0.7957702220612786,
+          "generated_mean_rank": 1.1428571939468384,
+          "generated_median_rank": 1.0,
+          "generated_top1": 0.9962406158447266,
+          "generated_top5": 0.9962406158447266,
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/eval_elf_semantic_scaling_mri_minilm_x1_exact_val266_seed49_20260902",
+          "semantic_top1": null,
+          "semantic_top5": null,
+          "status": "complete",
+          "step": 0,
+          "tag": "eval_elf_semantic_scaling_mri_minilm_x1_exact_val266_seed49_20260902",
+          "wer": 0.2657894736842105,
+          "word_f1": 0.7910142396295524
+        },
+        "scale": "x1",
+        "unique_pairs": 12098
+      },
+      {
+        "direct_brain": {
+          "bertscore_f1": -0.11619814485311508,
+          "content_f1": 0.008575697485471922,
+          "generated_mean_rank": 95.42105102539062,
+          "generated_median_rank": 82.0,
+          "generated_top1": 0.015037594363093376,
+          "generated_top5": 0.06390977650880814,
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/eval_elf_semantic_scaling_mri_minilm_x4_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49",
+          "semantic_top1": 0.033834587782621384,
+          "semantic_top5": 0.12781955301761627,
+          "status": "complete",
+          "step": 0,
+          "tag": "eval_elf_semantic_scaling_mri_minilm_x4_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49",
+          "wer": 1.056766917293233,
+          "word_f1": 0.058636585624621235
+        },
+        "exact": {
+          "bertscore_f1": 0.5786364674568176,
+          "content_f1": 0.7658950727169844,
+          "generated_mean_rank": 1.1466165781021118,
+          "generated_median_rank": 1.0,
+          "generated_top1": 0.9774436354637146,
+          "generated_top5": 0.9962406158447266,
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/elf_semantic_scaling_mri_minilm_x4_anchorbalanced_compute12k_continuex1_seed7_20260902",
+          "semantic_top1": null,
+          "semantic_top5": null,
+          "status": "complete",
+          "step": 9000,
+          "tag": "elf_semantic_scaling_mri_minilm_x4_anchorbalanced_compute12k_continuex1_seed7_20260902",
+          "wer": 0.3304511278195489,
+          "word_f1": 0.7408351607023343
+        },
+        "scale": "x4",
+        "unique_pairs": 48392
+      },
+      {
+        "direct_brain": {
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/eval_elf_semantic_scaling_mri_minilm_x8_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49",
+          "status": "pending",
+          "tag": "eval_elf_semantic_scaling_mri_minilm_x8_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49"
+        },
+        "exact": {
+          "run_dir": "/data/engs-pnpl/glandau/elf-runs/elf_semantic_scaling_mri_minilm_x8_anchorbalanced_compute12k_continuex1_seed7_20260902",
+          "status": "pending",
+          "tag": "elf_semantic_scaling_mri_minilm_x8_anchorbalanced_compute12k_continuex1_seed7_20260902"
+        },
+        "scale": "x8",
+        "unique_pairs": 96784
+      }
+    ],
+    "mri_minilm_paired_bootstrap": {
+      "baseline": "/data/engs-pnpl/glandau/elf-runs/eval_fmri_exact_minilm384_fresh_elfb_full_memorize_all12098_ep600_seed7_20260901_rawbrain_seed49/best_metrics.json",
+      "bootstrap_samples": 20000,
+      "candidate": "/data/engs-pnpl/glandau/elf-runs/eval_elf_semantic_scaling_mri_minilm_x4_anchorbalanced_compute12k_continuex1_seed7_20260902_rawbrain_seed49/best_metrics.json",
+      "contract": "paired validation-row comparison; no test data",
+      "corpus_wer": {
+        "baseline": 1.006015037593985,
+        "candidate": 1.056766917293233,
+        "candidate_minus_baseline": 0.050751879699248104
+      },
+      "metrics": {
+        "bertscore_f1": {
+          "baseline_mean": -0.07601224757161248,
+          "bootstrap_95ci_candidate_minus_baseline": [
+            -0.050864726326497654,
+            -0.02973784567294231
+          ],
+          "bootstrap_probability_candidate_better": 0.0,
+          "candidate_mean": -0.11619814623824132,
+          "candidate_minus_baseline": -0.04018589866662884,
+          "num_rows": 266,
+          "rows_candidate_better": 88,
+          "rows_candidate_worse": 178,
+          "rows_tied": 0
+        },
+        "content_f1": {
+          "baseline_mean": 0.008852550957814113,
+          "bootstrap_95ci_candidate_minus_baseline": [
+            -0.006494116003044574,
+            0.005632304725349837
+          ],
+          "bootstrap_probability_candidate_better": 0.46665,
+          "candidate_mean": 0.008575697485471922,
+          "candidate_minus_baseline": -0.0002768534723421934,
+          "num_rows": 266,
+          "rows_candidate_better": 13,
+          "rows_candidate_worse": 10,
+          "rows_tied": 243
+        },
+        "per_row_wer": {
+          "baseline_mean": 1.0060150375939851,
+          "bootstrap_95ci_candidate_minus_baseline": [
+            0.03533834586466166,
+            0.0661654135338346
+          ],
+          "bootstrap_probability_candidate_better": 0.0,
+          "candidate_mean": 1.0567669172932332,
+          "candidate_minus_baseline": 0.05075187969924812,
+          "num_rows": 266,
+          "rows_candidate_better": 36,
+          "rows_candidate_worse": 104,
+          "rows_tied": 126
+        },
+        "word_f1": {
+          "baseline_mean": 0.06455460444682475,
+          "bootstrap_95ci_candidate_minus_baseline": [
+            -0.014607050470630269,
+            0.002815000482602716
+          ],
+          "bootstrap_probability_candidate_better": 0.088,
+          "candidate_mean": 0.058636585624621235,
+          "candidate_minus_baseline": -0.005918018822203501,
+          "num_rows": 266,
+          "rows_candidate_better": 53,
+          "rows_candidate_worse": 96,
+          "rows_tied": 117
+        }
+      },
+      "seed": 20260903
+    }
+  }
+}

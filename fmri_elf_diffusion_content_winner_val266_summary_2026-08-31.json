@@ -1,0 +1,62 @@
+{
+  "scientific_scope": "train11725/val266 development only; diffusion test107 was not loaded",
+  "system_kind": "single-checkpoint deterministic brain-conditioned ELF diffusion; one generation; no reranking",
+  "package": "/data/engs-pnpl/glandau/elf-runs/fmri_minilm_elf_xattn_last2_lr1e4_from_recover2_step1000_20260831_lexgate_top5_frompartstep37_top10_prior0p1_t2_scattered_b40_val266_generationonly/packaged_system/fmri_elf_content_first_val266_20260831.pt",
+  "package_bytes": 1893042242,
+  "package_sha256": "a4031717b2f8b5095998fd45bb922b43d7b3385ce5b9b3aeefd1ea7b56b4fe54",
+  "decode": {
+    "lexical_topk": 10,
+    "lexical_temperature": 2.0,
+    "lexical_prior_subtraction": 0.1,
+    "lexical_max_prior_probability": 1.0,
+    "lexical_decode_bias_strength": 40.0,
+    "lexical_decode_bias_once": true,
+    "lexical_decode_bias_mode": "scattered",
+    "lexical_context_mode": "partitioned"
+  },
+  "t5_prefix_baseline_val266": {
+    "content_f1": 0.043743318085423345,
+    "word_f1": 0.08267770173628086,
+    "wer": 0.987218045112782,
+    "bertscore_f1": -0.08827818245344701
+  },
+  "diffusion_val266": {
+    "content_precision": 0.04211407848625894,
+    "content_recall": 0.05486782432271154,
+    "content_f1": 0.04709906581749502,
+    "word_precision": 0.06459247513261222,
+    "word_recall": 0.0744360902255639,
+    "word_f1": 0.06884933229626401,
+    "wer": 1.1421052631578947,
+    "bertscore_precision": -0.13228635489940643,
+    "bertscore_recall": -0.06764722615480423,
+    "bertscore_f1": -0.09891156107187271,
+    "retrieval_top1": 0.011278195488721804,
+    "retrieval_top5": 0.04887218045112782,
+    "retrieval_mean_rank": 113.54511278195488,
+    "retrieval_median_rank": 109.0
+  },
+  "content_comparison": {
+    "absolute_delta": 0.0033557477320716694,
+    "relative_improvement": 0.07671341498151269,
+    "paired_bootstrap_samples": 50000,
+    "paired_bootstrap_ci95": [-0.00776739, 0.01430218],
+    "paired_bootstrap_probability_diffusion_better": 0.72882,
+    "row_wins_ties_losses": [46, 169, 51]
+  },
+  "brain_derangement_control": {
+    "rolls": [1, 17, 83],
+    "content_f1": [0.03589147072992135, 0.04227106035254502, 0.031995587140318166],
+    "mean": 0.03671937274092818,
+    "matched_minus_mean": 0.010379693076566839,
+    "matched_beats_every_derangement": true
+  },
+  "dual_head_decision": {
+    "promoted": false,
+    "single_head_candidate_ceiling": 0.05614149168439306,
+    "dual_head_best_candidate_ceiling": 0.05683885280797453,
+    "single_head_conditional_margin": 0.010598908929293716,
+    "dual_head_conditional_margin": 0.007232596023943591,
+    "reason": "The tiny ceiling gain came with worse brain-conditional separation and the selected decode setting did not improve."
+  }
+}

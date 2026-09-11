@@ -1,0 +1,65 @@
+{
+  "contract": "semantic prediction -> nearest paired target embedding -> target text",
+  "source_npz": "/data/engs-pnpl/glandau/elf-cache/tang_themoth_qc4wyals_ada_v2/interface/qc4wyals_val_predicted_ada002.npz",
+  "prediction_key": "input_embeddings",
+  "target_key": "source_vectors",
+  "sentence_key": "sentence",
+  "num_examples": 110,
+  "embedding_dim": 1536,
+  "unique_sentences": 110,
+  "retrieval": {
+    "top1": 0.2909090909090909,
+    "top5": 0.45454545454545453,
+    "top10": 0.5545454545454546,
+    "top1_hits": 32,
+    "top5_hits": 50,
+    "top10_hits": 61,
+    "mean_rank": 23.354545454545455,
+    "median_rank": 7.5,
+    "mean_percentile": 0.7949124270225186,
+    "matched_cosine": 0.7174241542816162,
+    "mismatch_cosine": 0.6833508014678955
+  },
+  "retrieved_text": {
+    "corpus_wer": 0.7045454545454546,
+    "mean_example_wer": 0.7045454382896423,
+    "word_f1": 0.348181813955307,
+    "content_word_f1": 0.302932471036911,
+    "edit_errors": 775,
+    "reference_words": 1100,
+    "exact_text_fraction": 0.2909090909090909
+  },
+  "chance": {
+    "top1": 0.00909090909090909,
+    "top5": 0.045454545454545456,
+    "top10": 0.09090909090909091,
+    "random_candidate_mean_wer": 0.9826446175575256,
+    "random_wrong_candidate_mean_wer": 0.9916597008705139
+  },
+  "per_story": {
+    "howtodraw": {
+      "num_examples": 35,
+      "global_candidate_top1": 0.2571428571428571,
+      "global_candidate_top1_hits": 9,
+      "within_story_top1": 0.2571428571428571,
+      "within_story_top1_hits": 9,
+      "within_story_chance_top1": 0.02857142857142857
+    },
+    "leavingbaghdad": {
+      "num_examples": 32,
+      "global_candidate_top1": 0.40625,
+      "global_candidate_top1_hits": 13,
+      "within_story_top1": 0.5,
+      "within_story_top1_hits": 16,
+      "within_story_chance_top1": 0.03125
+    },
+    "thatthingonmyarm": {
+      "num_examples": 43,
+      "global_candidate_top1": 0.23255813953488372,
+      "global_candidate_top1_hits": 10,
+      "within_story_top1": 0.3023255813953488,
+      "within_story_top1_hits": 13,
+      "within_story_chance_top1": 0.023255813953488372
+    }
+  }
+}

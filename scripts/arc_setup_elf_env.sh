@@ -10,11 +10,25 @@ DATA_ROOT=${DATA_ROOT:-/data/engs-pnpl/glandau/elf-cache}
 TMP_ENV_ROOT=${TMP_ENV_ROOT:-/tmp/${USER}-braindiffusion-elf-torch213}
 ENV_STAMP=${ENV_STAMP:-braindiffusion-elf-torch213-py310-20260803}
 
-# Several Slurm jobs can share a multi-GPU node. Serialize setup so they do not
-# create or update the same node-local conda environment concurrently.
+# Several Slurm jobs can share a node, while their Conda package cache lives on
+# shared /data. Serialize setup cluster-wide so jobs on different GPU nodes do
+# not concurrently mutate that shared cache.
 if command -v flock >/dev/null 2>&1 && [[ "${ARC_ENV_LOCK_HELD:-0}" != "1" ]]; then
-  lock_path=/tmp/${USER}-braindiffusion-elf-env-setup.lock
+  mkdir -p "$DATA_ROOT/locks"
+  lock_path=$DATA_ROOT/locks/${USER}-braindiffusion-elf-env-setup.lock
   exec flock --wait 1800 "$lock_path" env ARC_ENV_LOCK_HELD=1 bash "$0" "$@"
+fi
+
+# Multiple jobs can fail the caller-side stamp check before the first setup
+# finishes, then wait on the lock above. Re-check after acquiring the lock so
+# those waiters reuse the completed node-local environment instead of
+# reinstalling it serially.
+stamp_path=$TMP_ENV_ROOT/.elf_env_stamp
+if [[ "${ARC_ENV_LOCK_HELD:-0}" == "1" && -d "$TMP_ENV_ROOT/bin" && -f "$stamp_path" ]]; then
+  if [[ "$(cat "$stamp_path")" == "$ENV_STAMP" ]]; then
+    echo "Environment became ready while waiting for setup lock; reusing TMP_ENV_ROOT=$TMP_ENV_ROOT"
+    exit 0
+  fi
 fi
 
 source "$(conda info --base)/etc/profile.d/conda.sh"
@@ -70,7 +84,22 @@ echo "CONDA_PKGS_DIRS=$CONDA_PKGS_DIRS"
 python --version
 nvidia-smi || true
 
-python -m pip install --no-user -r requirements.txt
+if [[ -n "${TORCH_PIP_SPEC:-}" ]]; then
+  if [[ -z "${TORCH_PIP_INDEX_URL:-}" ]]; then
+    echo "TORCH_PIP_INDEX_URL is required when TORCH_PIP_SPEC is set." >&2
+    exit 2
+  fi
+  echo "Installing GPU-compatible torch override: $TORCH_PIP_SPEC"
+  python -m pip install --no-user \
+    --index-url "$TORCH_PIP_INDEX_URL" \
+    "$TORCH_PIP_SPEC"
+  # requirements.txt pins the default cluster torch build. The override above
+  # intentionally replaces only that line while retaining every other project
+  # dependency for older GPU generations such as V100 (sm_70).
+  python -m pip install --no-user -r <(grep -vE '^torch([<=>!~[:space:]]|$)' requirements.txt)
+else
+  python -m pip install --no-user -r requirements.txt
+fi
 printf "%s\n" "$ENV_STAMP" > "$TMP_ENV_ROOT/.elf_env_stamp"
 
 python - <<'PY'
@@ -78,6 +107,7 @@ import os
 import torch, transformers, datasets, wandb
 print("torch", torch.__version__)
 print("cuda", torch.version.cuda)
+print("cuda_arch_list", torch.cuda.get_arch_list() if torch.cuda.is_available() else [])
 print("transformers", transformers.__version__)
 print("datasets", datasets.__version__)
 print("wandb", wandb.__version__)

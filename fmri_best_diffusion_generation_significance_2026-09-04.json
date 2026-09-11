@@ -1,0 +1,186 @@
+{
+  "contract": {
+    "run_tag": "fmri_elf_content_first_val266_20260831",
+    "checkpoint": "/data/engs-pnpl/glandau/elf-runs/fmri_minilm_elf_xattn_last2_lr1e4_from_recover2_step1000_20260831_lexgate_top5_frompartstep37_top10_prior0p1_t2_scattered_b40_val266_generationonly/packaged_system/fmri_elf_content_first_val266_20260831.pt",
+    "n": 266,
+    "null": "random one-to-one reassignment of generated sentences to target rows",
+    "permutations": 100000,
+    "seed": 20260904,
+    "rouge1": "macro ROUGE-1 F1 with Porter stemming",
+    "bertscore": "raw non-rescaled roberta-large, layer 17"
+  },
+  "permutation_tests": {
+    "content_f1": {
+      "observed": 0.047099063270970395,
+      "null_mean": 0.038035523146390915,
+      "null_std": 0.002796093001961708,
+      "null_ci95": [
+        0.03263800693675876,
+        0.04357232823967933
+      ],
+      "one_sided_p": 0.0006899931000689993,
+      "direction": "higher"
+    },
+    "word_f1": {
+      "observed": 0.06884933414315819,
+      "null_mean": 0.05705185607075691,
+      "null_std": 0.003300311276689172,
+      "null_ci95": [
+        0.05067419167608023,
+        0.06359039191156625
+      ],
+      "one_sided_p": 0.00023999760002399976,
+      "direction": "higher"
+    },
+    "rouge1_f1": {
+      "observed": 0.07309450422014509,
+      "null_mean": 0.05989024415612221,
+      "null_std": 0.003371346043422818,
+      "null_ci95": [
+        0.05333808558061719,
+        0.06656121406704187
+      ],
+      "one_sided_p": 6.999930000699993e-05,
+      "direction": "higher"
+    },
+    "wer": {
+      "observed": 1.1421052631578947,
+      "null_mean": 1.1448235511779785,
+      "null_std": 0.002293703146278858,
+      "null_ci95": [
+        1.1402255296707153,
+        1.1492481231689453
+      ],
+      "one_sided_p": 0.13649863501364987,
+      "direction": "lower"
+    },
+    "bertscore_raw_f1": {
+      "observed": 0.8145320576832706,
+      "null_mean": 0.8125532269477844,
+      "null_std": 0.0003212670562788844,
+      "null_ci95": [
+        0.811932860314846,
+        0.8131956472992897
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    }
+  },
+  "retrieval_chance_tests": {
+    "note": "Exact one-sided binomial chance tests; these are not row-permutation tests.",
+    "generated_top1": {
+      "hits": 3,
+      "rate": 0.011278195488721804,
+      "chance": 0.0037593984962406013,
+      "p": 0.07995445074664043
+    },
+    "generated_top5": {
+      "hits": 13,
+      "rate": 0.04887218045112782,
+      "chance": 0.018796992481203006,
+      "p": 0.0017994323033461862
+    }
+  },
+  "top_generations": [
+    {
+      "index": 137,
+      "target": "television set and i find the new york mets now",
+      "generated": "know went to new york in now new york go get really",
+      "content_f1": 0.375,
+      "word_f1": 0.2727272727272727,
+      "rouge1_f1": 0.27272728085517883,
+      "overlapping_content_words": "new, now, york",
+      "bertscore_raw_f1": 0.8623210191726685
+    },
+    {
+      "index": 255,
+      "target": "know you get a little momentum going and one day",
+      "generated": "the  see up around little like know  really back",
+      "content_f1": 0.30769230769230765,
+      "word_f1": 0.2105263157894737,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "know, little",
+      "bertscore_raw_f1": 0.7991392612457275
+    },
+    {
+      "index": 226,
+      "target": "helmut newton they said you know helmut newton the guy",
+      "generated": "said know reallya one in i ess gete back",
+      "content_f1": 0.2857142857142857,
+      "word_f1": 0.2105263157894737,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "know, said",
+      "bertscore_raw_f1": 0.8117813467979431
+    },
+    {
+      "index": 245,
+      "target": "little money i think a lot of people did around",
+      "generated": "little end of people us getin know now really two back one",
+      "content_f1": 0.26666666666666666,
+      "word_f1": 0.2727272727272727,
+      "rouge1_f1": 0.27272728085517883,
+      "overlapping_content_words": "little, people",
+      "bertscore_raw_f1": 0.8385626077651978
+    },
+    {
+      "index": 122,
+      "target": "dad one evening i took a two mile walk to",
+      "generated": "dining room we people the one  camp two back around",
+      "content_f1": 0.26666666666666666,
+      "word_f1": 0.20000000000000004,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "one, two",
+      "bertscore_raw_f1": 0.8173465132713318
+    },
+    {
+      "index": 192,
+      "target": "years old i got really sick um and no one",
+      "generated": "two know cause said it really school one last years last now",
+      "content_f1": 0.25,
+      "word_f1": 0.2727272727272727,
+      "rouge1_f1": 0.27272728085517883,
+      "overlapping_content_words": "one, years",
+      "bertscore_raw_f1": 0.8259793519973755
+    },
+    {
+      "index": 254,
+      "target": "dance and criticizing my hairdo and one night he said",
+      "generated": "soft life and now one two she started little really said back know",
+      "content_f1": 0.25,
+      "word_f1": 0.2608695652173913,
+      "rouge1_f1": 0.260869562625885,
+      "overlapping_content_words": "one, said",
+      "bertscore_raw_f1": 0.832574188709259
+    },
+    {
+      "index": 48,
+      "target": "accidentally i found myself straddling two lives a new one",
+      "generated": "constant now fighting my journey back my one two time",
+      "content_f1": 0.25,
+      "word_f1": 0.20000000000000004,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "one, two",
+      "bertscore_raw_f1": 0.8365440368652344
+    },
+    {
+      "index": 42,
+      "target": "first police detective i spoke with said get ready kid",
+      "generated": "back one little kid get likely to know us now really",
+      "content_f1": 0.25,
+      "word_f1": 0.1904761904761905,
+      "rouge1_f1": 0.190476194024086,
+      "overlapping_content_words": "get, kid",
+      "bertscore_raw_f1": 0.8455352187156677
+    },
+    {
+      "index": 17,
+      "target": "one day we get a phone call from our case",
+      "generated": "new press get now back two know one people to say us",
+      "content_f1": 0.25,
+      "word_f1": 0.1818181818181818,
+      "rouge1_f1": 0.1818181872367859,
+      "overlapping_content_words": "get, one",
+      "bertscore_raw_f1": 0.825886607170105
+    }
+  ]
+}

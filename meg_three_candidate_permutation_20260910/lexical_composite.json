@@ -1,0 +1,208 @@
+{
+  "contract": {
+    "run_tag": "meg_elfm_ctxdistill_robustinit_exactteacher_outputprojector_ep100_seed49_20260906",
+    "checkpoint": "/data/engs-pnpl/glandau/elf-runs/meg_elfm_ctxdistill_robustinit_exactteacher_outputprojector_ep100_seed49_20260906/best_adapter.pt",
+    "n": 110,
+    "null": "random one-to-one reassignment of generated sentences to target rows",
+    "permutations": 100000,
+    "seed": 20260910,
+    "bleu1": "macro sentence BLEU-1 with modified unigram precision and brevity penalty",
+    "rouge1": "macro ROUGE-1 F1 with Porter stemming",
+    "bertscore": "raw non-rescaled roberta-large, layer 17"
+  },
+  "permutation_tests": {
+    "content_f1": {
+      "observed": 0.02480654716491699,
+      "null_mean": 0.008561328984797001,
+      "null_std": 0.003421597182750702,
+      "null_ci95": [
+        0.002610722789540887,
+        0.01585203190334141
+      ],
+      "one_sided_p": 6.999930000699993e-05,
+      "direction": "higher"
+    },
+    "word_f1": {
+      "observed": 0.08070836500688032,
+      "null_mean": 0.0554315485060215,
+      "null_std": 0.005711037199944258,
+      "null_ci95": [
+        0.0444484612904489,
+        0.06682517193257809
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "bleu1": {
+      "observed": 0.07672386169433594,
+      "null_mean": 0.05266113206744194,
+      "null_std": 0.005426241084933281,
+      "null_ci95": [
+        0.04223373932763934,
+        0.06348896343261003
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "rouge1_f1": {
+      "observed": 0.08733407800847834,
+      "null_mean": 0.05899873375892639,
+      "null_std": 0.005851555150002241,
+      "null_ci95": [
+        0.047776495944708584,
+        0.07067277040332556
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "wer": {
+      "observed": 1.0327272727272727,
+      "null_mean": 1.0384974479675293,
+      "null_std": 0.0034104317892342806,
+      "null_ci95": [
+        1.031818151473999,
+        1.0445454120635986
+      ],
+      "one_sided_p": 0.06489935100648994,
+      "direction": "lower"
+    },
+    "bertscore_raw_f1": {
+      "observed": 0.8198478698730469,
+      "null_mean": 0.8172575831413269,
+      "null_std": 0.0005815392360091209,
+      "null_ci95": [
+        0.8161447018384933,
+        0.8184242263436318
+      ],
+      "one_sided_p": 1.999980000199998e-05,
+      "direction": "higher"
+    }
+  },
+  "retrieval_chance_tests": {
+    "note": "Exact one-sided binomial chance tests; these are not row-permutation tests.",
+    "generated_top1": {
+      "hits": 4,
+      "rate": 0.036363635212183,
+      "chance": 0.00909090909090909,
+      "p": 0.01842994464164178
+    },
+    "generated_top5": {
+      "hits": 11,
+      "rate": 0.09999999403953552,
+      "chance": 0.045454545454545456,
+      "p": 0.011670556368279775
+    }
+  },
+  "top_generations": [
+    {
+      "index": 39,
+      "target": "pregnant which was a real surprise but a happy one",
+      "generated": "Happy to is camp around i have some in question",
+      "content_f1": 0.22222222222222224,
+      "word_f1": 0.10000000000000002,
+      "bleu1": 0.10000000149011612,
+      "rouge1_f1": 0.10000000149011612,
+      "overlapping_content_words": "happy",
+      "bertscore_raw_f1": 0.8286089897155762
+    },
+    {
+      "index": 15,
+      "target": "eyes closed and her mouth open and blood was trickling",
+      "generated": "blood was from which which her windpipe which killed",
+      "content_f1": 0.2222222222222222,
+      "word_f1": 0.3157894736842105,
+      "bleu1": 0.2982797622680664,
+      "rouge1_f1": 0.31578946113586426,
+      "overlapping_content_words": "blood",
+      "bertscore_raw_f1": 0.8165848851203918
+    },
+    {
+      "index": 101,
+      "target": "dear friend sarah who's also a southerner i say sarah",
+      "generated": "me hell and i say that there are some people who",
+      "content_f1": 0.18181818181818182,
+      "word_f1": 0.1904761904761905,
+      "bleu1": 0.1818181872367859,
+      "rouge1_f1": 0.27272728085517883,
+      "overlapping_content_words": "say",
+      "bertscore_raw_f1": 0.8377087712287903
+    },
+    {
+      "index": 28,
+      "target": "kind of semi lame at my side and you know",
+      "generated": "dyed around camp you know it's you working",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.22222222222222224,
+      "bleu1": 0.1947001963853836,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "know",
+      "bertscore_raw_f1": 0.8289168477058411
+    },
+    {
+      "index": 68,
+      "target": "voice said the pain of the jump is nothing compared",
+      "generated": "actually said in the i never wasable to hear",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.2105263157894737,
+      "bleu1": 0.19885317981243134,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "said",
+      "bertscore_raw_f1": 0.8335457444190979
+    },
+    {
+      "index": 69,
+      "target": "remember feeling any pain i just ran i ran for",
+      "generated": "brought this night together about three minutes and i remember",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "remember",
+      "bertscore_raw_f1": 0.8321722149848938
+    },
+    {
+      "index": 71,
+      "target": "stay i left baghdad early the next morning going back",
+      "generated": "me i won the oh duty the next",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.33333333333333326,
+      "bleu1": 0.292050302028656,
+      "rouge1_f1": 0.3333333432674408,
+      "overlapping_content_words": "next",
+      "bertscore_raw_f1": 0.8580629825592041
+    },
+    {
+      "index": 108,
+      "target": "wrong job or the wrong marriage i'm in the wrong",
+      "generated": "Understand the wagon and by taking a course my entire job",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.1904761904761905,
+      "bleu1": 0.1818181872367859,
+      "rouge1_f1": 0.1818181872367859,
+      "overlapping_content_words": "job",
+      "bertscore_raw_f1": 0.8465310335159302
+    },
+    {
+      "index": 45,
+      "target": "driver sped away trying to get to safety not knowing",
+      "generated": "This thing the driver in the morning and we go see seven",
+      "content_f1": 0.15384615384615383,
+      "word_f1": 0.0909090909090909,
+      "bleu1": 0.0833333358168602,
+      "rouge1_f1": 0.09090909361839294,
+      "overlapping_content_words": "driver",
+      "bertscore_raw_f1": 0.8310248255729675
+    },
+    {
+      "index": 93,
+      "target": "anything but things at home start to get a little",
+      "generated": "people who are this thing is anything just like across without life",
+      "content_f1": 0.15384615384615383,
+      "word_f1": 0.0909090909090909,
+      "bleu1": 0.0833333358168602,
+      "rouge1_f1": 0.1818181872367859,
+      "overlapping_content_words": "anything",
+      "bertscore_raw_f1": 0.8212968707084656
+    }
+  ]
+}

@@ -1,0 +1,267 @@
+index,target,generated,content_f1,word_f1,rouge1_f1,overlapping_content_words,bertscore_raw_f1
+137,television set and i find the new york mets now,know went to new york in now new york go get really,0.375,0.2727272727272727,0.27272728085517883,"new, now, york",0.8623210191726685
+255,know you get a little momentum going and one day,the  see up around little like know  really back,0.30769230769230765,0.2105263157894737,0.21052631735801697,"know, little",0.7991392612457275
+226,helmut newton they said you know helmut newton the guy,said know reallya one in i ess gete back,0.2857142857142857,0.2105263157894737,0.21052631735801697,"know, said",0.8117813467979431
+245,little money i think a lot of people did around,little end of people us getin know now really two back one,0.26666666666666666,0.2727272727272727,0.27272728085517883,"little, people",0.8385626077651978
+122,dad one evening i took a two mile walk to,dining room we people the one  camp two back around,0.26666666666666666,0.20000000000000004,0.20000000298023224,"one, two",0.8173465132713318
+192,years old i got really sick um and no one,two know cause said it really school one last years last now,0.25,0.2727272727272727,0.27272728085517883,"one, years",0.8259793519973755
+254,dance and criticizing my hairdo and one night he said,soft life and now one two she started little really said back know,0.25,0.2608695652173913,0.260869562625885,"one, said",0.832574188709259
+48,accidentally i found myself straddling two lives a new one,constant now fighting my journey back my one two time,0.25,0.20000000000000004,0.20000000298023224,"one, two",0.8365440368652344
+42,first police detective i spoke with said get ready kid,back one little kid get likely to know us now really,0.25,0.1904761904761905,0.190476194024086,"get, kid",0.8455352187156677
+17,one day we get a phone call from our case,new press get now back two know one people to say us,0.25,0.1818181818181818,0.1818181872367859,"get, one",0.825886607170105
+219,one nursing twenty four hours around the clock at home,back around in addition from people really two one know and everything,0.25,0.1818181818181818,0.1818181872367859,"around, one",0.8160086274147034
+148,gonna go back to baltimore and play the last two,now little e life and even really know one back time two,0.23529411764705882,0.2727272727272727,0.27272728085517883,"back, two",0.8188143372535706
+110,the sectarian killings and kidnappings one morning my mom said,said we went really back got know two more one table now get,0.23529411764705882,0.17391304347826086,0.17391304671764374,"one, said",0.8136729001998901
+220,kind of semi lame at my side and you know,well considered to one and a now's never know  said really,0.1818181818181818,0.1904761904761905,0.1818181872367859,know,0.8062264323234558
+31,first mommy don't you think and this time my boy,now room we really don't have to get one us,0.1818181818181818,0.10000000000000002,0.1818181872367859,don't,0.7944149971008301
+41,ever i asked do you know what the meat barn,may be little point know get her said one now really,0.15384615384615385,0.09523809523809525,0.095238097012043,know,0.8139420747756958
+217,remember you know in the emergency room i remember vague,get off at the back of little now around to know see,0.15384615384615383,0.1818181818181818,0.1818181872367859,know,0.8393459320068359
+160,go anywhere new and i would not meet new people,two got to get back people one'm now,0.15384615384615383,0.11111111111111112,0.10526315867900848,people,0.8247273564338684
+153,he wants to know what's the holdup the attendant tells,family people said they want there's really know one,0.15384615384615383,0.10526315789473685,0.2857142984867096,know,0.8177527189254761
+175,could go on an art market shopping adventure by now,now people a two us onena dec little get,0.15384615384615383,0.10526315789473685,0.10526315867900848,now,0.8214761018753052
+5,race what age now i grew up with three sisters,some one now may see her even some people circumstances,0.15384615384615383,0.10000000000000002,0.10000000149011612,now,0.8274936079978943
+140,get tickets because the mets are so lousy nobody else,a now even get really a little one full of know,0.15384615384615383,0.09523809523809525,0.095238097012043,get,0.8074818849563599
+19,these tiny little socks and really cute onesies and things,little know back two that one and around some really  get see,0.14285714285714288,0.2727272727272727,0.27272728085517883,little,0.807158887386322
+166,driver driven to my teaching assignment and then delivered back,really gor know now get back one and two we got,0.14285714285714288,0.1904761904761905,0.190476194024086,back,0.8277360200881958
+49,months of flying back and forth this was moving forward,really got so one said even my right now back of time,0.14285714285714288,0.1818181818181818,0.1818181872367859,back,0.81770920753479
+88,anything but things at home start to get a little,little mother de know she supposed to be  us now one two,0.14285714285714288,0.1818181818181818,0.1818181872367859,little,0.8198766112327576
+89,business one but when i started going to art school,years now really stayed up back time you became de one,0.14285714285714288,0.09523809523809525,0.095238097012043,one,0.8393701910972595
+34,could however send a letter on my behalf now based,think really now saidation and back then you go get know one,0.14285714285714288,0.0909090909090909,0.09090909361839294,now,0.822040319442749
+107,driver sped away trying to get to safety not knowing,now he got on a get around back two one,0.14285714285714285,0.10000000000000002,0.10000000149011612,get,0.8250719308853149
+159,be individuals who were comfortable and confident in new situations,really good day new people two not get one know now,0.14285714285714285,0.09523809523809525,0.095238097012043,new,0.8132607340812683
+223,multiple surgeries on the arm every time the arm got,really started time back now a little just never i know,0.14285714285714285,0.09523809523809525,0.095238097012043,time,0.8117727041244507
+262,inspiring so one day i was walking past flamingo louisville,in the back york one can hear know  us now around,0.14285714285714285,0.09523809523809525,0.095238097012043,one,0.8134660720825195
+243,life happens you know thirty or forty years pass and,one back know we really say our go to get the story,0.14285714285714285,0.0909090909090909,0.09090909361839294,know,0.8061567544937134
+231,pregnant which was a real surprise but a happy one,said and decided they chose not to get one back little now person really,0.14285714285714285,0.08333333333333333,0.0833333358168602,one,0.825454592704773
+124,the street he turned left and instead of turning around,get got know back around the door and said one the go,0.13333333333333333,0.2727272727272727,0.27272728085517883,around,0.8355861902236938
+98,two instructors and several students review the work give us,say the know two one get for a back go around really,0.13333333333333333,0.1818181818181818,0.1818181872367859,two,0.8045586347579956
+250,really difficult time i felt really old i felt spent,up up got time went back um one really two know us around,0.13333333333333333,0.17391304347826086,0.17391304671764374,time,0.8267406225204468
+0,eyes shut or change a diaper with one hand tied,movie not really one us two whole new people now years,0.13333333333333333,0.09523809523809525,0.095238097012043,one,0.7934557199478149
+80,man the artists model starts to undress and i say,people said really  say little one know now get this guy,0.13333333333333333,0.09523809523809525,0.095238097012043,say,0.8284282684326172
+167,adventures often included trips to the art market now back,you know little one of people in practices really said now,0.13333333333333333,0.09523809523809525,0.095238097012043,now,0.8202513456344604
+261,you know the thing is it's not inactivtiy that's taking,really know even back time one around little now two up,0.13333333333333333,0.09523809523809525,0.08695652335882187,know,0.8025814890861511
+2,adopt one day and you know how everybody always says,things for it said time up little one two really now back,0.13333333333333333,0.0909090909090909,0.09090909361839294,one,0.7988925576210022
+46,friend others sought out for relationship advice or to discuss,now even said really one we know a little relationship time peopley,0.13333333333333333,0.0909090909090909,0.09090909361839294,relationship,0.8185755610466003
+76,wrong way to make art now this makes me extremely,over around the said now and really one get back two got,0.13333333333333333,0.0909090909090909,0.09090909361839294,now,0.8368699550628662
+147,three no to game four leading two games to one,now know it says say you will get one less really saidly,0.13333333333333333,0.0909090909090909,0.09090909361839294,one,0.7994837760925293
+27,hand you know you have to muddle things up sometimes,started time really people one more two a little now back got know,0.13333333333333333,0.08695652173913043,0.08695652335882187,know,0.8107703924179077
+191,item you never know what you're modeling for your kids,independent one not only even as nowa people really good years two know,0.13333333333333333,0.08695652173913043,0.0833333358168602,know,0.7860156893730164
+158,i know they're supposed to keep you safe they're supposed,of your hands really be a luxury of now one know little people get,0.13333333333333333,0.08333333333333333,0.07692307978868484,know,0.8205611109733582
+188,go unanswered so my younger boy says mom was looking,now to get in and call and i says to know one said say,0.13333333333333333,0.08333333333333333,0.0833333358168602,says,0.8292907476425171
+233,one time for five days with a fetal heart monitor,really got it to us one two of little bits she now back around,0.13333333333333333,0.08333333333333333,0.0833333358168602,one,0.8138427734375
+14,god get some help with their skin and hair and,silver now get really doesn't because she know one little two people said back,0.12500000000000003,0.08333333333333333,0.07999999821186066,get,0.8248282074928284
+26,younger brother and sister looked like him and he said,back mother said one two years and went to one now hospital,0.125,0.1818181818181818,0.1818181872367859,said,0.8596900105476379
+95,school as a part time student but i'm still consulting,i really one know kind of a little time now two back get,0.125,0.17391304347826086,0.25,time,0.7973483800888062
+258,know the name of you know the fibrillator thing that's,said know one got little now you're back there you really two get,0.125,0.17391304347826086,0.1599999964237213,know,0.8193774819374084
+79,next week bob one of the three instructors says today,some one lantern  littleing around now two back it got,0.125,0.10000000000000002,0.10000000149011612,one,0.8100569248199463
+102,consulting work and even though i'm getting paid a fire,playing two  really the fire back got one said know,0.125,0.10000000000000002,0.095238097012043,fire,0.8140715956687927
+78,entire life i had never held a stick of charcoal,said know now really make go  little never back's gett one,0.125,0.09523809523809525,0.09090909361839294,never,0.8037686347961426
+87,end of class bob picks one of my gesture drawings,one get know see doors got her said he says back,0.125,0.09523809523809525,0.095238097012043,one,0.8109199404716492
+116,they speak they swallow letters one time a soldier asked,know one said and years two now went really  school wanted,0.125,0.09523809523809525,0.095238097012043,one,0.8251330852508545
+135,enrolled in a state university to get my master's degree,traveling nowi know get really two go back one peopleamerica day,0.125,0.09523809523809525,0.09090909361839294,get,0.795540452003479
+187,fiasco but i stayed silent i'm originally from new england,email one really to somewhere around said nowo to get new know,0.125,0.0909090909090909,0.08695652335882187,new,0.8031213283538818
+263,went into flamingo louisville and i said what's the story,getly us back said got might one suspicious see know now around,0.11764705882352942,0.0909090909090909,0.08695652335882187,said,0.8145397901535034
+168,boys very efficient shoppers we only go to one grocery,get says said one you say really see little now better right know,0.11764705882352942,0.08695652173913043,0.08695652335882187,one,0.8105905652046204
+229,college loans and you know bought me an apartment paid,little really backling around get five hundred minutes of two now one know,0.11764705882352942,0.08695652173913043,0.08695652335882187,know,0.8221912980079651
+238,louisville kentucky and in my generation gently reared young ladies,young two little and  aroundt back really know one now even said,0.11764705882352941,0.1818181818181818,0.1818181872367859,young,0.7855932116508484
+133,stay i left baghdad early the next morning going back,said to go back two one years know really now promise,0.11764705882352941,0.09523809523809525,0.190476194024086,back,0.8244529962539673
+215,parents got taken somewhere else my arm you know because,know one get two little back around around  gotuh now really,0.11764705882352941,0.09523809523809525,0.095238097012043,know,0.8188768029212952
+156,day all these years later best moment ever so now,dollar said now know one time went goty two back the really,0.11764705882352941,0.0909090909090909,0.09090909361839294,now,0.818377673625946
+230,back in another hospital bed staring at another white ceiling,problem get really now one know going around of my go back,0.11764705882352941,0.0909090909090909,0.09090909361839294,back,0.7961109280586243
+101,dear friend of mine says you know tricia i love,one and he started crying said know  little family two back now really,0.11764705882352941,0.08695652173913043,0.08695652335882187,know,0.8156734704971313
+108,twenty five minutes ride to school took two hours because,family umh and us there really one two got now went back around,0.11764705882352941,0.08695652173913043,0.08695652335882187,two,0.7928985357284546
+21,two year emotional roller coaster we borrowed a car seat,came usteen nine three went one two two weeks earlier,0.11111111111111112,0.10000000000000002,0.10000000149011612,two,0.8241634368896484
+118,a whole new language i don't remember i ever said,one back now it two got us a book at the fire camp said really around know,0.1111111111111111,0.14814814814814817,0.1428571492433548,said,0.8103532195091248
+85,start making these hopeless stick figures every forty five seconds,next really get catch my back five around one two  now,0.1111111111111111,0.09523809523809525,0.095238097012043,five,0.8178807497024536
+247,started now course now i'm heartbroken you know i'm like,was  schooling really know back one went said two everyone to got,0.1111111111111111,0.0909090909090909,0.0833333358168602,know,0.8102689981460571
+264,beginner beginner class that was september of two thousand fourteen,now two twenty three years nine got him one twenty thirty minutes,0.1111111111111111,0.0909090909090909,0.09090909361839294,two,0.819711446762085
+28,did anybody do anything or say something recently that made,see say next says get one now go back call he  know said,0.1111111111111111,0.08695652173913043,0.08695652335882187,say,0.7854912281036377
+184,want big cock or little cock i am now awake,said now hell so the house get says one know that's really say back,0.1111111111111111,0.08333333333333333,0.07999999821186066,now,0.8255431056022644
+189,find one she liked always a fan of new words,world in the two world get now really said back one father know says,0.1111111111111111,0.08333333333333333,0.0833333358168602,one,0.8319566249847412
+146,record breaking crowds standing room only and i'm worried so,room of me friends get now people would see know really one said back say,0.1111111111111111,0.08,0.07692307978868484,room,0.8232043385505676
+213,get help please please get help and then a bunch,have to change them know new back us one o twoclock get go around got,0.1111111111111111,0.08,0.07999999821186066,get,0.8088515400886536
+257,house two days a week two classes on those two,go went seventeen year old get now one really know time two back,0.10526315789473685,0.08695652173913043,0.08695652335882187,two,0.8064122200012207
+225,i really started modeling to pay off my college loans,went to really a job in urbanes,0.0,0.23529411764705882,0.23529411852359772,,0.8304091095924377
+73,started consulting and i started taking classes to figure out,little ability to go back and know a one really,0.0,0.20000000000000004,0.20000000298023224,,0.8261256217956543
+109,shia civil war and to see a strong iraqi military,to the one now my mother was little to really a,0.0,0.1904761904761905,0.190476194024086,,0.8053516745567322
+182,long row of stalls the white lady needs a cock,says what say a one know and he said the guy,0.0,0.1904761904761905,0.190476194024086,,0.8350725769996643
+206,embankment and then finally came to a last thud and,go to us nowa one around and two back get sudden,0.0,0.1904761904761905,0.190476194024086,,0.799616813659668
+237,i'm really a good dancer a great dancer or anything,low a the back says says would really get one know,0.0,0.1904761904761905,0.1818181872367859,,0.8246325254440308
+55,turnoff that leads to the monterey peninsula and big sur,now never really get back to the little room for one years,0.0,0.1818181818181818,0.1818181872367859,,0.8149374127388
+169,some sort of qualifying trials for the grocery store olympics,back on left of the world get see said know one two now,0.0,0.17391304347826086,0.17391304671764374,,0.8266240954399109
+249,even though i in my depression and my weight gain,know really keep us around my one two and back you can now,0.0,0.17391304347826086,0.17391304671764374,,0.8259108662605286
+123,passenger seat the driver was listening to really loud music,said say one got two to know it supposed to get back really now,0.0,0.16666666666666666,0.1666666716337204,,0.8270744681358337
+92,go back to my normal life and i'm highly suspicious,nowi will probably know you get able to really,0.0,0.10526315789473685,0.10000000149011612,,0.8237797617912292
+193,with a hyper allergy something called stevens johnson syndrome and,one  us nowot really got i was starteded and,0.0,0.10526315789473685,0.10526315867900848,,0.7807187438011169
+8,distress bringing this kid into the world and even though,physicality got around back really me get the translucent look,0.0,0.10000000000000002,0.10000000149011612,,0.8145356178283691
+16,name of our adorable funny very loved and very wanted,two back up the little one of got stamping around,0.0,0.10000000000000002,0.10000000149011612,,0.8095641136169434
+37,see my husband eating and talking with another family member,one she had now us her little and two things,0.0,0.10000000000000002,0.10000000149011612,,0.8249927163124084
+50,angeles in the surreal position of proving to skeptical strangers,the now she two us little people a woman one,0.0,0.10000000000000002,0.10000000149011612,,0.8145009279251099
+62,time in serious need of a positive force a detour,know years two of little colors of one people now,0.0,0.10000000000000002,0.10000000149011612,,0.8162345886230469
+112,alive better than you be close and always in danger,one back said two in fire got now into around,0.0,0.10000000000000002,0.10000000149011612,,0.8117119669914246
+115,thinking about my family back home and their saety later,two me on my twenty one day nowa really target,0.0,0.10000000000000002,0.10000000149011612,,0.8194103837013245
+164,drive everyone around me crazy and i knew a move,now two got backa load of pain and go one,0.0,0.10000000000000002,0.10000000149011612,,0.8341716527938843
+170,market i quickly realized that very little english was spoken,really years and i write know now one first time,0.0,0.10000000000000002,0.10000000149011612,,0.8283329010009766
+176,shopping guide so as we left that morning the boys,back two we got a one in goon get went,0.0,0.10000000000000002,0.10000000149011612,,0.8256500959396362
+199,long enough ago i was fourteen a long time ago,little of around now it until a one thousand years,0.0,0.10000000000000002,0.10000000149011612,,0.8093801736831665
+232,complete bed rest the last trimester of my pregnancy and,went to get their mom back two and that's  really,0.0,0.10000000000000002,0.095238097012043,,0.7859088182449341
+234,please deliver me and my child intact and healthy out,know one really back and a now see around get,0.0,0.10000000000000002,0.10000000149011612,,0.8063510656356812
+244,little something on tv or in a movie and think,morning around in  one peopleington get to know two us,0.0,0.10000000000000002,0.10000000149011612,,0.8166608214378357
+252,it wasn't really supposed to be a senior citizen dance,either really get know one two people around now dayes,0.0,0.10000000000000002,0.095238097012043,,0.8184524178504944
+3,us really hard hitting questions like is secondhand smoke good,us back one up so people around for a liftl get,0.0,0.09523809523809525,0.095238097012043,,0.8109239339828491
+30,the time everybody only talks about how really happy adoption,things to little even knowable people of one now really get,0.0,0.09523809523809525,0.095238097012043,,0.8215774297714233
+51,access to a fax machine a landline phone number sorry,really get make one two backa little to know three go,0.0,0.09523809523809525,0.095238097012043,,0.8053050637245178
+77,class will focus on process the process of art making,time people now know really one two sort of back get,0.0,0.09523809523809525,0.095238097012043,,0.8131515383720398
+93,committed relationship for the past eighteen years with his boyfriend,one the know even u got really nowd back  two said,0.0,0.09523809523809525,0.095238097012043,,0.7885724902153015
+97,moving fast enough i kept pushing him to move faster,one know nowed to really around me time back never go,0.0,0.09523809523809525,0.095238097012043,,0.8249615430831909
+104,home of twenty five years and my jeep gets stolen,one day now my go back around get really know two,0.0,0.09523809523809525,0.190476194024086,,0.8107019662857056
+126,hear about a kidnapping almost every day in the news,really get one and and nowhe said all the know just,0.0,0.09523809523809525,0.095238097012043,,0.8010064363479614
+134,us military you will forever be an al qaeda target,peoples that were twoe really one now know said years us,0.0,0.09523809523809525,0.095238097012043,,0.8150749802589417
+141,and we're sad and it takes until nineteen sixty seven,his boyfriend and one ended up came back now he said,0.0,0.09523809523809525,0.09090909361839294,,0.8277689218521118
+195,slept every night in the hospital to take care of,time one my son got now twoing to back around little,0.0,0.09523809523809525,0.095238097012043,,0.8044989109039307
+200,still really sick i could barely hold my head up,got one know now back the top to an un really,0.0,0.09523809523809525,0.095238097012043,,0.8185504674911499
+222,arm got better the scar got worse and you know,now and around back get and that one little see really,0.0,0.09523809523809525,0.095238097012043,,0.8220772743225098
+224,wear a short sleeve blouse or a long sleeve blouse,two one doors really get a little f see around back,0.0,0.09523809523809525,0.095238097012043,,0.8062520623207092
+235,a youthful folly uh dance partners while not exactly plentiful,life therapy one for many really years probably a know now,0.0,0.09523809523809525,0.095238097012043,,0.8211027383804321
+248,opened the freezer to get a frozen bottle of water,one really back in the embo two now more little than,0.0,0.09523809523809525,0.095238097012043,,0.8212245106697083
+13,later i don't think they told us anything about transracial,stamping's people get know one now the moment' two us back really,0.0,0.0909090909090909,0.0833333358168602,,0.8048123121261597
+18,better call my husband and ask him real quick though,love me really get me and said go know you now too,0.0,0.0909090909090909,0.09090909361839294,,0.8215132355690002
+59,finished writing my first book i returned to big sur,bron now back to one new york said two really went years,0.0,0.0909090909090909,0.09090909361839294,,0.831256628036499
+69,become acutely aware of my first time in big sur,at reallyers us  know my two back one now little around get,0.0,0.0909090909090909,0.09090909361839294,,0.8083518743515015
+90,new york times business sections and the wall street journal,little they one us two around up the people back everys get,0.0,0.0909090909090909,0.09090909361839294,,0.7840771079063416
+91,piece gets progressively more undone until the final piece explodes,one little around really back out of the know two they get,0.0,0.0909090909090909,0.1818181872367859,,0.8178995847702026
+113,arrived in kurdistan state in northern iraq and i managed,back one i was twenty two five little got was found there,0.0,0.0909090909090909,0.09090909361839294,,0.8068315982818604
+178,fully expected to see our shopping guide when we got,know now i had tried to said' one really like you say,0.0,0.0909090909090909,0.09090909361839294,,0.8173638582229614
+204,us no trees no nothing just endless miraculous blue sky,now they know around two see us my back get one really,0.0,0.0909090909090909,0.09090909361839294,,0.8116840720176697
+210,this nonstop loop of my stepfather almost like that cliche,see is around one two little back of people now really know,0.0,0.0909090909090909,0.09090909361839294,,0.804084062576294
+246,becoming an old lady and i have this huge crush,time two even with my husband now and one um really know,0.0,0.0909090909090909,0.09090909361839294,,0.8286500573158264
+253,really big dance floor and you know this guy plays,two time of one around got started to us foot really back,0.0,0.0909090909090909,0.09090909361839294,,0.8252386450767517
+265,a shirt progress not perfection and i never got worse,get they know now of a gay people even really one little,0.0,0.0909090909090909,0.09090909361839294,,0.8094063997268677
+22,anti social worker and hello to the architect and contractors,really back two now one people women get the year of new years,0.0,0.08695652173913043,0.08695652335882187,,0.8384811878204346
+32,lacked the emotional maturity and the language to really explore,i know one back a little of even felt now two around really,0.0,0.08695652173913043,0.08695652335882187,,0.8057246208190918
+45,mirror and begin therapy when another asked what i thought,one room now said she's not go talk and says say back know,0.0,0.08695652173913043,0.0833333358168602,,0.8319140672683716
+54,would go and continued toward los angeles i began wondering,know now say said one back and then she get says the really,0.0,0.08695652173913043,0.08695652335882187,,0.8173201084136963
+119,iraqi police iraqi military local mayors leaders with top us,notice that the us are one every really people now around little two,0.0,0.08695652173913043,0.08695652335882187,,0.8076228499412537
+198,mother and i drove in our red ford mercury car,one little really get and two nine minutes know around back now us,0.0,0.08695652173913043,0.08695652335882187,,0.7970521450042725
+214,famous things called the jaws of life to cut open,see around a one two of us get  now people new back know,0.0,0.08695652173913043,0.08695652335882187,,0.8136780261993408
+86,ever trying anything different for even attempting anything new and,back one know and my little really didn't feel like now go said get,0.0,0.08333333333333333,0.07999999821186066,,0.800335705280304
+132,soldiers rushed to help me asking what happened what happened,said one want to know  little joke around school now back really two got,0.0,0.08333333333333333,0.0833333358168602,,0.8147552013397217
+139,televised games and my parents actually managed to take us,student friends back years time one two now really us went a school piece,0.0,0.08333333333333333,0.0833333358168602,,0.8238347172737122
+197,offering to give thanks for delivering my child home safely,back next to him and now said one know says get say go guy,0.0,0.08333333333333333,0.0833333358168602,,0.8060820698738098
+202,eating this rice um suddenly i heard a loud bang,sayss me with the eye really and i don't say said one get know,0.0,0.08333333333333333,0.07999999821186066,,0.8179970979690552
+241,dance recital and there was a gypsy esque dance um,new one really two went got interested with therapy and our center came back,0.0,0.08333333333333333,0.0833333358168602,,0.8354547619819641
+24,six years old and uh getting ready for first grade,back one now her room and she got to call around said really little know,0.0,0.08,0.07999999821186066,,0.8183275461196899
+83,going to look different i'm paralyzed what is mine supposed,theme on t really  little get is gonna be onea know now says say said,0.0,0.08,0.07692307978868484,,0.8193317651748657
+60,afternoon the ventana wilderness soggy and completely unaccommodating humbling in,mother saw the place of her two around at one now little us back really know,0.0,0.07692307692307693,0.07692307978868484,,0.7971250414848328
+1,paying ten dollars an hour in nineteen eighty eight so,happy now it was two one time years really backuan,0.0,0.0,0.0,,0.8098117113113403
+4,physicals done background checks fingerprinted have our home inspected interviews,using people gathered little two doors one back get around,0.0,0.0,0.0,,0.826238751411438
+6,someone else so anything up to age four the age,two reallys two years now three back one day get time,0.0,0.0,0.0,,0.8207504749298096
+7,thought wow an infant doesn't everybody else want an infant,the death right now know one so mother dr two said,0.0,0.0,0.0,,0.8095531463623047
+9,let us just leave with him even though they look,now really full know one and finally to get back,0.0,0.0,0.0,,0.824293315410614
+10,learn in spite of years of babysitting and parenting experience,two had now all new people time one know little really,0.0,0.0,0.0,,0.8175765872001648
+11,when told new jersey uh just continues to keep asking,people now know get saidas but really was not one back,0.0,0.0,0.0,,0.8307483196258545
+12,four year old white son comes running up and says,go all know to get two now but for one really,0.0,0.0,0.0,,0.814009428024292
+15,of that harsh reality yet and our case moved along,people really time two us back now whenever one got went around,0.0,0.0,0.0,,0.8132902979850769
+20,i got a phone call about our boy's baby sister,get the know now now one little his back was really,0.0,0.0,0.0,,0.8182685971260071
+23,the black community adult adopteest more experienced transracially adoptive families,know really people every one going to feel good now us around two,0.0,0.0,0.0,,0.7935376167297363
+25,blue sneakers and i wish a brown family adopted me,say my now one know people might little really get positive said,0.0,0.0,0.0,,0.8105888366699219
+29,mean clearly the kid was not gonna help me move,one uss two back up to arounds and got to really,0.0,0.0,0.0,,0.8180158734321594
+33,forever but that i wanted to help him find peace,get the back year now really know two go one said,0.0,0.0,0.0,,0.8207570314407349
+35,called us a week or two later this great grandmother,said back went to take me to the floor one was got,0.0,0.0,0.0,,0.8156550526618958
+36,us our adopted kids our biological kids my husband and,her possession which she diminishe really one of the little nows,0.0,0.0,0.0,,0.8042200803756714
+38,impossible as my account was almost ten thousand dollars overdrawn,part of the country a house of re really know one now two new people get,0.0,0.0,0.0,,0.8094635009765625
+39,sprawling green students playing frisbee tourists snapping photographs and told,know to our us two now one our new we people really,0.0,0.0,0.0,,0.7989649176597595
+40,next few days this person had acquired a debit card,know years successful one one us time now it get all two really,0.0,0.0,0.0,,0.8238910436630249
+43,had asked and answered many questions about my identity following,got left to the two time one years really now calls,0.0,0.0,0.0,,0.8194570541381836
+44,the world seemed to have temporarily disappeared at warp speed,one back yearsd in a time now around two life us,0.0,0.0,0.0,,0.8116499781608582
+47,much room for other people i dived into work dived,back can know be en really nowable to get two one,0.0,0.0,0.0,,0.8168299198150635
+52,i help you with credit cards another epic phone call,little idor would now two  around one,0.0,0.0,0.0,,0.8144455552101135
+53,opened at least seven credit card accounts in my name,said two onee back to know now reallyeer words,0.0,0.0,0.0,,0.8064559698104858
+56,big sur that almost impossible stretch of road carved into,nowe two one  around stra people back got invaded,0.0,0.0,0.0,,0.8053100109100342
+57,woodsy restaurant in big sur that evening and looking past,know to see around get to think really back two little one,0.0,0.0,0.0,,0.8024542927742004
+58,first time such intense feelings can make you feel small,know it's even one now a really virtue,0.0,0.0,0.0,,0.8299350142478943
+61,whole lot of nothing nothing had never filled my days,us might now got back two around the one really years time,0.0,0.0,0.0,,0.798484742641449
+63,due yesterday the officer's words echoed in my mind kid,idea of this onen got know get now two call,0.0,0.0,0.0,,0.8118141889572144
+64,sunday night dinner during that rain drenched january i walked,ex little my back now one yearsly twod in timewrongful around,0.0,0.0,0.0,,0.788029670715332
+65,bar and high rafters and those windows offering uninterrupted views,get myself got back to one hospital go around two uss,0.0,0.0,0.0,,0.8011839985847473
+66,laura walking around in mexico spending my money and even,scientist years littlee really people know now one two she said,0.0,0.0,0.0,,0.8050744533538818
+67,tell in ways that ostensibly mattered a convincing story about,the time even know little now one life years people really imagined,0.0,0.0,0.0,,0.7891800999641418
+68,restaurant began changing into a kind of bedrock familiarity and,one's two now get really even know life time years,0.0,0.0,0.0,,0.8052154183387756
+70,something different by age thirty i had done most everything,know now one really new up two years little us people,0.0,0.0,0.0,,0.8208833336830139
+71,north to boston which caused my family to collectively take,one really now a thousand a know two back time said went,0.0,0.0,0.0,,0.8136835098266602
+72,working with companies like retail banking traffic reporting hazardous waste,school back two really as as a one went state now,0.0,0.0,0.0,,0.8051875829696655
+74,needlepoint directing french i found this brochure for the school,know now a called day new one get two really said,0.0,0.0,0.0,,0.8217301368713379
+75,best to look artsy to fit in but even though,really people my boyfriend one back little get this now know see,0.0,0.0,0.0,,0.8053305745124817
+81,busily getting out their easels and knowingly getting out sheets,know back go now one pm two get us new people to show,0.0,0.0,0.08695652335882187,,0.8124140501022339
+82,competitive and so i ask judy who is standing next,back went said he got to see two one  really,0.0,0.0,0.0,,0.8243119120597839
+84,no way i'm gonna excel drawing this naked man's essence,university now really one in people life de never know time,0.0,0.0,0.0,,0.8226211071014404
+94,big donor cause i was working at harvard business school,know now your home home says to get back and one really,0.0,0.0,0.0,,0.8083406090736389
+96,dear friend sarah who's also a southerner i say sarah,love for little now to hear backa know one said really people two,0.0,0.0,0.0,,0.8235895037651062
+99,piled high with artwork and at my review board one,oneing metal plate around two really back little know silver socks,0.0,0.0,0.095238097012043,,0.8032451272010803
+100,the process won't allow that you've got to let go,get really know said what'd back would now me one,0.0,0.0,0.0,,0.8115696310997009
+103,wrong job or the wrong marriage i'm in the wrong,really get back feel one now little power so you never know,0.0,0.0,0.0,,0.8300565481185913
+105,friend she used to study english literature so she and,one get never grow up or two now is kind really you know,0.0,0.0,0.0,,0.8085172176361084
+106,explosion sent people flying from their seats my friend jumped,now see gets his one around he know back,0.0,0.0,0.0,,0.8366785049438477
+111,leave baghdad on thursday november twenty third of two thousand,grand get one know go really and now backs little says said,0.0,0.0,0.0,,0.7865133881568909
+114,sunset cars driving after sunset i remember watching the colors,bits of back room around really little of a one people now,0.0,0.0,0.0,,0.8197885155677795
+117,botter because i couldn't hear the t's just the r's,fla say she has had a l now back don't said one really little,0.0,0.0,0.0714285746216774,,0.8122172951698303
+120,my new family on base even though it was dangerous,two one now really a way people us know,0.0,0.0,0.0,,0.821608304977417
+121,i wanted i asked to go on vacation to see,years time us really one two now know back,0.0,0.0,0.0,,0.8269529342651367
+125,driving at least a hundred mile per hour or even,know one around get got out in two back now,0.0,0.0,0.0,,0.7836607098579407
+127,movie the lead actor always survive because it's a movie,get eight years old two now really father one new know named,0.0,0.0,0.0,,0.8089701533317566
+128,gonna see another day am i gonna see my family,now had two time to back us now when our uncle one,0.0,0.0,0.0,,0.8298190236091614
+129,freeway all of a sudden i see a nearby chekcpoint,now in people know me back she said for one money,0.0,0.0,0.0,,0.8174142837524414
+130,voice said the pain of the jump is nothing compared,back one around know little two seemed creep see get us got,0.0,0.0,0.0,,0.8302562832832336
+131,remember feeling any pain i just ran i ran for,of a wall one ring back around little two gots,0.0,0.0,0.0,,0.8122284412384033
+136,losing my new safe home america like i lost baghdad,really really still know uh back two one now little around people,0.0,0.0,0.0,,0.8085746765136719
+138,follow this there's nine players nine innings they come up,know one to choose said boy for his now two get really,0.0,0.0,0.0,,0.8202062249183655
+142,games we're happy campers and sixty eight world series comes,running really that got back one action get us go on now,0.0,0.0,0.0,,0.8283410668373108
+143,father knows the mets finished last in nineteen sixty eight,say her really know and see said one  little now,0.0,0.0,0.10000000149011612,,0.8034311532974243
+144,nineteen sixty nine straight from the cellar ninth place last,got around little one of us really back to another now twoing,0.0,0.0,0.0,,0.820486307144165
+145,were even even coming into new york to shea stadium,back one got two around us little basket of piecess of went,0.0,0.0,0.0,,0.7788680791854858
+149,manage to win without us wednesday night i'm ask there,hot now and she said say one so really know little,0.0,0.0,0.0,,0.8265209794044495
+150,sudden my mother comes into the kitchen with two tickets,gotarmed in cold little one around said went really back twod,0.0,0.0,0.0,,0.821597158908844
+151,the direction of the train we're going the opposite way,one that got u now two back i little know really around,0.0,0.0,0.0,,0.8244373798370361
+152,mother arguing with the parking lot attendant because they want,my husband got started one he was two back really said,0.0,0.0,0.0,,0.8219555020332336
+154,never let my kids go when i had the chance,bunch of friends get at back of said now one know really says say,0.0,0.0,0.0,,0.8208849430084229
+155,close to our seats and we actually manage to slip,know get little around for really back now a one got,0.0,0.0,0.0,,0.8190373778343201
+157,clutching my souvenir right field grass close to my heart,went back two her started really oneking about the got,0.0,0.0,0.0,,0.8175514340400696
+161,people who welcomed new experiences and didn't secretly dread every,really felt they were like little even know never one now,0.0,0.0,0.0,,0.8042916059494019
+162,new experience seeking adults by modeling confident behavior even though,one two people years now really get know little us a question,0.0,0.0,0.0,,0.8100879788398743
+163,fake confidence traveling to and living in a foreign country,little that know two one now swallowed us people really years,0.0,0.0,0.0,,0.8113514184951782
+165,the plane i immediately was aware that nothing was familiar,know around nownie little back this get really one you see,0.0,0.0,0.0,,0.8076997995376587
+171,us trying to get us to buy all things chinese,now of see and and the sense of  little of it,0.0,0.0,0.0,,0.8293846845626831
+172,quickly integrated himself into our shopping that day giving us,now said go came back to one say know get he really says,0.0,0.0,0.0,,0.8193139433860779
+173,shopping guide for our art market excursions guiding our purchases,end up now really one know people get two new said,0.0,0.0,0.0,,0.8142097592353821
+174,make shopping tolerable he made me look like a confident,even one know life people i felt really now timey,0.0,0.0,0.0,,0.8332546353340149
+177,children are not good at keeping secrets related to surprises,worry now one said says you reallyll know say back get,0.0,0.0,0.0,,0.8090381622314453
+179,vendors had always been very kind to use whatever english,two one timehe was a even and really now know little back,0.0,0.0,0.0,,0.8035513758659363
+180,organized in long rows of empenair stalls i brace myself,shipping one is two now know go back get around little reallye,0.0,0.0,0.0,,0.798056960105896
+181,witnessing my incredibly calm approach at bridging this communication gap,bug and usually now one and sends and get know really,0.0,0.0,0.0,,0.814082682132721
+183,meaning men holding various sized statues of roosters all calling,newspaper and father seems to say now one and said really know back,0.0,0.0,0.0,,0.8010525703430176
+185,the boys are witnessing me panic and completely lose control,littlen time one even get most personality people really know intentions never now,0.0,0.0,0.0,,0.8148401379585266
+186,model less confident behavior as i grabbed their hands announcing,got reported now the mailing know you go really get one back,0.0,0.0,0.0,,0.8335907459259033
+190,lost on the boys the only thing they've taken away,really whole now says say story one know tv she said,0.0,0.0,0.0,,0.8177645802497864
+194,weeks in the hospital weeks blind and mute as well,effects of littles which one around side really flushed back,0.0,0.0,0.0,,0.8239416480064392
+196,made a promise to god that um if god delivers,back two said one get all now us when we know,0.0,0.0,0.0,,0.8196540474891663
+201,squeaky round styrofoam plate with bunch of yellow rice on,went around the back two really get one now little our know,0.0,0.0,0.0,,0.7962658405303955
+203,remember the plate flying and yellow rice everywhere like confetti,see get got hands out little us now one around back know,0.0,0.0,0.0,,0.7807099223136902
+205,heard another thud and then i kind of heard and,timeers s around us back two the one they had got,0.0,0.0,0.0,,0.817663848400116
+207,eyes closed and her mouth open and blood was trickling,a back around on a one little swimming get says see really know,0.0,0.0,0.0,,0.7808923721313477
+208,driving vijay we were at the temple vijay vijay vijay,know my uncle one now misses us get he see he says two really people,0.0,0.0,0.0,,0.8106884956359863
+209,you awake if you're awake say something say something please,now there so my dad two back one really around us know get,0.0,0.0,0.0,,0.8060370683670044
+211,i started feeling things i started feeling hot and cold,get me back now know because one really little starts around,0.0,0.0,0.095238097012043,,0.7955428957939148
+212,kept getting louder and louder the silence then i finally,go little this get see know as your back now,0.0,0.0,0.10000000149011612,,0.8079920411109924
+216,i remember being incredibly uncomfortable in a cold hospital bed,six now he i'm get around the backs really,0.0,0.0,0.10000000149011612,,0.845888614654541
+218,took us a long time to heal my stepfather broke,green shirt two blue little blue haire now got back around one,0.0,0.0,0.0,,0.7971630692481995
+221,got this very beautiful thin scratch of a surgery incision,said to  one lab and she will  nowescent get,0.0,0.0,0.0,,0.7988218665122986
+227,dangerous edgy pictures of women and he wants to shoot,they  put their back one two red around see the know us now really said,0.0,0.0,0.0,,0.8194946050643921
+228,somebody else thinking you're cool can make you think differently,people around now time invitations are back one know really,0.0,0.0,0.0,,0.8204752802848816
+236,corn pone magnolia blossom accent young man i'm wondering if,camps in dian one two white and wearing ring reallys,0.0,0.0,0.0,,0.8036736249923706
+239,louisville kentucky uh once a year jose greco came through,one member the school went she was the around really show,0.0,0.0,0.0,,0.8030024766921997
+240,shawls the loud clacking of the feet and everything course,back us now got get one one really in two around,0.0,0.0,0.0,,0.7998625636100769
+242,devastated and the fact that i was twelve years old,think of one day now walking maybe a little to see to know,0.0,0.0,0.0,,0.8235637545585632
+251,hole somehow uh bought a fitbit uh i was always,little now the child it got one back two around really,0.0,0.0,0.0,,0.810917317867279
+256,there who wants to teach the senior citizen fitness class,now really said know two councils people all get one,0.0,0.0,0.0,,0.8281802535057068
+259,columbus ohio take the silver sneakers training and silver sneakers,mother a guide not now know really years pain two one,0.0,0.0,0.0,,0.7920662760734558
+260,people on sunday night the dancers on sunday night and,you know long back of go two around  one chair,0.0,0.0,0.0,,0.8027468919754028

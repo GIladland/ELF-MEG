@@ -1,0 +1,73 @@
+{
+  "status": "frozen_validation_leader",
+  "date": "2026-08-30",
+  "selection_split": "val266",
+  "test107_status": "closed_and_never_loaded",
+  "system_name": "stage2_pareto5_roberta_mapper_lengthp0p001",
+  "run_directory": "/data/engs-pnpl/glandau/elf-runs/fmri_stage2_pareto5_roberta_mapper_rerank_val266_20260830",
+  "metrics_json": "/data/engs-pnpl/glandau/elf-runs/fmri_stage2_pareto5_roberta_mapper_rerank_val266_20260830/best_metrics.lengthp0p001.json",
+  "bertscore_json": "/data/engs-pnpl/glandau/elf-runs/fmri_stage2_pareto5_roberta_mapper_rerank_val266_20260830/best_metrics.lengthp0p001.bertscore.json",
+  "baseline": {
+    "run": "fmri_minilm_rawbrain_e2e_projector_long100_resdelaytok_h1024_l2_h8_storybal_b32_seed49_20260830",
+    "checkpoint_step": 35000,
+    "content_word_f1": 0.020534056463954738,
+    "word_f1": 0.06635897042184331,
+    "bertscore_f1": -0.07717763632535934,
+    "wer": 1.031954887218045
+  },
+  "leader": {
+    "content_word_f1": 0.023005092111682113,
+    "word_f1": 0.0697085537159035,
+    "bertscore_precision": -0.06910540163516998,
+    "bertscore_recall": -0.05394325405359268,
+    "bertscore_f1": -0.060364142060279846,
+    "wer": 1.0308270676691729,
+    "t5_retrieval_top1": 0.0,
+    "t5_retrieval_top5": 0.06390977443609022,
+    "t5_retrieval_mean_rank": 98.33082706766918,
+    "t5_retrieval_median_rank": 78.0,
+    "roberta_retrieval_top1": 0.011278195488721804,
+    "roberta_retrieval_top5": 0.03759398496240601,
+    "roberta_retrieval_top10": 0.06390977443609022,
+    "roberta_retrieval_mean_rank": 108.21428571428571,
+    "roberta_retrieval_median_rank": 102.0
+  },
+  "delta_leader_minus_baseline": {
+    "content_word_f1": 0.002471035647727375,
+    "word_f1": 0.003349583294060187,
+    "bertscore_f1": 0.0168134942650795,
+    "wer": -0.0011278195488722
+  },
+  "selection": {
+    "uses_validation_reference_per_row": false,
+    "train_only_mapper": "ridge MiniLM384 to RoBERTa-large layer-17 mean, selected ridge=10 by story-group-heldout train11725 cosine",
+    "row_score": "mapped-RoBERTa cosine - 0.001 * abs(generated_word_count - 10)",
+    "candidate_count": 5,
+    "candidate_selection_counts": {
+      "baseline_step35000": 81,
+      "lora_recovery_step2000": 71,
+      "lora_recovery_step3000": 44,
+      "semantic_recovery_step250": 44,
+      "semantic_recovery_step1000": 26
+    }
+  },
+  "paired_bootstrap_50000": {
+    "content_probability_better": 0.87502,
+    "content_delta_95ci": [-0.0017113752475594573, 0.006906320435179346],
+    "word_probability_better": 0.86936,
+    "word_delta_95ci": [-0.002501952337327474, 0.009251645924593438],
+    "bertscore_probability_better": 1.0,
+    "bertscore_delta_95ci": [0.01037316258114146, 0.02330194593035921],
+    "wer_probability_better": 0.64952,
+    "wer_delta_95ci": [-0.007518796992481206, 0.005263157894736843]
+  },
+  "local_artifacts": {
+    "metrics": "fmri_stage2_validation_leader_metrics_2026-08-30.json",
+    "bertscore": "fmri_stage2_validation_leader_bertscore_2026-08-30.json",
+    "t5_retrieval": "fmri_stage2_validation_leader_t5retrieval_2026-08-30.json",
+    "paired_bootstrap": "fmri_stage2_validation_leader_paired_vs_baseline_2026-08-30.json",
+    "ranked_examples": "fmri_stage2_validation_leader_ranked_examples_2026-08-30.json",
+    "target_generated_csv": "fmri_stage2_validation_leader_target_generated_2026-08-30.csv"
+  },
+  "interpretation": "This is a validation-selected decoding system, not a single-checkpoint generator. It beats the frozen stage-2 baseline on the requested content, BERTScore, word-overlap, and WER means. BERTScore improvement is paired-bootstrap robust; the smaller lexical/WER gains are directionally positive but their 95% paired intervals include zero. Test107 remains sealed for a single later confirmatory evaluation."
+}

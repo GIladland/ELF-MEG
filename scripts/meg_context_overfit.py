@@ -24,6 +24,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from nltk.stem import PorterStemmer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from configs.config import Config, SamplingConfig
@@ -45,7 +46,13 @@ from utils.libribrain_utils import (
     collate_libribrain_sentence_batch,
 )
 from utils.logging_utils import log_for_0
-from utils.sampling_utils import add_noise, get_sampling_steps, net_out_to_v_x, sample_timesteps
+from utils.sampling_utils import (
+    add_noise,
+    get_sampling_steps,
+    net_out_to_v_x,
+    restore_cond,
+    sample_timesteps,
+)
 
 try:
     import wandb
@@ -71,6 +78,7 @@ class OverfitBatch:
     target_latents: torch.Tensor
     target_ids: torch.Tensor
     target_mask: torch.Tensor
+    target_weights: torch.Tensor | None = None
 
 
 class SemanticVectorContextProjector(nn.Module):
@@ -83,19 +91,50 @@ class SemanticVectorContextProjector(nn.Module):
         context_length: int,
         hidden_dim: int = 2048,
         dropout: float = 0.0,
+        input_projection_dim: int | None = None,
+        normalize_semantic_output: bool = False,
     ) -> None:
         super().__init__()
         self.context_length = context_length
         self.context_dim = context_dim
+        self.input_dim = input_dim
+        self.normalize_semantic_output = bool(normalize_semantic_output)
+        projected_dim = int(input_projection_dim or input_dim)
+        if projected_dim <= 0 or projected_dim > input_dim:
+            raise ValueError(
+                f"input_projection_dim must be in [1, input_dim], got {projected_dim} for input_dim={input_dim}."
+            )
+        self.input_projection: nn.Linear | None = None
+        if projected_dim != input_dim:
+            if input_dim % projected_dim:
+                raise ValueError(
+                    f"input_dim={input_dim} must be divisible by input_projection_dim={projected_dim} "
+                    "for mean-block initialization."
+                )
+            block_count = input_dim // projected_dim
+            self.input_projection = nn.Linear(input_dim, projected_dim, bias=False)
+            with torch.no_grad():
+                self.input_projection.weight.zero_()
+                identity = torch.eye(projected_dim, dtype=self.input_projection.weight.dtype)
+                for block_idx in range(block_count):
+                    start = block_idx * projected_dim
+                    self.input_projection.weight[:, start : start + projected_dim].copy_(identity / block_count)
         self.net = nn.Sequential(
-            nn.LayerNorm(input_dim),
-            nn.Linear(input_dim, hidden_dim),
+            nn.LayerNorm(projected_dim),
+            nn.Linear(projected_dim, hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, context_length * context_dim),
         )
 
-    def forward(self, semantic_vectors: torch.Tensor):
+    def project_semantic(self, semantic_vectors: torch.Tensor) -> torch.Tensor:
+        if self.input_projection is not None:
+            semantic_vectors = self.input_projection(semantic_vectors)
+        if self.normalize_semantic_output:
+            semantic_vectors = F.normalize(semantic_vectors.float(), p=2, dim=-1)
+        return semantic_vectors
+
+    def context_from_projected_semantic(self, semantic_vectors: torch.Tensor):
         context = self.net(semantic_vectors).reshape(
             semantic_vectors.shape[0],
             self.context_length,
@@ -108,6 +147,9 @@ class SemanticVectorContextProjector(nn.Module):
             device=semantic_vectors.device,
         )
         return context, context_mask
+
+    def forward(self, semantic_vectors: torch.Tensor):
+        return self.context_from_projected_semantic(self.project_semantic(semantic_vectors))
 
 
 def parse_args() -> argparse.Namespace:
@@ -300,6 +342,7 @@ def build_config(args: argparse.Namespace, max_length: int) -> Config:
     config.denoiser_noise_scale = 2.0
     config.decoder_p_mean = 0.8
     config.decoder_p_std = 0.8
+    config.decoder_prob = float(getattr(args, "decoder_prob", config.decoder_prob))
     config.decoder_noise_scale = args.decoder_noise_scale
     config.t_eps = 0.05
     config.time_schedule = "logit_normal"
@@ -371,6 +414,42 @@ _CONTENT_WORD_STOPWORDS = _QUALITY_STOPWORDS | {
     "whose", "why", "will", "would", "your", "yours", "yourself",
     "yourselves", "well", "yes",
 }
+_PORTER_STEMMER = PorterStemmer()
+_FUNCTION_CONTRACTION_SUFFIXES = {"s", "re", "ve", "d", "ll", "m"}
+_FUNCTION_NEGATIVE_CONTRACTIONS = {
+    "ain't", "aren't", "can't", "couldn't", "didn't", "doesn't", "don't",
+    "hadn't", "hasn't", "haven't", "isn't", "mustn't", "needn't", "shan't",
+    "shouldn't", "wasn't", "weren't", "won't", "wouldn't",
+}
+
+
+def _stem_tokens(tokens: Sequence[str]) -> list[str]:
+    """Return stable morphology-normalized tokens while preserving token count.
+
+    Porter stemming is intentionally used instead of a corpus-backed lemmatizer:
+    it needs no downloaded language model on ARC and captures the common plural
+    and tense variants relevant to the overlap audit.
+    """
+
+    return [
+        _PORTER_STEMMER.stem(token) if len(token) > 3 else token
+        for token in tokens
+    ]
+
+
+def _is_function_word(token: str) -> bool:
+    if token in _CONTENT_WORD_STOPWORDS or token in _FUNCTION_NEGATIVE_CONTRACTIONS:
+        return True
+    if "'" not in token:
+        return False
+    base, suffix = token.rsplit("'", 1)
+    return base in _CONTENT_WORD_STOPWORDS and suffix in _FUNCTION_CONTRACTION_SUFFIXES
+
+
+def _function_word_tokens(text: str) -> list[str]:
+    """Return stopword-defined function tokens, including common contractions."""
+
+    return [token for token in _word_tokens(text) if _is_function_word(token)]
 
 
 def _word_tokens(text: str) -> list[str]:
@@ -420,6 +499,32 @@ def format_overlap_counts(counts: dict[str, int] | None) -> str:
     return ", ".join(f"{token}x{count}" if count > 1 else token for token, count in counts.items())
 
 
+def _word_error_counts(
+    reference_tokens: Sequence[str],
+    hypothesis_tokens: Sequence[str],
+) -> tuple[int, int, int]:
+    """Return insertion, deletion, and substitution counts for one token pair."""
+    previous = [(index, index, 0, 0) for index in range(len(hypothesis_tokens) + 1)]
+    for reference_index, reference_token in enumerate(reference_tokens, start=1):
+        current = [(reference_index, 0, reference_index, 0)]
+        for hypothesis_index, hypothesis_token in enumerate(hypothesis_tokens, start=1):
+            error, insertions, deletions, substitutions = previous[hypothesis_index]
+            candidates = [(error + 1, insertions, deletions + 1, substitutions)]
+
+            error, insertions, deletions, substitutions = current[hypothesis_index - 1]
+            candidates.append((error + 1, insertions + 1, deletions, substitutions))
+
+            error, insertions, deletions, substitutions = previous[hypothesis_index - 1]
+            if reference_token == hypothesis_token:
+                candidates.append((error, insertions, deletions, substitutions))
+            else:
+                candidates.append((error + 1, insertions, deletions, substitutions + 1))
+            current.append(min(candidates, key=lambda item: (item[0], item[1] + item[2], item[3])))
+        previous = current
+    _errors, insertions, deletions, substitutions = previous[-1]
+    return insertions, deletions, substitutions
+
+
 def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> dict:
     precisions = []
     recalls = []
@@ -431,6 +536,30 @@ def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> di
     content_f1s = []
     content_jaccards = []
     content_overlap_counts = []
+    stemmed_precisions = []
+    stemmed_recalls = []
+    stemmed_f1s = []
+    stemmed_jaccards = []
+    stemmed_overlap_counts = []
+    stemmed_content_precisions = []
+    stemmed_content_recalls = []
+    stemmed_content_f1s = []
+    stemmed_content_jaccards = []
+    stemmed_content_overlap_counts = []
+    generated_function_word_counts = []
+    generated_function_word_fractions = []
+    generated_function_word_tokens = []
+    target_function_word_counts = []
+    target_function_word_fractions = []
+    target_function_word_tokens = []
+    total_generated_words = 0
+    total_generated_function_words = 0
+    total_target_function_words = 0
+    per_sample_wer = []
+    total_reference_words = 0
+    total_insertions = 0
+    total_deletions = 0
+    total_substitutions = 0
 
     for generated_text, target_text in zip(generated, targets):
         generated_tokens = _word_tokens(generated_text)
@@ -442,6 +571,14 @@ def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> di
         jaccards.append(jaccard)
         overlap_counts.append(counts)
 
+        insertions, deletions, substitutions = _word_error_counts(target_tokens, generated_tokens)
+        errors = insertions + deletions + substitutions
+        per_sample_wer.append(errors / max(1, len(target_tokens)))
+        total_reference_words += len(target_tokens)
+        total_insertions += insertions
+        total_deletions += deletions
+        total_substitutions += substitutions
+
         content_precision, content_recall, content_f1, content_jaccard, content_counts = _counted_overlap(
             _content_word_tokens(generated_text),
             _content_word_tokens(target_text),
@@ -452,6 +589,46 @@ def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> di
         content_jaccards.append(content_jaccard)
         content_overlap_counts.append(content_counts)
 
+        stemmed_precision, stemmed_recall, stemmed_f1, stemmed_jaccard, stemmed_counts = _counted_overlap(
+            _stem_tokens(generated_tokens),
+            _stem_tokens(target_tokens),
+        )
+        stemmed_precisions.append(stemmed_precision)
+        stemmed_recalls.append(stemmed_recall)
+        stemmed_f1s.append(stemmed_f1)
+        stemmed_jaccards.append(stemmed_jaccard)
+        stemmed_overlap_counts.append(stemmed_counts)
+
+        generated_content_tokens = _content_word_tokens(generated_text)
+        target_content_tokens = _content_word_tokens(target_text)
+        (
+            stemmed_content_precision,
+            stemmed_content_recall,
+            stemmed_content_f1,
+            stemmed_content_jaccard,
+            stemmed_content_counts,
+        ) = _counted_overlap(
+            _stem_tokens(generated_content_tokens),
+            _stem_tokens(target_content_tokens),
+        )
+        stemmed_content_precisions.append(stemmed_content_precision)
+        stemmed_content_recalls.append(stemmed_content_recall)
+        stemmed_content_f1s.append(stemmed_content_f1)
+        stemmed_content_jaccards.append(stemmed_content_jaccard)
+        stemmed_content_overlap_counts.append(stemmed_content_counts)
+
+        generated_function_tokens = _function_word_tokens(generated_text)
+        target_function_tokens = _function_word_tokens(target_text)
+        generated_function_word_counts.append(len(generated_function_tokens))
+        generated_function_word_fractions.append(len(generated_function_tokens) / max(1, len(generated_tokens)))
+        generated_function_word_tokens.append(generated_function_tokens)
+        target_function_word_counts.append(len(target_function_tokens))
+        target_function_word_fractions.append(len(target_function_tokens) / max(1, len(target_tokens)))
+        target_function_word_tokens.append(target_function_tokens)
+        total_generated_words += len(generated_tokens)
+        total_generated_function_words += len(generated_function_tokens)
+        total_target_function_words += len(target_function_tokens)
+
     summary = {
         "words_overlap": float(np.mean(f1s)) if f1s else 0.0,
         "words_overlap_precision": float(np.mean(precisions)) if precisions else 0.0,
@@ -461,6 +638,36 @@ def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> di
         "content_words_overlap_precision": float(np.mean(content_precisions)) if content_precisions else 0.0,
         "content_words_overlap_recall": float(np.mean(content_recalls)) if content_recalls else 0.0,
         "content_words_overlap_jaccard": float(np.mean(content_jaccards)) if content_jaccards else 0.0,
+        # Explicit aliases preserve the historical scores while making their
+        # exact-token contract unambiguous in new reports.
+        "exact_words_overlap": float(np.mean(f1s)) if f1s else 0.0,
+        "exact_words_overlap_precision": float(np.mean(precisions)) if precisions else 0.0,
+        "exact_words_overlap_recall": float(np.mean(recalls)) if recalls else 0.0,
+        "exact_words_overlap_jaccard": float(np.mean(jaccards)) if jaccards else 0.0,
+        "exact_content_words_overlap": float(np.mean(content_f1s)) if content_f1s else 0.0,
+        "exact_content_words_overlap_precision": float(np.mean(content_precisions)) if content_precisions else 0.0,
+        "exact_content_words_overlap_recall": float(np.mean(content_recalls)) if content_recalls else 0.0,
+        "exact_content_words_overlap_jaccard": float(np.mean(content_jaccards)) if content_jaccards else 0.0,
+        "stemmed_words_overlap": float(np.mean(stemmed_f1s)) if stemmed_f1s else 0.0,
+        "stemmed_words_overlap_precision": float(np.mean(stemmed_precisions)) if stemmed_precisions else 0.0,
+        "stemmed_words_overlap_recall": float(np.mean(stemmed_recalls)) if stemmed_recalls else 0.0,
+        "stemmed_words_overlap_jaccard": float(np.mean(stemmed_jaccards)) if stemmed_jaccards else 0.0,
+        "stemmed_content_words_overlap": float(np.mean(stemmed_content_f1s)) if stemmed_content_f1s else 0.0,
+        "stemmed_content_words_overlap_precision": float(np.mean(stemmed_content_precisions)) if stemmed_content_precisions else 0.0,
+        "stemmed_content_words_overlap_recall": float(np.mean(stemmed_content_recalls)) if stemmed_content_recalls else 0.0,
+        "stemmed_content_words_overlap_jaccard": float(np.mean(stemmed_content_jaccards)) if stemmed_content_jaccards else 0.0,
+        "decoded_word_count": int(total_generated_words),
+        "decoded_function_word_count": int(total_generated_function_words),
+        "decoded_function_word_fraction": float(total_generated_function_words / max(1, total_generated_words)),
+        "target_function_word_count": int(total_target_function_words),
+        "target_function_word_fraction": float(total_target_function_words / max(1, total_reference_words)),
+        "word_error_rate": float(
+            (total_insertions + total_deletions + total_substitutions) / max(1, total_reference_words)
+        ),
+        "word_error_reference_words": int(total_reference_words),
+        "word_error_insertions": int(total_insertions),
+        "word_error_deletions": int(total_deletions),
+        "word_error_substitutions": int(total_substitutions),
     }
     return {
         "summary": summary,
@@ -474,6 +681,23 @@ def word_overlap_metrics(generated: Sequence[str], targets: Sequence[str]) -> di
         "per_sample_content_recall": content_recalls,
         "per_sample_content_jaccard": content_jaccards,
         "per_sample_content_overlap_counts": content_overlap_counts,
+        "per_sample_stemmed": stemmed_f1s,
+        "per_sample_stemmed_precision": stemmed_precisions,
+        "per_sample_stemmed_recall": stemmed_recalls,
+        "per_sample_stemmed_jaccard": stemmed_jaccards,
+        "per_sample_stemmed_overlap_counts": stemmed_overlap_counts,
+        "per_sample_stemmed_content": stemmed_content_f1s,
+        "per_sample_stemmed_content_precision": stemmed_content_precisions,
+        "per_sample_stemmed_content_recall": stemmed_content_recalls,
+        "per_sample_stemmed_content_jaccard": stemmed_content_jaccards,
+        "per_sample_stemmed_content_overlap_counts": stemmed_content_overlap_counts,
+        "per_sample_decoded_function_word_count": generated_function_word_counts,
+        "per_sample_decoded_function_word_fraction": generated_function_word_fractions,
+        "per_sample_decoded_function_words": generated_function_word_tokens,
+        "per_sample_target_function_word_count": target_function_word_counts,
+        "per_sample_target_function_word_fraction": target_function_word_fractions,
+        "per_sample_target_function_words": target_function_word_tokens,
+        "per_sample_wer": per_sample_wer,
     }
 
 
@@ -932,6 +1156,300 @@ def optimizer_grad_metrics(optimizer: torch.optim.Optimizer) -> dict[str, float]
     return metrics
 
 
+def build_decoder_training_latent(
+    x0: torch.Tensor,
+    decoder_noise: torch.Tensor,
+    decoder_lambda: torch.Tensor,
+    cond_seq_mask: torch.Tensor,
+    *,
+    preserve_condition_prefix: bool,
+) -> torch.Tensor:
+    """Construct decoder corruption, optionally matching inference conditioning.
+
+    ELF sampling always restores condition tokens to ``x0``.  New explicit
+    decoder cross-attention therefore opts into the same clean-prefix contract;
+    historical training modes retain their original full-sequence corruption.
+    """
+
+    decoder_z = decoder_lambda * x0 + (1.0 - decoder_lambda) * decoder_noise
+    if preserve_condition_prefix:
+        decoder_z = restore_cond(decoder_z, x0, cond_seq_mask)
+    return decoder_z
+
+
+def content_bow_coverage_loss(
+    target_logits: torch.Tensor,
+    target_ids: torch.Tensor,
+    target_mask: torch.Tensor,
+    target_weights: torch.Tensor,
+) -> torch.Tensor:
+    """Penalize target content tokens that are unlikely to occur anywhere in the output.
+
+    Content-token positions are identified by weights greater than one. For each such
+    target token, the loss computes the probability that at least one valid output
+    position emits that vocabulary item. This complements position-wise decoder CE
+    with an order-tolerant content-coverage objective.
+    """
+
+    if target_logits.ndim != 3:
+        raise ValueError(f"target_logits must have shape [batch, length, vocab], got {target_logits.shape}")
+    expected_shape = target_logits.shape[:2]
+    for name, tensor in (
+        ("target_ids", target_ids),
+        ("target_mask", target_mask),
+        ("target_weights", target_weights),
+    ):
+        if tuple(tensor.shape) != tuple(expected_shape):
+            raise ValueError(f"{name} must have shape {tuple(expected_shape)}, got {tuple(tensor.shape)}")
+
+    content_mask = (target_weights > 1.0) & (target_mask > 0.0)
+    if not bool(content_mask.any()):
+        return target_logits.sum() * 0.0
+
+    token_probabilities = F.softmax(target_logits.float(), dim=-1)
+    requested_ids = target_ids[:, None, :].expand(-1, target_logits.shape[1], -1)
+    requested_probabilities = token_probabilities.gather(dim=2, index=requested_ids)
+
+    output_mask = (target_mask > 0.0)[:, :, None]
+    requested_probabilities = torch.where(
+        output_mask,
+        requested_probabilities,
+        torch.zeros_like(requested_probabilities),
+    )
+    requested_probabilities = requested_probabilities.clamp(min=0.0, max=1.0 - 1e-6)
+    log_absence_probability = torch.log1p(-requested_probabilities).sum(dim=1)
+    presence_probability = -torch.expm1(log_absence_probability)
+    per_token_loss = -torch.log(presence_probability.clamp_min(1e-8))
+    return per_token_loss.masked_select(content_mask).mean()
+
+
+def content_bow_precision_loss(
+    target_logits: torch.Tensor,
+    target_ids: torch.Tensor,
+    target_mask: torch.Tensor,
+    target_weights: torch.Tensor,
+    *,
+    negative_topk: int = 32,
+) -> torch.Tensor:
+    """Penalize likely content tokens that do not belong to each target.
+
+    Candidate content-token ids are collected from the current batch's marked
+    target spans. For each sample, candidates used by another target but absent
+    from its own target are negatives. The loss penalizes the most likely
+    negative tokens, complementing :func:`content_bow_coverage_loss`, which only
+    rewards recall. Restricting negatives to marked content tokens avoids
+    treating punctuation, special tokens, and ordinary function words as
+    hallucinations.
+    """
+
+    if target_logits.ndim != 3:
+        raise ValueError(f"target_logits must have shape [batch, length, vocab], got {target_logits.shape}")
+    expected_shape = target_logits.shape[:2]
+    for name, tensor in (
+        ("target_ids", target_ids),
+        ("target_mask", target_mask),
+        ("target_weights", target_weights),
+    ):
+        if tuple(tensor.shape) != tuple(expected_shape):
+            raise ValueError(f"{name} must have shape {tuple(expected_shape)}, got {tuple(tensor.shape)}")
+    if negative_topk < 0:
+        raise ValueError("negative_topk must be non-negative")
+
+    content_mask = (target_weights > 1.0) & (target_mask > 0.0)
+    if not bool(content_mask.any()):
+        return target_logits.sum() * 0.0
+
+    candidate_ids = torch.unique(target_ids.masked_select(content_mask))
+    if candidate_ids.numel() < 2:
+        return target_logits.sum() * 0.0
+
+    token_probabilities = F.softmax(target_logits.float(), dim=-1)
+    candidate_probabilities = token_probabilities.index_select(dim=2, index=candidate_ids)
+    output_mask = (target_mask > 0.0)[:, :, None]
+    candidate_probabilities = torch.where(
+        output_mask,
+        candidate_probabilities,
+        torch.zeros_like(candidate_probabilities),
+    ).clamp(min=0.0, max=1.0 - 1e-6)
+    log_absence_probability = torch.log1p(-candidate_probabilities).sum(dim=1)
+    presence_probability = -torch.expm1(log_absence_probability)
+
+    sample_has_candidate = (
+        (target_ids[:, :, None] == candidate_ids[None, None, :]) & content_mask[:, :, None]
+    ).any(dim=1)
+    negative_mask = ~sample_has_candidate
+    if not bool(negative_mask.any()):
+        return target_logits.sum() * 0.0
+
+    per_candidate_loss = -torch.log1p(-presence_probability.clamp(max=1.0 - 1e-6))
+    if negative_topk > 0:
+        masked_loss = per_candidate_loss.masked_fill(~negative_mask, float("-inf"))
+        k = min(negative_topk, candidate_ids.numel())
+        top_loss = masked_loss.topk(k=k, dim=1).values
+        finite = torch.isfinite(top_loss)
+        if not bool(finite.any()):
+            return target_logits.sum() * 0.0
+        return top_loss.masked_select(finite).mean()
+    return per_candidate_loss.masked_select(negative_mask).mean()
+
+
+def semantic_content_ranking_loss(
+    predicted_semantic: torch.Tensor,
+    target_content_mask: torch.Tensor,
+    content_directions: torch.Tensor,
+    *,
+    temperature: float = 0.1,
+    negative_topk: int = 32,
+) -> torch.Tensor:
+    """Rank each row's target content words above hard lexical negatives.
+
+    ``content_directions`` are fixed train-only semantic prototype directions,
+    and ``target_content_mask`` marks the words belonging to each row. The
+    objective updates the predicted semantic vector directly, before the ELF
+    context projector, so lexical supervision does not have to traverse the
+    entire diffusion/decoder path.
+    """
+
+    if predicted_semantic.ndim != 2:
+        raise ValueError(
+            f"predicted_semantic must have shape [batch, dim], got {predicted_semantic.shape}"
+        )
+    if content_directions.ndim != 2 or content_directions.shape[1] != predicted_semantic.shape[1]:
+        raise ValueError(
+            "content_directions must have shape [vocabulary, semantic_dim], got "
+            f"{content_directions.shape} for semantic_dim={predicted_semantic.shape[1]}"
+        )
+    expected_mask_shape = (predicted_semantic.shape[0], content_directions.shape[0])
+    if tuple(target_content_mask.shape) != expected_mask_shape:
+        raise ValueError(
+            f"target_content_mask must have shape {expected_mask_shape}, got {target_content_mask.shape}"
+        )
+    if temperature <= 0.0:
+        raise ValueError("temperature must be positive")
+    if negative_topk <= 0:
+        raise ValueError("negative_topk must be positive")
+
+    positive_mask = target_content_mask.to(dtype=torch.bool)
+    valid_rows = positive_mask.any(dim=1) & (~positive_mask).any(dim=1)
+    if not bool(valid_rows.any()):
+        return predicted_semantic.sum() * 0.0
+
+    predicted = F.normalize(predicted_semantic.float(), p=2, dim=-1)
+    directions = F.normalize(content_directions.float(), p=2, dim=-1)
+    scores = predicted @ directions.T
+    negative_scores = scores.masked_fill(positive_mask, float("-inf"))
+    k = min(negative_topk, max(1, content_directions.shape[0] - 1))
+    hard_negative_scores = negative_scores.topk(k=k, dim=1).values
+    finite_negatives = torch.isfinite(hard_negative_scores)
+    pairwise_margin = (
+        hard_negative_scores[:, None, :] - scores[:, :, None]
+    ) / temperature
+    pair_mask = positive_mask[:, :, None] & finite_negatives[:, None, :] & valid_rows[:, None, None]
+    if not bool(pair_mask.any()):
+        return predicted_semantic.sum() * 0.0
+    return F.softplus(pairwise_margin.masked_select(pair_mask)).mean()
+
+
+def raw_semantic_teacher(
+    semantic_inputs: torch.Tensor,
+    *,
+    output_dim: int,
+) -> torch.Tensor:
+    """Recover the deterministic raw semantic baseline used before adaptation.
+
+    A same-width input is already in the teacher space.  A wider input is
+    interpreted as contiguous, equal-width delay blocks and averaged exactly,
+    matching the mean-block initialization used by the fMRI MiniLM bridge.
+    """
+
+    if semantic_inputs.ndim != 2:
+        raise ValueError(
+            f"Raw semantic teacher expects [B, D], got {tuple(semantic_inputs.shape)}."
+        )
+    if output_dim <= 0:
+        raise ValueError(f"output_dim must be positive, got {output_dim}.")
+    input_dim = int(semantic_inputs.shape[-1])
+    if input_dim == output_dim:
+        return semantic_inputs
+    if input_dim % output_dim:
+        raise ValueError(
+            f"Input dimension {input_dim} is not divisible by teacher output dimension {output_dim}."
+        )
+    return semantic_inputs.reshape(
+        semantic_inputs.shape[0], input_dim // output_dim, output_dim
+    ).mean(dim=1)
+
+
+def semantic_preservation_losses(
+    predicted_semantic: torch.Tensor,
+    semantic_inputs: torch.Tensor,
+    *,
+    exact_targets: torch.Tensor | None = None,
+    rank_temperature: float = 0.07,
+) -> dict[str, torch.Tensor]:
+    """Protect raw semantic identity while a downstream text objective trains.
+
+    ``anchor`` limits per-row movement from the deterministic raw bridge,
+    ``geometry`` preserves off-diagonal pairwise cosine structure, and
+    ``rank_distill`` preserves the raw bridge's in-batch distribution over
+    exact semantic candidates.  Only the student/predicted path receives
+    gradients.
+    """
+
+    if predicted_semantic.ndim != 2:
+        raise ValueError(
+            f"Predicted semantic must have shape [B, D], got {tuple(predicted_semantic.shape)}."
+        )
+    teacher = raw_semantic_teacher(
+        semantic_inputs.float(), output_dim=int(predicted_semantic.shape[-1])
+    ).detach()
+    student = predicted_semantic.float()
+    teacher_normalized = F.normalize(teacher, p=2, dim=-1)
+    student_normalized = F.normalize(student, p=2, dim=-1)
+
+    anchor_cosine = F.cosine_similarity(student, teacher, dim=-1).mean()
+    anchor_loss = 1.0 - anchor_cosine
+
+    if student.shape[0] > 1:
+        teacher_geometry = teacher_normalized @ teacher_normalized.T
+        student_geometry = student_normalized @ student_normalized.T
+        off_diagonal = ~torch.eye(
+            student.shape[0], dtype=torch.bool, device=student.device
+        )
+        geometry_loss = F.mse_loss(
+            student_geometry.masked_select(off_diagonal),
+            teacher_geometry.masked_select(off_diagonal),
+        )
+    else:
+        geometry_loss = student.sum() * 0.0
+
+    rank_distill_loss = student.sum() * 0.0
+    if exact_targets is not None and student.shape[0] > 1:
+        if rank_temperature <= 0.0:
+            raise ValueError("semantic rank-distillation temperature must be positive")
+        targets = exact_targets.detach().float()
+        if tuple(targets.shape) != tuple(student.shape):
+            raise ValueError(
+                "Semantic rank-distillation shape mismatch: "
+                f"student={tuple(student.shape)} exact_targets={tuple(targets.shape)}"
+            )
+        target_normalized = F.normalize(targets, p=2, dim=-1)
+        teacher_logits = teacher_normalized @ target_normalized.T / rank_temperature
+        student_logits = student_normalized @ target_normalized.T / rank_temperature
+        rank_distill_loss = F.kl_div(
+            F.log_softmax(student_logits, dim=-1),
+            F.softmax(teacher_logits, dim=-1),
+            reduction="batchmean",
+        )
+
+    return {
+        "anchor": anchor_loss,
+        "anchor_cosine": anchor_cosine,
+        "geometry": geometry_loss,
+        "rank_distill": rank_distill_loss,
+    }
+
+
 def train_step(
     *,
     model: nn.Module,
@@ -947,9 +1465,38 @@ def train_step(
     train_timestep_steps: int,
     semantic_alignment_loss_weight: float = 0.0,
     semantic_alignment_loss_type: str = "cosine",
+    semantic_alignment_targets: torch.Tensor | None = None,
+    semantic_contrastive_loss_weight: float = 0.0,
+    semantic_contrastive_temperature: float = 0.07,
+    semantic_context_loss_weight: float = 0.0,
+    semantic_context_teacher: nn.Module | None = None,
+    semantic_content_loss_weight: float = 0.0,
+    semantic_content_targets: torch.Tensor | None = None,
+    semantic_content_directions: torch.Tensor | None = None,
+    semantic_content_temperature: float = 0.1,
+    semantic_content_negative_topk: int = 32,
+    semantic_raw_anchor_loss_weight: float = 0.0,
+    semantic_geometry_loss_weight: float = 0.0,
+    semantic_rank_distill_loss_weight: float = 0.0,
+    semantic_rank_distill_temperature: float = 0.07,
+    semantic_rank_teacher_adapter: nn.Module | None = None,
+    decoder_content_bow_loss_weight: float = 0.0,
+    decoder_content_precision_loss_weight: float = 0.0,
+    decoder_content_precision_topk: int = 32,
+    decoder_condition_pairing_margin_weight: float = 0.0,
+    decoder_condition_pairing_margin: float = 0.1,
 ) -> dict[str, float]:
     model.train()
-    adapter.train()
+    if any(parameter.requires_grad for parameter in adapter.parameters()):
+        adapter.train()
+    else:
+        # A frozen brain adapter must also be behaviorally frozen.  Leaving it
+        # in train mode would keep dropout active and turn the supposedly fixed
+        # condition into a moving target for a cross-attention-only stage.
+        adapter.eval()
+    model_deterministic = bool(
+        getattr(model, "brain_cross_attention_only", False)
+    )
 
     meg = batch.meg.to(device=device, dtype=torch.float32)
     meg_lengths = batch.meg_lengths.to(device=device, dtype=torch.long)
@@ -958,6 +1505,16 @@ def train_step(
     target_latents = batch.target_latents.to(device=device, dtype=torch.float32)
     target_ids = batch.target_ids.to(device)
     target_token_mask = batch.target_mask.to(device=device, dtype=torch.float32)
+    target_token_weights = (
+        batch.target_weights.to(device=device, dtype=torch.float32)
+        if batch.target_weights is not None
+        else torch.ones_like(target_token_mask)
+    )
+    alignment_targets = (
+        semantic_alignment_targets.to(device=device, dtype=torch.float32)
+        if semantic_alignment_targets is not None
+        else None
+    )
 
     def build_conditioned_x0():
         predicted_semantic = None
@@ -969,7 +1526,16 @@ def train_step(
             if encoded_sequence is not None and encoded_sequence.ndim == 3 and encoded_sequence.shape[1] == 1:
                 predicted_semantic = encoded_sequence[:, 0, :]
         elif condition_source == "semantic":
-            context, cond_seq_mask = adapter(semantic_vectors)
+            condition_context = getattr(adapter, "condition_context", None)
+            project_semantic = getattr(adapter, "project_semantic", None)
+            context_from_projected = getattr(adapter, "context_from_projected_semantic", None)
+            if condition_context is not None:
+                predicted_semantic, context, cond_seq_mask = condition_context(semantic_vectors)
+            elif project_semantic is not None and context_from_projected is not None:
+                predicted_semantic = project_semantic(semantic_vectors)
+                context, cond_seq_mask = context_from_projected(predicted_semantic)
+            else:
+                context, cond_seq_mask = adapter(semantic_vectors)
         else:
             raise ValueError(f"Unsupported condition_source: {condition_source}")
 
@@ -1005,7 +1571,7 @@ def train_step(
             z,
             t,
             attention_mask=attention_mask,
-            deterministic=False,
+            deterministic=model_deterministic,
             self_cond_cfg_scale=sc_scale,
         )
         v_pred, _ = net_out_to_v_x(pred, z, t, config.t_eps)
@@ -1072,12 +1638,14 @@ def train_step(
             raise ValueError(f"Unsupported train_timestep_mode: {train_timestep_mode}")
 
     denoiser_loss_value = 0.0
-    for t in t_values:
-        with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_bf16):
-            denoiser_loss = denoiser_loss_for_t(t)
-            scaled_denoiser_loss = config.denoiser_loss_weight * denoiser_loss / len(t_values)
-        scaled_denoiser_loss.backward()
-        denoiser_loss_value += float(denoiser_loss.detach().cpu()) / len(t_values)
+    if config.denoiser_loss_weight > 0.0:
+        for t in t_values:
+            with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_bf16):
+                denoiser_loss = denoiser_loss_for_t(t)
+                scaled_denoiser_loss = config.denoiser_loss_weight * denoiser_loss / len(t_values)
+            if scaled_denoiser_loss.requires_grad:
+                scaled_denoiser_loss.backward()
+            denoiser_loss_value += float(denoiser_loss.detach().cpu()) / len(t_values)
 
     with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_bf16):
         context, x0, cond_seq_mask, attention_mask, sc_scale, _target_loss_mask, predicted_semantic = (
@@ -1091,8 +1659,18 @@ def train_step(
             torch.randn(x0.shape, generator=noise_generator, device=device, dtype=x0.dtype)
             * config.decoder_noise_scale
         )
-        decoder_z = decoder_lambda * x0 + (1.0 - decoder_lambda) * decoder_noise
-
+        # Decoder-only brain attention sees the same clean condition memory at
+        # training and inference; legacy/shared-flow modes keep the historical
+        # full-sequence corruption contract.
+        decoder_z = build_decoder_training_latent(
+            x0,
+            decoder_noise,
+            decoder_lambda,
+            cond_seq_mask,
+            preserve_condition_prefix=bool(
+                getattr(model, "brain_cross_attention_decoder_only", False)
+            ),
+        )
         decoder_input = (
             torch.cat([decoder_z, torch.zeros_like(decoder_z)], dim=-1)
             if config.self_cond_prob > 0
@@ -1102,7 +1680,7 @@ def train_step(
             decoder_input,
             torch.ones((x0.shape[0],), dtype=x0.dtype, device=device),
             attention_mask=attention_mask,
-            deterministic=False,
+            deterministic=model_deterministic,
             self_cond_cfg_scale=sc_scale,
             decoder_step_active=True,
         )
@@ -1112,15 +1690,118 @@ def train_step(
             target_ids,
             reduction="none",
         )
-        decoder_loss = (ce_per_token * target_token_mask).sum() / target_token_mask.sum().clamp_min(1.0)
+        weighted_target_mask = target_token_mask * target_token_weights
+        decoder_loss = (
+            (ce_per_token * weighted_target_mask).sum()
+            / weighted_target_mask.sum().clamp_min(1.0)
+        )
         scaled_decoder_loss = config.decoder_loss_weight * decoder_loss
+        if decoder_content_bow_loss_weight < 0.0:
+            raise ValueError("decoder_content_bow_loss_weight must be non-negative")
+        content_bow_loss = (
+            content_bow_coverage_loss(
+                target_logits,
+                target_ids,
+                target_token_mask,
+                target_token_weights,
+            )
+            if decoder_content_bow_loss_weight > 0.0
+            else target_logits.sum() * 0.0
+        )
+        scaled_content_bow_loss = decoder_content_bow_loss_weight * content_bow_loss
+        if decoder_content_precision_loss_weight < 0.0:
+            raise ValueError("decoder_content_precision_loss_weight must be non-negative")
+        content_precision_loss = (
+            content_bow_precision_loss(
+                target_logits,
+                target_ids,
+                target_token_mask,
+                target_token_weights,
+                negative_topk=decoder_content_precision_topk,
+            )
+            if decoder_content_precision_loss_weight > 0.0
+            else target_logits.sum() * 0.0
+        )
+        scaled_content_precision_loss = decoder_content_precision_loss_weight * content_precision_loss
+        if decoder_condition_pairing_margin_weight < 0.0:
+            raise ValueError(
+                "decoder_condition_pairing_margin_weight must be non-negative"
+            )
+        condition_pairing_loss = target_logits.sum() * 0.0
+        if decoder_condition_pairing_margin_weight > 0.0 and x0.shape[0] > 1:
+            condition_length = context.shape[1]
+            rolled_decoder_input = torch.cat(
+                [
+                    decoder_input[:, :condition_length].roll(1, dims=0),
+                    decoder_input[:, condition_length:],
+                ],
+                dim=1,
+            )
+            rolled_attention_mask = torch.cat(
+                [
+                    attention_mask[:, :condition_length].roll(1, dims=0),
+                    attention_mask[:, condition_length:],
+                ],
+                dim=1,
+            )
+            _, rolled_decoder_logits = model(
+                rolled_decoder_input,
+                torch.ones((x0.shape[0],), dtype=x0.dtype, device=device),
+                attention_mask=rolled_attention_mask,
+                deterministic=model_deterministic,
+                self_cond_cfg_scale=sc_scale,
+                decoder_step_active=True,
+            )
+            rolled_target_logits = rolled_decoder_logits[:, condition_length:]
+            rolled_ce_per_token = F.cross_entropy(
+                rolled_target_logits.transpose(1, 2).to(torch.float32),
+                target_ids,
+                reduction="none",
+            )
+            pairing_mask = target_token_mask
+            matched_nll = (
+                (ce_per_token * pairing_mask).sum(dim=1)
+                / pairing_mask.sum(dim=1).clamp_min(1.0)
+            )
+            rolled_nll = (
+                (rolled_ce_per_token * pairing_mask).sum(dim=1)
+                / pairing_mask.sum(dim=1).clamp_min(1.0)
+            )
+            condition_pairing_loss = F.softplus(
+                matched_nll - rolled_nll + decoder_condition_pairing_margin
+            ).mean()
+        scaled_condition_pairing_loss = (
+            decoder_condition_pairing_margin_weight * condition_pairing_loss
+        )
         semantic_alignment_loss = None
         semantic_alignment_cosine = None
         scaled_semantic_alignment_loss = x0.new_tensor(0.0)
-        if semantic_alignment_loss_weight > 0.0:
+        semantic_contrastive_loss = None
+        semantic_context_loss = None
+        semantic_content_loss = None
+        scaled_semantic_contrastive_loss = x0.new_tensor(0.0)
+        scaled_semantic_context_loss = x0.new_tensor(0.0)
+        scaled_semantic_content_loss = x0.new_tensor(0.0)
+        semantic_raw_anchor_loss = None
+        semantic_raw_anchor_cosine = None
+        semantic_geometry_loss = None
+        semantic_rank_distill_loss = None
+        scaled_semantic_raw_anchor_loss = x0.new_tensor(0.0)
+        scaled_semantic_geometry_loss = x0.new_tensor(0.0)
+        scaled_semantic_rank_distill_loss = x0.new_tensor(0.0)
+        any_semantic_objective = (
+            semantic_alignment_loss_weight > 0.0
+            or semantic_contrastive_loss_weight > 0.0
+            or semantic_context_loss_weight > 0.0
+            or semantic_content_loss_weight > 0.0
+            or semantic_raw_anchor_loss_weight > 0.0
+            or semantic_geometry_loss_weight > 0.0
+            or semantic_rank_distill_loss_weight > 0.0
+        )
+        if any_semantic_objective:
             if predicted_semantic is None:
                 raise ValueError("Semantic alignment loss requires an adapter with one semantic encoded token.")
-            target_semantic = semantic_vectors
+            target_semantic = alignment_targets if alignment_targets is not None else semantic_vectors
             if bool(getattr(adapter, "normalize_semantic_output", False)):
                 target_semantic = F.normalize(target_semantic.float(), p=2, dim=-1)
             if tuple(predicted_semantic.shape) != tuple(target_semantic.shape):
@@ -1131,14 +1812,116 @@ def train_step(
             pred_semantic = predicted_semantic.float()
             target_semantic = target_semantic.float()
             semantic_alignment_cosine = F.cosine_similarity(pred_semantic, target_semantic, dim=-1)
-            if semantic_alignment_loss_type == "cosine":
-                semantic_alignment_loss = 1.0 - semantic_alignment_cosine.mean()
-            elif semantic_alignment_loss_type == "mse":
-                semantic_alignment_loss = F.mse_loss(pred_semantic, target_semantic)
-            else:
-                raise ValueError(f"Unsupported semantic_alignment_loss_type={semantic_alignment_loss_type!r}")
-            scaled_semantic_alignment_loss = semantic_alignment_loss_weight * semantic_alignment_loss
-        scaled_decoder_objective = scaled_decoder_loss + scaled_semantic_alignment_loss
+            if semantic_alignment_loss_weight > 0.0:
+                if semantic_alignment_loss_type == "cosine":
+                    semantic_alignment_loss = 1.0 - semantic_alignment_cosine.mean()
+                elif semantic_alignment_loss_type == "mse":
+                    semantic_alignment_loss = F.mse_loss(pred_semantic, target_semantic)
+                else:
+                    raise ValueError(f"Unsupported semantic_alignment_loss_type={semantic_alignment_loss_type!r}")
+                scaled_semantic_alignment_loss = semantic_alignment_loss_weight * semantic_alignment_loss
+            if semantic_contrastive_loss_weight > 0.0:
+                if semantic_contrastive_temperature <= 0.0:
+                    raise ValueError("semantic_contrastive_temperature must be positive")
+                pred_normalized = F.normalize(pred_semantic, p=2, dim=-1)
+                target_normalized = F.normalize(target_semantic, p=2, dim=-1)
+                logits = pred_normalized @ target_normalized.T / semantic_contrastive_temperature
+                labels = torch.arange(logits.shape[0], device=logits.device)
+                semantic_contrastive_loss = 0.5 * (
+                    F.cross_entropy(logits, labels) + F.cross_entropy(logits.T, labels)
+                )
+                scaled_semantic_contrastive_loss = (
+                    semantic_contrastive_loss_weight * semantic_contrastive_loss
+                )
+            if semantic_context_loss_weight > 0.0:
+                with torch.no_grad():
+                    if semantic_context_teacher is not None:
+                        semantic_context_teacher.eval()
+                        target_context, _ = semantic_context_teacher(target_semantic)
+                    else:
+                        context_from_projected = getattr(
+                            adapter, "context_from_projected_semantic", None
+                        )
+                        if context_from_projected is None:
+                            raise ValueError(
+                                "Semantic context consistency requires either a frozen "
+                                "semantic_context_teacher or context_from_projected_semantic()."
+                            )
+                        target_context, _ = context_from_projected(target_semantic)
+                semantic_context_loss = 1.0 - F.cosine_similarity(
+                    context.float(), target_context.float(), dim=-1
+                ).mean()
+                scaled_semantic_context_loss = semantic_context_loss_weight * semantic_context_loss
+            if semantic_content_loss_weight > 0.0:
+                if semantic_content_targets is None or semantic_content_directions is None:
+                    raise ValueError(
+                        "Semantic content loss requires target masks and train-only prototype directions."
+                    )
+                semantic_content_loss = semantic_content_ranking_loss(
+                    pred_semantic,
+                    semantic_content_targets.to(device=device),
+                    semantic_content_directions.to(device=device),
+                    temperature=semantic_content_temperature,
+                    negative_topk=semantic_content_negative_topk,
+                )
+                scaled_semantic_content_loss = semantic_content_loss_weight * semantic_content_loss
+            if (
+                semantic_raw_anchor_loss_weight > 0.0
+                or semantic_geometry_loss_weight > 0.0
+                or semantic_rank_distill_loss_weight > 0.0
+            ):
+                preservation = semantic_preservation_losses(
+                    pred_semantic,
+                    semantic_vectors,
+                    exact_targets=(
+                        target_semantic if semantic_rank_distill_loss_weight > 0.0 else None
+                    ),
+                    rank_temperature=semantic_rank_distill_temperature,
+                )
+                semantic_raw_anchor_loss = preservation["anchor"]
+                semantic_raw_anchor_cosine = preservation["anchor_cosine"]
+                semantic_geometry_loss = preservation["geometry"]
+                semantic_rank_distill_loss = preservation["rank_distill"]
+                if (
+                    semantic_rank_distill_loss_weight > 0.0
+                    and semantic_rank_teacher_adapter is not None
+                ):
+                    with torch.no_grad():
+                        semantic_rank_teacher_adapter.eval()
+                        teacher_output = semantic_rank_teacher_adapter(
+                            meg,
+                            meg_lengths=meg_lengths,
+                            subjects=subject_ids,
+                        )
+                        teacher_semantic = teacher_output.encoded_sequence.squeeze(1)
+                    semantic_rank_distill_loss = semantic_preservation_losses(
+                        pred_semantic,
+                        teacher_semantic,
+                        exact_targets=target_semantic,
+                        rank_temperature=semantic_rank_distill_temperature,
+                    )["rank_distill"]
+                scaled_semantic_raw_anchor_loss = (
+                    semantic_raw_anchor_loss_weight * semantic_raw_anchor_loss
+                )
+                scaled_semantic_geometry_loss = (
+                    semantic_geometry_loss_weight * semantic_geometry_loss
+                )
+                scaled_semantic_rank_distill_loss = (
+                    semantic_rank_distill_loss_weight * semantic_rank_distill_loss
+                )
+        scaled_decoder_objective = (
+            scaled_decoder_loss
+            + scaled_content_bow_loss
+            + scaled_content_precision_loss
+            + scaled_condition_pairing_loss
+            + scaled_semantic_alignment_loss
+            + scaled_semantic_contrastive_loss
+            + scaled_semantic_context_loss
+            + scaled_semantic_content_loss
+            + scaled_semantic_raw_anchor_loss
+            + scaled_semantic_geometry_loss
+            + scaled_semantic_rank_distill_loss
+        )
     scaled_decoder_objective.backward()
 
     grad_metrics = optimizer_grad_metrics(optimizer)
@@ -1146,12 +1929,29 @@ def train_step(
     loss_value = (
         config.denoiser_loss_weight * denoiser_loss_value
         + float(scaled_decoder_loss.detach().cpu())
+        + float(scaled_content_bow_loss.detach().cpu())
+        + float(scaled_content_precision_loss.detach().cpu())
+        + float(scaled_condition_pairing_loss.detach().cpu())
         + float(scaled_semantic_alignment_loss.detach().cpu())
+        + float(scaled_semantic_contrastive_loss.detach().cpu())
+        + float(scaled_semantic_context_loss.detach().cpu())
+        + float(scaled_semantic_content_loss.detach().cpu())
+        + float(scaled_semantic_raw_anchor_loss.detach().cpu())
+        + float(scaled_semantic_geometry_loss.detach().cpu())
+        + float(scaled_semantic_rank_distill_loss.detach().cpu())
     )
     metrics = {
         "loss": loss_value,
         "denoiser_loss": denoiser_loss_value,
         "decoder_loss": float(decoder_loss.detach().cpu()),
+        "content_bow_loss": float(content_bow_loss.detach().cpu()),
+        "content_bow_loss_scaled": float(scaled_content_bow_loss.detach().cpu()),
+        "content_precision_loss": float(content_precision_loss.detach().cpu()),
+        "content_precision_loss_scaled": float(scaled_content_precision_loss.detach().cpu()),
+        "condition_pairing_loss": float(condition_pairing_loss.detach().cpu()),
+        "condition_pairing_loss_scaled": float(
+            scaled_condition_pairing_loss.detach().cpu()
+        ),
         "semantic_alignment_loss": (
             float(semantic_alignment_loss.detach().cpu()) if semantic_alignment_loss is not None else 0.0
         ),
@@ -1159,9 +1959,84 @@ def train_step(
         "semantic_alignment_cosine": (
             float(semantic_alignment_cosine.mean().detach().cpu()) if semantic_alignment_cosine is not None else 0.0
         ),
+        "semantic_contrastive_loss": (
+            float(semantic_contrastive_loss.detach().cpu()) if semantic_contrastive_loss is not None else 0.0
+        ),
+        "semantic_contrastive_loss_scaled": float(scaled_semantic_contrastive_loss.detach().cpu()),
+        "semantic_context_loss": (
+            float(semantic_context_loss.detach().cpu()) if semantic_context_loss is not None else 0.0
+        ),
+        "semantic_context_loss_scaled": float(scaled_semantic_context_loss.detach().cpu()),
+        "semantic_content_loss": (
+            float(semantic_content_loss.detach().cpu()) if semantic_content_loss is not None else 0.0
+        ),
+        "semantic_content_loss_scaled": float(scaled_semantic_content_loss.detach().cpu()),
+        "semantic_raw_anchor_loss": (
+            float(semantic_raw_anchor_loss.detach().cpu())
+            if semantic_raw_anchor_loss is not None
+            else 0.0
+        ),
+        "semantic_raw_anchor_loss_scaled": float(
+            scaled_semantic_raw_anchor_loss.detach().cpu()
+        ),
+        "semantic_raw_anchor_cosine": (
+            float(semantic_raw_anchor_cosine.detach().cpu())
+            if semantic_raw_anchor_cosine is not None
+            else 0.0
+        ),
+        "semantic_geometry_loss": (
+            float(semantic_geometry_loss.detach().cpu())
+            if semantic_geometry_loss is not None
+            else 0.0
+        ),
+        "semantic_geometry_loss_scaled": float(scaled_semantic_geometry_loss.detach().cpu()),
+        "semantic_rank_distill_loss": (
+            float(semantic_rank_distill_loss.detach().cpu())
+            if semantic_rank_distill_loss is not None
+            else 0.0
+        ),
+        "semantic_rank_distill_loss_scaled": float(
+            scaled_semantic_rank_distill_loss.detach().cpu()
+        ),
     }
     metrics.update(grad_metrics)
     return metrics
+
+
+@torch.no_grad()
+def encode_condition_contexts(
+    *,
+    adapter: nn.Module,
+    meg: torch.Tensor,
+    meg_lengths: torch.Tensor,
+    semantic_vectors: torch.Tensor,
+    subject_ids: torch.Tensor,
+    device: torch.device,
+    condition_source: str,
+    batch_size: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Encode long MEG windows without materializing attention for the full split."""
+    total = int(meg.shape[0] if condition_source == "meg" else semantic_vectors.shape[0])
+    chunk_size = total if batch_size <= 0 else min(total, int(batch_size))
+    contexts: list[torch.Tensor] = []
+    masks: list[torch.Tensor] = []
+    for start in range(0, total, chunk_size):
+        stop = min(total, start + chunk_size)
+        if condition_source == "meg":
+            output = adapter(
+                meg[start:stop].to(device=device, dtype=torch.float32),
+                meg_lengths=meg_lengths[start:stop].to(device=device, dtype=torch.long),
+                subjects=subject_ids[start:stop].to(device=device, dtype=torch.long),
+            )
+            context = output.context
+            mask = output.context_mask.to(device=device, dtype=context.dtype)
+        elif condition_source == "semantic":
+            context, mask = adapter(semantic_vectors[start:stop].to(device=device, dtype=torch.float32))
+        else:
+            raise ValueError(f"Unsupported condition_source: {condition_source}")
+        contexts.append(context)
+        masks.append(mask.to(device=device, dtype=context.dtype))
+    return torch.cat(contexts, dim=0), torch.cat(masks, dim=0)
 
 
 @torch.no_grad()
@@ -1187,74 +2062,143 @@ def evaluate_generation(
     device: torch.device,
     generator: torch.Generator,
     condition_source: str,
+    condition_batch_size: int = 0,
 ) -> dict:
     model.eval()
     adapter.eval()
 
-    if condition_source == "meg":
-        adapter_output = adapter(
-            meg.to(device=device, dtype=torch.float32),
-            meg_lengths=meg_lengths.to(device=device, dtype=torch.long),
-            subjects=subject_ids.to(device=device, dtype=torch.long),
-        )
-        context = adapter_output.context
-        context_mask = adapter_output.context_mask.to(device=device, dtype=context.dtype)
-    elif condition_source == "semantic":
-        context, context_mask = adapter(semantic_vectors.to(device=device, dtype=torch.float32))
-    else:
-        raise ValueError(f"Unsupported condition_source: {condition_source}")
-
-    zeros_target = torch.zeros((context.shape[0], target_length, context.shape[-1]), dtype=context.dtype, device=device)
-    cond_seq = torch.cat([context, zeros_target], dim=1)
-    cond_mask = torch.cat(
-        [
-            context_mask,
-            torch.zeros((context.shape[0], target_length), dtype=context.dtype, device=device),
-        ],
-        dim=1,
-    )
-
-    t_steps = get_sampling_steps(
-        n_steps=sampling_config.num_sampling_steps[0],
-        time_schedule=sampling_config.time_schedule,
-        P_mean=config.denoiser_p_mean,
-        P_std=config.denoiser_p_std,
+    context, context_mask = encode_condition_contexts(
+        adapter=adapter,
+        meg=meg,
+        meg_lengths=meg_lengths,
+        semantic_vectors=semantic_vectors,
+        subject_ids=subject_ids,
         device=device,
-        dtype=context.dtype,
-    )
-    z = torch.randn(cond_seq.shape, generator=generator, device=device, dtype=context.dtype) * config.denoiser_noise_scale
-
-    latent = _generate_samples_single_batch(
-        model=model,
-        generator=generator,
-        z=z,
-        t_steps=t_steps,
-        cond_seq=cond_seq,
-        cond_seq_mask=cond_mask,
-        config=config,
-        sampling_config=sampling_config,
-        cfg_scale=sampling_config.cfgs[0],
-        self_cond_cfg_scale=sampling_config.self_cond_cfg_scales[0],
-    )
-    predicted_ids = _dlm_decode_batch(
-        z=latent,
-        model=model,
-        t_final_val=t_steps[-1].item(),
-        config=config,
-        self_cond_cfg_scale=sampling_config.self_cond_cfg_scales[0],
-    )
-    shift = torch.full((context.shape[0],), context_length, dtype=torch.long, device=device)
-    predicted_ids = shift_left(predicted_ids, shift, 0)[:, :target_length]
-    predicted_ids = mask_after_eos(
-        predicted_ids,
-        eos_token_id=tokenizer.eos_token_id,
-        pad_token_id=tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id,
+        condition_source=condition_source,
+        batch_size=condition_batch_size,
     )
 
-    generated = [
-        tokenizer.decode(row.detach().cpu().tolist(), skip_special_tokens=True).strip()
-        for row in predicted_ids
-    ]
+    generation_batch_size = context.shape[0] if condition_batch_size <= 0 else int(condition_batch_size)
+    generated: list[str] = []
+    lexical_predictions: list[str] = []
+    for start in range(0, context.shape[0], generation_batch_size):
+        context_chunk = context[start : start + generation_batch_size]
+        mask_chunk = context_mask[start : start + generation_batch_size]
+        zeros_target = torch.zeros(
+            (context_chunk.shape[0], target_length, context_chunk.shape[-1]),
+            dtype=context_chunk.dtype,
+            device=device,
+        )
+        cond_seq = torch.cat([context_chunk, zeros_target], dim=1)
+        cond_mask = torch.cat(
+            [
+                mask_chunk,
+                torch.zeros((context_chunk.shape[0], target_length), dtype=context_chunk.dtype, device=device),
+            ],
+            dim=1,
+        )
+        t_steps = get_sampling_steps(
+            n_steps=sampling_config.num_sampling_steps[0],
+            time_schedule=sampling_config.time_schedule,
+            P_mean=config.denoiser_p_mean,
+            P_std=config.denoiser_p_std,
+            device=device,
+            dtype=context_chunk.dtype,
+        )
+        z = torch.randn(cond_seq.shape, generator=generator, device=device, dtype=context_chunk.dtype)
+        z = z * config.denoiser_noise_scale
+        latent = _generate_samples_single_batch(
+            model=model,
+            generator=generator,
+            z=z,
+            t_steps=t_steps,
+            cond_seq=cond_seq,
+            cond_seq_mask=cond_mask,
+            config=config,
+            sampling_config=sampling_config,
+            cfg_scale=sampling_config.cfgs[0],
+            self_cond_cfg_scale=sampling_config.self_cond_cfg_scales[0],
+        )
+        lexical_token_bias = None
+        lexical_sequence_ids = None
+        lexical_sequence_bias = None
+        ordered_token_ids = None
+        ordered_token_bias = None
+        lexical_bias_method = getattr(adapter, "lexical_token_logit_bias", None)
+        if lexical_bias_method is not None and condition_source == "semantic":
+            semantic_chunk = semantic_vectors[start : start + generation_batch_size].to(
+                device=device, dtype=torch.float32
+            )
+            lexical_token_bias = lexical_bias_method(
+                semantic_chunk,
+                vocabulary_size=len(tokenizer),
+            )
+            if bool(getattr(adapter, "lexical_decode_bias_once", False)):
+                lexical_sequence_method = getattr(
+                    adapter, "lexical_token_sequence_bias", None
+                )
+                if (
+                    getattr(adapter, "lexical_decode_bias_mode", "sequence")
+                    == "sequence"
+                    and lexical_sequence_method is not None
+                ):
+                    sequence_payload = lexical_sequence_method(
+                        semantic_chunk, vocabulary_size=len(tokenizer)
+                    )
+                    if sequence_payload is not None:
+                        lexical_sequence_ids, lexical_sequence_bias = sequence_payload
+                        lexical_token_bias = None
+            ordered_bias_method = getattr(
+                adapter, "ordered_token_position_bias", None
+            )
+            if ordered_bias_method is not None:
+                ordered_payload = ordered_bias_method(
+                    semantic_chunk, vocabulary_size=len(tokenizer)
+                )
+                if ordered_payload is not None:
+                    ordered_token_ids, ordered_token_bias = ordered_payload
+            lexical_vocabulary = getattr(adapter, "lexical_vocabulary", None)
+            lexical_selection = getattr(adapter, "lexical_selection", None)
+            if lexical_vocabulary is not None and lexical_selection is not None:
+                raw_semantic = adapter.fmri2sem(semantic_chunk)
+                lexical_indices, _ = lexical_selection(raw_semantic)
+                lexical_predictions.extend(
+                    " ".join(lexical_vocabulary[index] for index in row)
+                    for row in lexical_indices.detach().cpu().tolist()
+                )
+        predicted_ids = _dlm_decode_batch(
+            z=latent,
+            model=model,
+            t_final_val=t_steps[-1].item(),
+            config=config,
+            self_cond_cfg_scale=sampling_config.self_cond_cfg_scales[0],
+            token_logit_bias=lexical_token_bias,
+            token_logit_bias_once=bool(
+                getattr(adapter, "lexical_decode_bias_once", False)
+            ),
+            token_logit_bias_target_start=context_chunk.shape[1],
+            token_logit_bias_max_positions=int(
+                getattr(adapter, "lexical_decode_bias_max_positions", 0)
+            ),
+            token_sequence_ids=lexical_sequence_ids,
+            token_sequence_bias=lexical_sequence_bias,
+            ordered_token_ids=ordered_token_ids,
+            ordered_token_bias=ordered_token_bias,
+            ordered_token_max_positions=int(
+                getattr(adapter, "ordered_decode_max_positions", 0)
+            ),
+        )
+        shift = torch.full((context_chunk.shape[0],), context_length, dtype=torch.long, device=device)
+        predicted_ids = shift_left(predicted_ids, shift, 0)[:, :target_length]
+        predicted_ids = mask_after_eos(
+            predicted_ids,
+            eos_token_id=tokenizer.eos_token_id,
+            pad_token_id=tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id,
+        )
+        generated.extend(
+            tokenizer.decode(row.detach().cpu().tolist(), skip_special_tokens=True).strip()
+            for row in predicted_ids
+        )
     normalized_targets = [sentence.strip() for sentence in target_sentences]
     exact = [int(gen == tgt) for gen, tgt in zip(generated, normalized_targets)]
     overlap = word_overlap_metrics(generated, normalized_targets)
@@ -1268,6 +2212,11 @@ def evaluate_generation(
         "generation_quality": generation_quality,
         "word_overlap": overlap,
     }
+    if len(lexical_predictions) == len(normalized_targets):
+        metrics["lexical_predictions"] = lexical_predictions
+        metrics["lexical_probe_quality"] = word_overlap_metrics(
+            lexical_predictions, normalized_targets
+        )["summary"]
     if encoder is not None and target_latents is not None and target_mask is not None:
         safe_generated = [text if text.strip() else tokenizer.eos_token or "." for text in generated]
         generated_ids, generated_mask = tokenize_sentences(tokenizer, safe_generated)
@@ -1313,22 +2262,21 @@ def evaluate_retrieval(
     condition_source: str,
     retrieval_batch_size: int,
     retrieval_t: float,
+    condition_batch_size: int = 0,
 ) -> dict:
     model.eval()
     adapter.eval()
 
-    if condition_source == "meg":
-        adapter_output = adapter(
-            meg.to(device=device, dtype=torch.float32),
-            meg_lengths=meg_lengths.to(device=device, dtype=torch.long),
-            subjects=subject_ids.to(device=device, dtype=torch.long),
-        )
-        contexts = adapter_output.context
-        context_masks = adapter_output.context_mask.to(device=device, dtype=contexts.dtype)
-    elif condition_source == "semantic":
-        contexts, context_masks = adapter(semantic_vectors.to(device=device, dtype=torch.float32))
-    else:
-        raise ValueError(f"Unsupported condition_source: {condition_source}")
+    contexts, context_masks = encode_condition_contexts(
+        adapter=adapter,
+        meg=meg,
+        meg_lengths=meg_lengths,
+        semantic_vectors=semantic_vectors,
+        subject_ids=subject_ids,
+        device=device,
+        condition_source=condition_source,
+        batch_size=condition_batch_size,
+    )
 
     target_latents = target_latents.to(device)
     target_ids = target_ids.to(device)
@@ -1513,6 +2461,8 @@ def eval_checkpoint_scores(metrics: dict) -> dict[str, float]:
     retrieval = metrics.get("generation_t5_retrieval") or {}
     well_structured = quality.get("well_structured_sentence")
     content_words_overlap = quality.get("content_words_overlap")
+    words_overlap = quality.get("words_overlap")
+    word_error_rate = quality.get("word_error_rate")
     mean_rank = retrieval.get("mean_rank")
     eval_num_examples = max(1, int(metrics.get("eval_num_examples") or 1))
     scores = {}
@@ -1526,8 +2476,14 @@ def eval_checkpoint_scores(metrics: dict) -> dict[str, float]:
         scores["well_structured_sentence"] = float(well_structured)
     if content_words_overlap is not None:
         scores["content_words_overlap"] = float(content_words_overlap)
+    if words_overlap is not None:
+        scores["words_overlap"] = float(words_overlap)
+    if word_error_rate is not None:
+        scores["negative_word_error_rate"] = -float(word_error_rate)
     if mean_rank is not None:
         scores["mean_rank"] = -float(mean_rank)
+    if retrieval.get("top5") is not None:
+        scores["generation_t5_top5"] = float(retrieval["top5"])
     return scores
 
 

@@ -1,0 +1,279 @@
+{
+  "source_metrics_json": "/private/tmp/top10_p0p1_t2_scattered_b40_val266_generationonly.json",
+  "top_word_f1": [
+    {
+      "index": 19,
+      "target": "these tiny little socks and really cute onesies and things",
+      "generated": "little know back two that one and around some really  get see",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.14285714285714288,
+      "wer": 1.1,
+      "bertscore_f1": -0.14259833097457886
+    },
+    {
+      "index": 124,
+      "target": "the street he turned left and instead of turning around",
+      "generated": "get got know back around the door and said one the go",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.13333333333333333,
+      "wer": 1.1,
+      "bertscore_f1": 0.025835564360022545
+    },
+    {
+      "index": 137,
+      "target": "television set and i find the new york mets now",
+      "generated": "know went to new york in now new york go get really",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.375,
+      "wer": 1.0,
+      "bertscore_f1": 0.1842428296804428
+    },
+    {
+      "index": 148,
+      "target": "gonna go back to baltimore and play the last two",
+      "generated": "now little e life and even really know one back time two",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.23529411764705882,
+      "wer": 1.1,
+      "bertscore_f1": -0.0735396221280098
+    },
+    {
+      "index": 192,
+      "target": "years old i got really sick um and no one",
+      "generated": "two know cause said it really school one last years last now",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.25,
+      "wer": 1.1,
+      "bertscore_f1": -0.031085669994354248
+    },
+    {
+      "index": 245,
+      "target": "little money i think a lot of people did around",
+      "generated": "little end of people us getin know now really two back one",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.26666666666666666,
+      "wer": 1.1,
+      "bertscore_f1": 0.04347141087055206
+    },
+    {
+      "index": 254,
+      "target": "dance and criticizing my hairdo and one night he said",
+      "generated": "soft life and now one two she started little really said back know",
+      "word_f1": 0.2608695652173913,
+      "content_f1": 0.25,
+      "wer": 1.1,
+      "bertscore_f1": 0.007988876663148403
+    },
+    {
+      "index": 225,
+      "target": "i really started modeling to pay off my college loans",
+      "generated": "went to really a job in urbanes",
+      "word_f1": 0.23529411764705882,
+      "content_f1": 0.0,
+      "wer": 0.9,
+      "bertscore_f1": -0.004839378409087658
+    },
+    {
+      "index": 226,
+      "target": "helmut newton they said you know helmut newton the guy",
+      "generated": "said know reallya one in i ess gete back",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.2857142857142857,
+      "wer": 1.0,
+      "bertscore_f1": -0.11520955711603165
+    },
+    {
+      "index": 255,
+      "target": "know you get a little momentum going and one day",
+      "generated": "the  see up around little like know  really back",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.30769230769230765,
+      "wer": 0.9,
+      "bertscore_f1": -0.1901155561208725
+    }
+  ],
+  "top_content_f1": [
+    {
+      "index": 137,
+      "target": "television set and i find the new york mets now",
+      "generated": "know went to new york in now new york go get really",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.375,
+      "wer": 1.0,
+      "bertscore_f1": 0.1842428296804428
+    },
+    {
+      "index": 255,
+      "target": "know you get a little momentum going and one day",
+      "generated": "the  see up around little like know  really back",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.30769230769230765,
+      "wer": 0.9,
+      "bertscore_f1": -0.1901155561208725
+    },
+    {
+      "index": 226,
+      "target": "helmut newton they said you know helmut newton the guy",
+      "generated": "said know reallya one in i ess gete back",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.2857142857142857,
+      "wer": 1.0,
+      "bertscore_f1": -0.11520955711603165
+    },
+    {
+      "index": 122,
+      "target": "dad one evening i took a two mile walk to",
+      "generated": "dining room we people the one  camp two back around",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.26666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": -0.08223658800125122
+    },
+    {
+      "index": 245,
+      "target": "little money i think a lot of people did around",
+      "generated": "little end of people us getin know now really two back one",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.26666666666666666,
+      "wer": 1.1,
+      "bertscore_f1": 0.04347141087055206
+    },
+    {
+      "index": 17,
+      "target": "one day we get a phone call from our case",
+      "generated": "new press get now back two know one people to say us",
+      "word_f1": 0.1818181818181818,
+      "content_f1": 0.25,
+      "wer": 1.2,
+      "bertscore_f1": -0.031634483486413956
+    },
+    {
+      "index": 42,
+      "target": "first police detective i spoke with said get ready kid",
+      "generated": "back one little kid get likely to know us now really",
+      "word_f1": 0.1904761904761905,
+      "content_f1": 0.25,
+      "wer": 1.1,
+      "bertscore_f1": 0.08478394895792007
+    },
+    {
+      "index": 48,
+      "target": "accidentally i found myself straddling two lives a new one",
+      "generated": "constant now fighting my journey back my one two time",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.25,
+      "wer": 1.0,
+      "bertscore_f1": 0.031510524451732635
+    },
+    {
+      "index": 192,
+      "target": "years old i got really sick um and no one",
+      "generated": "two know cause said it really school one last years last now",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.25,
+      "wer": 1.1,
+      "bertscore_f1": -0.031085669994354248
+    },
+    {
+      "index": 219,
+      "target": "one nursing twenty four hours around the clock at home",
+      "generated": "back around in addition from people really two one know and everything",
+      "word_f1": 0.1818181818181818,
+      "content_f1": 0.25,
+      "wer": 1.2,
+      "bertscore_f1": -0.09016295522451401
+    }
+  ],
+  "top_bertscore_f1": [
+    {
+      "index": 137,
+      "target": "television set and i find the new york mets now",
+      "generated": "know went to new york in now new york go get really",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.375,
+      "wer": 1.0,
+      "bertscore_f1": 0.1842428296804428
+    },
+    {
+      "index": 26,
+      "target": "younger brother and sister looked like him and he said",
+      "generated": "back mother said one two years and went to one now hospital",
+      "word_f1": 0.1818181818181818,
+      "content_f1": 0.125,
+      "wer": 1.2,
+      "bertscore_f1": 0.16865214705467224
+    },
+    {
+      "index": 216,
+      "target": "i remember being incredibly uncomfortable in a cold hospital bed",
+      "generated": "six now he i'm get around the backs really",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.08687819540500641
+    },
+    {
+      "index": 42,
+      "target": "first police detective i spoke with said get ready kid",
+      "generated": "back one little kid get likely to know us now really",
+      "word_f1": 0.1904761904761905,
+      "content_f1": 0.25,
+      "wer": 1.1,
+      "bertscore_f1": 0.08478394895792007
+    },
+    {
+      "index": 89,
+      "target": "business one but when i started going to art school",
+      "generated": "years now really stayed up back time you became de one",
+      "word_f1": 0.09523809523809525,
+      "content_f1": 0.14285714285714288,
+      "wer": 1.1,
+      "bertscore_f1": 0.04825710877776146
+    },
+    {
+      "index": 217,
+      "target": "remember you know in the emergency room i remember vague",
+      "generated": "get off at the back of little now around to know see",
+      "word_f1": 0.1818181818181818,
+      "content_f1": 0.15384615384615383,
+      "wer": 1.2,
+      "bertscore_f1": 0.04811302199959755
+    },
+    {
+      "index": 245,
+      "target": "little money i think a lot of people did around",
+      "generated": "little end of people us getin know now really two back one",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.26666666666666666,
+      "wer": 1.1,
+      "bertscore_f1": 0.04347141087055206
+    },
+    {
+      "index": 22,
+      "target": "anti social worker and hello to the architect and contractors",
+      "generated": "really back two now one people women get the year of new years",
+      "word_f1": 0.08695652173913043,
+      "content_f1": 0.0,
+      "wer": 1.2,
+      "bertscore_f1": 0.04298863932490349
+    },
+    {
+      "index": 76,
+      "target": "wrong way to make art now this makes me extremely",
+      "generated": "over around the said now and really one get back two got",
+      "word_f1": 0.0909090909090909,
+      "content_f1": 0.13333333333333333,
+      "wer": 1.2,
+      "bertscore_f1": 0.033442672342061996
+    },
+    {
+      "index": 106,
+      "target": "explosion sent people flying from their seats my friend jumped",
+      "generated": "now see gets his one around he know back",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.03230796381831169
+    }
+  ]
+}

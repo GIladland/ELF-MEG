@@ -19,6 +19,7 @@ ENV_STAMP=${ENV_STAMP:-braindiffusion-elf-torch213-py310-20260803}
 
 RUN_TAG=${RUN_TAG:-sherlock_sva_meg2sem_minilm_direct_elf_dt8z7o55}
 TRAIN_NPZ=${TRAIN_NPZ:-$DATA_ROOT/sherlock_sva/meg2sem/sherlock1to9_sva_no_coord_decl5to18_train_minilm_meg2sem_segment3000_fp16.npz}
+VAL_NPZ=${VAL_NPZ:-}
 ELF_CHECKPOINT=${ELF_CHECKPOINT:-/data/engs-pnpl/glandau/elf-runs/sherlock1to9_sva_no_coord_decl5to18_plus_oraclevalaug64x_to_sherlock12_sva_no_coord_decl5to18_minilm_k64_epoch300_fullmask_long2d/best.pt}
 SEMANTIC_PROJECTOR_CHECKPOINT=${SEMANTIC_PROJECTOR_CHECKPOINT:-$ELF_CHECKPOINT}
 OUTPUT_DIR=${OUTPUT_DIR:-/data/engs-pnpl/glandau/elf-runs/$RUN_TAG}
@@ -30,6 +31,11 @@ MEG2SEM_RECOMMENDED_CHECKPOINT=${MEG2SEM_RECOMMENDED_CHECKPOINT:-$MEG2SEM_CHECKP
 MEG2SEM_SELECTION_WANDB_RUN=${MEG2SEM_SELECTION_WANDB_RUN:-pnpl/b2s2t/$MEG2SEM_RUN_ID}
 MEG2SEM_CHECKPOINT_SELECTION=${MEG2SEM_CHECKPOINT_SELECTION:-priority}
 MEG2SEM_CHECKPOINT=${MEG2SEM_CHECKPOINT:-}
+MEG2SEM_OUTPUT_NORMALIZATION=${MEG2SEM_OUTPUT_NORMALIZATION:-auto}
+MEG2SEM_PREDICTION_MODE=${MEG2SEM_PREDICTION_MODE:-full_ada}
+MEG2SEM_RESIDUAL_COMPONENT_NPZ=${MEG2SEM_RESIDUAL_COMPONENT_NPZ:-}
+MEG2SEM_RESIDUAL_MEAN_KEY=${MEG2SEM_RESIDUAL_MEAN_KEY:-train_mean}
+MEG2SEM_RESIDUAL_TARGET_SCALE=${MEG2SEM_RESIDUAL_TARGET_SCALE:-1.0}
 INIT_E2E_CHECKPOINT=${INIT_E2E_CHECKPOINT:-}
 
 EVAL_ONLY=${EVAL_ONLY:-1}
@@ -43,6 +49,7 @@ LR=${LR:-1e-5}
 MEG2SEM_LR=${MEG2SEM_LR:-$LR}
 SEMANTIC_PROJECTOR_LR=${SEMANTIC_PROJECTOR_LR:-$LR}
 ELF_LR=${ELF_LR:-1e-5}
+TEACHER_CONTEXT_LOSS_WEIGHT=${TEACHER_CONTEXT_LOSS_WEIGHT:-0.0}
 EVAL_EVERY=${EVAL_EVERY:-500}
 RETRIEVAL_EVAL_EVERY=${RETRIEVAL_EVAL_EVERY:-500}
 INTERFACE_MONITOR_EVERY=${INTERFACE_MONITOR_EVERY:-10}
@@ -50,6 +57,15 @@ INTERFACE_MONITOR_BATCH_SIZE=${INTERFACE_MONITOR_BATCH_SIZE:-16}
 SAVE_EVAL_CHECKPOINTS=${SAVE_EVAL_CHECKPOINTS:-0}
 EVAL_CHECKPOINT_TOP_K=${EVAL_CHECKPOINT_TOP_K:-3}
 NUM_SAMPLING_STEPS=${NUM_SAMPLING_STEPS:-32}
+CFG_SCALE=${CFG_SCALE:-1.0}
+SELF_COND_CFG_SCALE=${SELF_COND_CFG_SCALE:-1.0}
+SEED=${SEED:-7}
+VAL_NUM_EXAMPLES=${VAL_NUM_EXAMPLES:-512}
+EVAL_NUM_EXAMPLES=${EVAL_NUM_EXAMPLES:-64}
+RETRIEVAL_NUM_EXAMPLES=${RETRIEVAL_NUM_EXAMPLES:-64}
+EVAL_START_INDEX=${EVAL_START_INDEX:-0}
+RETRIEVAL_START_INDEX=${RETRIEVAL_START_INDEX:-$EVAL_START_INDEX}
+RETRIEVAL_BATCH_SIZE=${RETRIEVAL_BATCH_SIZE:-128}
 
 export SKIP_ARC_SETUP=${SKIP_ARC_SETUP:-1}
 export WANDB_ENTITY=${WANDB_ENTITY:-giladland-university-of-oxford}
@@ -142,10 +158,16 @@ echo "Running MEG2SEM MiniLM -> semantic projector -> ELF"
 echo "TRAIN_NPZ=$TRAIN_NPZ"
 echo "MEG2SEM_CHECKPOINT=$MEG2SEM_CHECKPOINT"
 echo "MEG2SEM_CHECKPOINT_SELECTION=$MEG2SEM_CHECKPOINT_SELECTION"
+echo "MEG2SEM_OUTPUT_NORMALIZATION=$MEG2SEM_OUTPUT_NORMALIZATION"
+echo "MEG2SEM_PREDICTION_MODE=$MEG2SEM_PREDICTION_MODE"
+echo "MEG2SEM_RESIDUAL_COMPONENT_NPZ=${MEG2SEM_RESIDUAL_COMPONENT_NPZ:-<none>}"
+echo "MEG2SEM_RESIDUAL_MEAN_KEY=$MEG2SEM_RESIDUAL_MEAN_KEY"
+echo "MEG2SEM_RESIDUAL_TARGET_SCALE=$MEG2SEM_RESIDUAL_TARGET_SCALE"
 echo "ELF_CHECKPOINT=$ELF_CHECKPOINT"
 echo "SEMANTIC_PROJECTOR_CHECKPOINT=$SEMANTIC_PROJECTOR_CHECKPOINT"
 echo "INIT_E2E_CHECKPOINT=$INIT_E2E_CHECKPOINT"
 echo "NUM_SAMPLING_STEPS=$NUM_SAMPLING_STEPS"
+echo "CFG_SCALE=$CFG_SCALE SELF_COND_CFG_SCALE=$SELF_COND_CFG_SCALE SEED=$SEED"
 echo "OUTPUT_DIR=$OUTPUT_DIR"
 
 args=(
@@ -157,34 +179,37 @@ args=(
   --semantic-projector-checkpoint "$SEMANTIC_PROJECTOR_CHECKPOINT"
   --adapter-kind meg2sem_projector
   --meg2sem-checkpoint "$MEG2SEM_CHECKPOINT"
-  --meg2sem-output-normalization auto
+  --meg2sem-output-normalization "$MEG2SEM_OUTPUT_NORMALIZATION"
+  --meg2sem-prediction-mode "$MEG2SEM_PREDICTION_MODE"
   --meg-standardization none
   --meg-clip-boundary -1
   --device cuda
   --num-examples 0
-  --val-num-examples 512
-  --eval-num-examples 64
-  --retrieval-num-examples 64
+  --val-num-examples "$VAL_NUM_EXAMPLES"
+  --eval-num-examples "$EVAL_NUM_EXAMPLES"
+  --retrieval-num-examples "$RETRIEVAL_NUM_EXAMPLES"
+  --eval-start-index "$EVAL_START_INDEX"
+  --retrieval-start-index "$RETRIEVAL_START_INDEX"
   --batch_size "$BATCH_SIZE"
   --epochs "$EPOCHS"
   --eval_every "$EVAL_EVERY"
   --retrieval-eval-every "$RETRIEVAL_EVAL_EVERY"
-  --retrieval-batch-size 128
+  --retrieval-batch-size "$RETRIEVAL_BATCH_SIZE"
   --num_sampling_steps "$NUM_SAMPLING_STEPS"
   --context_length 64
   --semantic-hidden-dim 4096
-  --teacher-context-loss-weight 0.0
+  --teacher-context-loss-weight "$TEACHER_CONTEXT_LOSS_WEIGHT"
   --lr "$LR"
   --meg2sem-lr "$MEG2SEM_LR"
   --semantic-projector-lr "$SEMANTIC_PROJECTOR_LR"
   --weight_decay 1e-2
-  --cfg_scale 1.0
-  --self_cond_cfg_scale 1.0
+  --cfg_scale "$CFG_SCALE"
+  --self_cond_cfg_scale "$SELF_COND_CFG_SCALE"
   --train-target-mask-mode full
   --interface-monitor-every "$INTERFACE_MONITOR_EVERY"
   --interface-monitor-batch-size "$INTERFACE_MONITOR_BATCH_SIZE"
   --generation-t5-retrieval
-  --seed 7
+  --seed "$SEED"
   --use_wandb
   --wandb_project "$WANDB_PROJECT"
   --wandb_entity "$WANDB_ENTITY"
@@ -193,6 +218,22 @@ args=(
   --wandb_sample_examples 16
   --wandb_notes "Direct MEG2SEM run $MEG2SEM_RUN_ID: predicted MiniLM vectors are passed through the frozen MiniLM->ELF K64 projector and evaluated/generated with the paired ELF checkpoint. Set EVAL_ONLY=0 TRAIN_MEG2SEM=1 and optionally UNFREEZE_ELF=1 for end-to-end fine-tuning."
 )
+
+if [[ "$MEG2SEM_PREDICTION_MODE" == "mean_residual" ]]; then
+  if [[ -z "$MEG2SEM_RESIDUAL_COMPONENT_NPZ" || ! -f "$MEG2SEM_RESIDUAL_COMPONENT_NPZ" ]]; then
+    echo "MEG2SEM_RESIDUAL_COMPONENT_NPZ is required for mean_residual prediction" >&2
+    exit 2
+  fi
+  args+=(
+    --meg2sem-residual-component-npz "$MEG2SEM_RESIDUAL_COMPONENT_NPZ"
+    --meg2sem-residual-mean-key "$MEG2SEM_RESIDUAL_MEAN_KEY"
+    --meg2sem-residual-target-scale "$MEG2SEM_RESIDUAL_TARGET_SCALE"
+  )
+fi
+
+if [[ -n "$VAL_NPZ" ]]; then
+  args+=(--val-npz "$VAL_NPZ")
+fi
 
 if [[ "$EVAL_ONLY" == "1" ]]; then
   args+=(--eval-only)

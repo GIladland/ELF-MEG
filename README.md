@@ -1,4 +1,4 @@
-# PyTorch ELF
+wh# PyTorch ELF
 
 PyTorch version of [ELF: Embedded Language Flows](https://arxiv.org/abs/2605.10938).
 
@@ -48,10 +48,6 @@ Large caches and model / dataset downloads still live on:
 ```bash
 /data/engs-pnpl/glandau/elf-cache
 ```
-
-This includes the Triton kernel cache; GPU launchers should set
-`TRITON_CACHE_DIR=/data/engs-pnpl/glandau/elf-cache/triton-cache` so compiled
-kernels do not consume the ARC home-directory quota.
 
 Do not submit new GPU jobs against the old persistent env unless Torch import
 has been verified on a compute node. It is acceptable for lightweight commands
@@ -125,80 +121,6 @@ lengths=[750, 750]
 sample[0] ... 'A Study in Scarlet by Sir Arthur Conan Doyle'
 sample[1] ... 'This is a LibriVox recording'
 ```
-
-Sherlock SVA MiniLM + MEG export for MEG2SEM-style training:
-
-```bash
-cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
-sbatch submit-jobs/export_sherlock_sva_meg2sem_minilm.sbatch
-```
-
-Default output:
-
-```text
-/data/engs-pnpl/glandau/elf-cache/sherlock_sva/meg2sem/sherlock1to9_sva_no_coord_decl5to18_train_minilm_meg2sem_segment3000_fp16.npz
-```
-
-The packed NPZ stores `meg`, `meg_time_mask`, `meg_lengths`, `input_embeddings`
-/ `minilm_embeddings`, `sentence`, and `rows`. The wrapper also writes
-MiniLM semantic sidecars under `embeddings_ada` at:
-
-```text
-/data/engs-pnpl/glandau/elf-cache/sherlock_sva/meg2sem/minilm_sidecars
-```
-
-For direct MEG2SEM loading of those sidecars, use `embedding_type=ADA` with
-`embedding_dim=384` and point the semantic-vector root at that sidecar tree.
-
-Directly route a trained MEG2SEM MiniLM checkpoint into ELF:
-
-```bash
-cd /data/engs-pnpl/glandau/BrainDiffusion/ELF
-sbatch submit-jobs/sherlock_sva_meg2sem_minilm_direct_elf_dt8z7o55.sbatch
-```
-
-The job defaults to an eval-only pass for W&B run `dt8z7o55` using
-`MEG2SEM_CHECKPOINT_SELECTION=priority`. That selector reads the W&B history
-and ranks available checkpoints by `val_nDCG_epoch` descending, then
-`val_cosine_mean_epoch` descending, then `val_procrustes_epoch` ascending, then
-`val_loss` ascending. For the current `dt8z7o55` run this selects epoch 852:
-
-```text
-/data/engs-pnpl/glandau/MEG2SEM/MEG2SEM/wandb/dt8z7o55/checkpoints/sherlock_sva_minilm_books1to9_to_sherlock12_bs60_seed49-epoch=852-val_loss=26.45.ckpt
-```
-
-It predicts MiniLM vectors from MEG, maps them through the saved MiniLM-to-ELF
-K64 semantic projector, and generates/evaluates with the paired ELF checkpoint.
-To inspect or change the selector:
-
-```bash
-python scripts/select_meg2sem_handoff_checkpoint.py \
-  --wandb-run pnpl/b2s2t/dt8z7o55 \
-  --checkpoint-dir /data/engs-pnpl/glandau/MEG2SEM/MEG2SEM/wandb/dt8z7o55/checkpoints \
-  --strategy priority
-```
-
-Use `--strategy ndcg_dominant` for an 80/10/7/3 nDCG/cosine/procrustes/loss
-rank-percentile blend, `--strategy balanced` for 65/20/10/5, or
-`--strategy loss` to match the original val-loss monitor. An explicit
-`MEG2SEM_CHECKPOINT=/path/to/file.ckpt` still overrides the selector.
-
-To fine-tune instead of only evaluating:
-
-```bash
-EVAL_ONLY=0 TRAIN_MEG2SEM=1 UNFREEZE_ELF=1 \
-  sbatch submit-jobs/sherlock_sva_meg2sem_minilm_direct_elf_dt8z7o55.sbatch
-```
-
-For the full end-to-end run with close monitoring enabled:
-
-```bash
-sbatch submit-jobs/sherlock_sva_meg2sem_minilm_e2e_finetune_dt8z7o55.sbatch
-```
-
-That wrapper trains MEG2SEM, the MiniLM-to-ELF semantic projector, and ELF
-itself by default. It logs interface diagnostics every 5 steps, generation and
-retrieval every 50 steps, and keeps the top 3 eval checkpoints.
 
 ### ARC training
 

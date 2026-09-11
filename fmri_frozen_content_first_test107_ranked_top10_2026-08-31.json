@@ -1,0 +1,279 @@
+{
+  "source_metrics_json": "/data/engs-pnpl/glandau/elf-runs/fmri_minilm_t5_prefix_20260831/packaged_system/frozen_content_first_val266_20260831_test107_metrics.json",
+  "top_word_f1": [
+    {
+      "index": 68,
+      "target": "went home to make room for another forty eight people",
+      "generated": "time you know people didn't get enough room for the",
+      "word_f1": 0.3,
+      "content_f1": 0.26666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.10048199445009232
+    },
+    {
+      "index": 23,
+      "target": "get back on the ground the exhilaration overwhelms the terror",
+      "generated": "back in the morning and back to work",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.2,
+      "wer": 0.8,
+      "bertscore_f1": 0.14632666110992432
+    },
+    {
+      "index": 58,
+      "target": "history will know that in the late fifties and early",
+      "generated": "now two years back in the u.s.",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.0,
+      "wer": 0.8,
+      "bertscore_f1": -0.031003030017018318
+    },
+    {
+      "index": 8,
+      "target": "say it louder and louder and i remember was six",
+      "generated": "really kind of thing and it seems like something else",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": -0.07148916274309158
+    },
+    {
+      "index": 21,
+      "target": "so pissed at the guy i mean i really hated",
+      "generated": "really said that now I know that people don't know",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.04372180625796318
+    },
+    {
+      "index": 54,
+      "target": "so many emotions running through me but i walked towards",
+      "generated": "i said go back and let me look around and",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": -0.04353921860456467
+    },
+    {
+      "index": 57,
+      "target": "twenty nine years old and the big year of change",
+      "generated": "one person now i know two years and i'm a",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.14285714285714285,
+      "wer": 1.0,
+      "bertscore_f1": 0.07196840643882751
+    },
+    {
+      "index": 74,
+      "target": "really felt i belonged to alfred beit my new school",
+      "generated": "one day my two friends and I started working on",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.10486438125371933
+    },
+    {
+      "index": 79,
+      "target": "journalist coming to the school and miss roberts rushing across",
+      "generated": "he said back to us back home and says \"you",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": -0.04450758919119835
+    },
+    {
+      "index": 94,
+      "target": "love her good cause she's ivy and she's our baby",
+      "generated": "know now that you can get to know her and",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.011890963651239872
+    }
+  ],
+  "top_content_f1": [
+    {
+      "index": 68,
+      "target": "went home to make room for another forty eight people",
+      "generated": "time you know people didn't get enough room for the",
+      "word_f1": 0.3,
+      "content_f1": 0.26666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.10048199445009232
+    },
+    {
+      "index": 44,
+      "target": "turn i dug with as much strength and as much",
+      "generated": "little thought to be so much so that little one's",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.20000000000000004,
+      "wer": 0.9,
+      "bertscore_f1": -0.15762677788734436
+    },
+    {
+      "index": 23,
+      "target": "get back on the ground the exhilaration overwhelms the terror",
+      "generated": "back in the morning and back to work",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.2,
+      "wer": 0.8,
+      "bertscore_f1": 0.14632666110992432
+    },
+    {
+      "index": 17,
+      "target": "thing you ever seen like those spike lee movies where",
+      "generated": "really see the whole thing that's the same as a",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.18181818181818182,
+      "wer": 1.0,
+      "bertscore_f1": -0.15988312661647797
+    },
+    {
+      "index": 22,
+      "target": "back door to look at his footprints in the snow",
+      "generated": "pull back one of them and let me go back",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.1818181818181818,
+      "wer": 1.0,
+      "bertscore_f1": 0.0022164445836097
+    },
+    {
+      "index": 67,
+      "target": "school called alfred beit where i found myself as one",
+      "generated": "one time people allowed to join us at the door",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.15384615384615383,
+      "wer": 1.0,
+      "bertscore_f1": 0.07056494057178497
+    },
+    {
+      "index": 90,
+      "target": "one month old my daughter had her own plastic surgeon",
+      "generated": "one hundred u.s. dollars and a lot of u.",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.15384615384615383,
+      "wer": 0.9,
+      "bertscore_f1": -0.06387463957071304
+    },
+    {
+      "index": 55,
+      "target": "said hi i'm joe lentini i saw a young man",
+      "generated": "little bit back in my hand and said back in",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.14285714285714288,
+      "wer": 1.0,
+      "bertscore_f1": -0.24261309206485748
+    },
+    {
+      "index": 57,
+      "target": "twenty nine years old and the big year of change",
+      "generated": "one person now i know two years and i'm a",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.14285714285714285,
+      "wer": 1.0,
+      "bertscore_f1": 0.07196840643882751
+    },
+    {
+      "index": 91,
+      "target": "point two month baby with my husband he goes now",
+      "generated": "little one facing two large blinds in front of a",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.14285714285714285,
+      "wer": 1.0,
+      "bertscore_f1": 0.053555600345134735
+    }
+  ],
+  "top_bertscore_f1": [
+    {
+      "index": 23,
+      "target": "get back on the ground the exhilaration overwhelms the terror",
+      "generated": "back in the morning and back to work",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.2,
+      "wer": 0.8,
+      "bertscore_f1": 0.14632666110992432
+    },
+    {
+      "index": 48,
+      "target": "got out as i walked forward another friend was telling",
+      "generated": "said one thing now i know someone else",
+      "word_f1": 0.11111111111111112,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.13012641668319702
+    },
+    {
+      "index": 16,
+      "target": "see there's a doll and i'm thinking i've got four",
+      "generated": "know you're wrapping up your memory so that you know",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.11181990802288055
+    },
+    {
+      "index": 74,
+      "target": "really felt i belonged to alfred beit my new school",
+      "generated": "one day my two friends and I started working on",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.10486438125371933
+    },
+    {
+      "index": 47,
+      "target": "everyone's crying we gently took his body and put it",
+      "generated": "got around and i went back to church and i",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.10460197925567627
+    },
+    {
+      "index": 68,
+      "target": "went home to make room for another forty eight people",
+      "generated": "time you know people didn't get enough room for the",
+      "word_f1": 0.3,
+      "content_f1": 0.26666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.10048199445009232
+    },
+    {
+      "index": 11,
+      "target": "going come on eat it i don't want to eat",
+      "generated": "said you know i've got a lot of red hugs",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.09073472768068314
+    },
+    {
+      "index": 69,
+      "target": "a goat she said i still remember the surprise laughter",
+      "generated": "go and say i know someone who says 'he looks",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.0881548747420311
+    },
+    {
+      "index": 75,
+      "target": "one moment when i knew peace at my school when",
+      "generated": "always remembers to leave i know everyone's fault",
+      "word_f1": 0.11111111111111112,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.07438191026449203
+    },
+    {
+      "index": 57,
+      "target": "twenty nine years old and the big year of change",
+      "generated": "one person now i know two years and i'm a",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.14285714285714285,
+      "wer": 1.0,
+      "bertscore_f1": 0.07196840643882751
+    }
+  ]
+}

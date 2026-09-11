@@ -1,0 +1,549 @@
+{
+  "source_metrics_json": "fmri_stage2_content_first_leader_metrics_2026-08-30.json",
+  "top_word_f1": [
+    {
+      "index": 164,
+      "target": "drive everyone around me crazy and i knew a move",
+      "generated": "now to me a load of surgery and my phone",
+      "word_f1": 0.3,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.039211925119161606
+    },
+    {
+      "index": 83,
+      "target": "going to look different i'm paralyzed what is mine supposed",
+      "generated": "to sing on broady t camp is supposed to be wetish",
+      "word_f1": 0.28571428571428564,
+      "content_f1": 0.15384615384615383,
+      "wer": 1.0,
+      "bertscore_f1": -0.002290961565449834
+    },
+    {
+      "index": 141,
+      "target": "and we're sad and it takes until nineteen sixty seven",
+      "generated": "his boyfriend and and it even came to that he said",
+      "word_f1": 0.28571428571428564,
+      "content_f1": 0.0,
+      "wer": 0.9,
+      "bertscore_f1": 0.040433865040540695
+    },
+    {
+      "index": 166,
+      "target": "driver driven to my teaching assignment and then delivered back",
+      "generated": "keep driving forward and break to get back and get  kick",
+      "word_f1": 0.28571428571428564,
+      "content_f1": 0.14285714285714288,
+      "wer": 1.1,
+      "bertscore_f1": 0.07949534803628922
+    },
+    {
+      "index": 195,
+      "target": "slept every night in the hospital to take care of",
+      "generated": "infant with my mother son starts intervening to call in the",
+      "word_f1": 0.28571428571428564,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": -0.0775158703327179
+    },
+    {
+      "index": 104,
+      "target": "home of twenty five years and my jeep gets stolen",
+      "generated": "one day later my my apartment gets a little bit of grease",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.13333333333333333,
+      "wer": 1.2,
+      "bertscore_f1": 0.11862710118293762
+    },
+    {
+      "index": 137,
+      "target": "television set and i find the new york mets now",
+      "generated": "cancer got to the hospital when after new york went really cold",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.2857142857142857,
+      "wer": 1.0,
+      "bertscore_f1": 0.1503933221101761
+    },
+    {
+      "index": 71,
+      "target": "north to boston which caused my family to collectively take",
+      "generated": "sidedds several my whole price to relationship",
+      "word_f1": 0.23529411764705882,
+      "content_f1": 0.0,
+      "wer": 0.9,
+      "bertscore_f1": 0.002660015830770135
+    },
+    {
+      "index": 19,
+      "target": "these tiny little socks and really cute onesies and things",
+      "generated": "exhibiting a given lantern and a little greasy",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.1818181818181818,
+      "wer": 0.9,
+      "bertscore_f1": -0.016691846773028374
+    },
+    {
+      "index": 69,
+      "target": "become acutely aware of my first time in big sur",
+      "generated": "joers in asking for my husbandly blow wripping",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.0,
+      "wer": 0.9,
+      "bertscore_f1": -0.09993000328540802
+    },
+    {
+      "index": 224,
+      "target": "wear a short sleeve blouse or a long sleeve blouse",
+      "generated": "two other doors spread out a long fkle",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.16666666666666666,
+      "wer": 0.8,
+      "bertscore_f1": -0.1407710611820221
+    },
+    {
+      "index": 238,
+      "target": "louisville kentucky and in my generation gently reared young ladies",
+      "generated": "young and tiny and whitchee bit bit now",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.15384615384615383,
+      "wer": 0.9,
+      "bertscore_f1": -0.33440589904785156
+    },
+    {
+      "index": 37,
+      "target": "see my husband eating and talking with another family member",
+      "generated": "her had brought us another chicken and and earrings",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.18181818181818182,
+      "wer": 1.0,
+      "bertscore_f1": 0.02242719754576683
+    },
+    {
+      "index": 82,
+      "target": "competitive and so i ask judy who is standing next",
+      "generated": "grandfather and said i seee in white see wolf",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.0,
+      "wer": 0.8,
+      "bertscore_f1": 0.03313612937927246
+    },
+    {
+      "index": 102,
+      "target": "consulting work and even though i'm getting paid a fire",
+      "generated": "playing the ju the fire day was cold and",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.15384615384615385,
+      "wer": 1.0,
+      "bertscore_f1": 0.010668669827282429
+    },
+    {
+      "index": 163,
+      "target": "fake confidence traveling to and living in a foreign country",
+      "generated": "community that in morana swallowed the the living homeless",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.1818181818181818,
+      "wer": 1.0,
+      "bertscore_f1": -0.004994063172489405
+    },
+    {
+      "index": 222,
+      "target": "arm got better the scar got worse and you know",
+      "generated": "tunnel and the freezes and in the bottle freezes",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.0,
+      "wer": 0.9,
+      "bertscore_f1": 0.10471711307764053
+    },
+    {
+      "index": 10,
+      "target": "learn in spite of years of babysitting and parenting experience",
+      "generated": "club had even all bits of a lot of stuff",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 0.9,
+      "bertscore_f1": 0.03951246663928032
+    },
+    {
+      "index": 31,
+      "target": "first mommy don't you think and this time my boy",
+      "generated": "wedding room you actually don't have to get any meal",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": -0.2808167338371277
+    },
+    {
+      "index": 33,
+      "target": "forever but that i wanted to help him find peace",
+      "generated": "have the holiday year to that something h back again",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": -0.140573650598526
+    }
+  ],
+  "top_content_f1": [
+    {
+      "index": 137,
+      "target": "television set and i find the new york mets now",
+      "generated": "cancer got to the hospital when after new york went really cold",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.2857142857142857,
+      "wer": 1.0,
+      "bertscore_f1": 0.1503933221101761
+    },
+    {
+      "index": 231,
+      "target": "pregnant which was a real surprise but a happy one",
+      "generated": "s said to to not not worke but and him one",
+      "word_f1": 0.1904761904761905,
+      "content_f1": 0.22222222222222224,
+      "wer": 0.9,
+      "bertscore_f1": -0.1019444391131401
+    },
+    {
+      "index": 46,
+      "target": "friend others sought out for relationship advice or to discuss",
+      "generated": "with the the it so we know a flirt friend and demy",
+      "word_f1": 0.0909090909090909,
+      "content_f1": 0.2,
+      "wer": 1.2,
+      "bertscore_f1": -0.006378811318427324
+    },
+    {
+      "index": 120,
+      "target": "my new family on base even though it was dangerous",
+      "generated": "young  known as a dangerous path you and",
+      "word_f1": 0.11111111111111112,
+      "content_f1": 0.2,
+      "wer": 1.0,
+      "bertscore_f1": -0.09076615422964096
+    },
+    {
+      "index": 152,
+      "target": "mother arguing with the parking lot attendant because they want",
+      "generated": "my mother had evenly he was  bullying them  things",
+      "word_f1": 0.10526315789473685,
+      "content_f1": 0.2,
+      "wer": 1.0,
+      "bertscore_f1": 9.782586130313575e-05
+    },
+    {
+      "index": 37,
+      "target": "see my husband eating and talking with another family member",
+      "generated": "her had brought us another chicken and and earrings",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.18181818181818182,
+      "wer": 1.0,
+      "bertscore_f1": 0.02242719754576683
+    },
+    {
+      "index": 19,
+      "target": "these tiny little socks and really cute onesies and things",
+      "generated": "exhibiting a given lantern and a little greasy",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.1818181818181818,
+      "wer": 0.9,
+      "bertscore_f1": -0.016691846773028374
+    },
+    {
+      "index": 160,
+      "target": "go anywhere new and i would not meet new people",
+      "generated": "people wanted to to home i'm going",
+      "word_f1": 0.11764705882352941,
+      "content_f1": 0.1818181818181818,
+      "wer": 1.0,
+      "bertscore_f1": 0.032727520912885666
+    },
+    {
+      "index": 163,
+      "target": "fake confidence traveling to and living in a foreign country",
+      "generated": "community that in morana swallowed the the living homeless",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.1818181818181818,
+      "wer": 1.0,
+      "bertscore_f1": -0.004994063172489405
+    },
+    {
+      "index": 204,
+      "target": "us no trees no nothing just endless miraculous blue sky",
+      "generated": "the trees are moving and get into my' get the story",
+      "word_f1": 0.09523809523809525,
+      "content_f1": 0.1818181818181818,
+      "wer": 1.1,
+      "bertscore_f1": -0.06360340863466263
+    },
+    {
+      "index": 31,
+      "target": "first mommy don't you think and this time my boy",
+      "generated": "wedding room you actually don't have to get any meal",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": -0.2808167338371277
+    },
+    {
+      "index": 42,
+      "target": "first police detective i spoke with said get ready kid",
+      "generated": "a special kid is likely to to further his hair",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.08802032470703125
+    },
+    {
+      "index": 57,
+      "target": "woodsy restaurant in big sur that evening and looking past",
+      "generated": "wanted to be able to think to   looking around",
+      "word_f1": 0.10526315789473685,
+      "content_f1": 0.16666666666666666,
+      "wer": 0.9,
+      "bertscore_f1": -0.1794341802597046
+    },
+    {
+      "index": 68,
+      "target": "restaurant began changing into a kind of bedrock familiarity and",
+      "generated": "the with with changing actually gets really really real the livings outcomes",
+      "word_f1": 0.0909090909090909,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.1,
+      "bertscore_f1": -0.011614084243774414
+    },
+    {
+      "index": 96,
+      "target": "dear friend sarah who's also a southerner i say sarah",
+      "generated": "love for lad so can a girl really friend very",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.16666666666666666,
+      "wer": 0.9,
+      "bertscore_f1": -0.0028129350394010544
+    },
+    {
+      "index": 100,
+      "target": "the process won't allow that you've got to let go",
+      "generated": "fri will tell about how fare miss  let me out",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": -0.01758216880261898
+    },
+    {
+      "index": 110,
+      "target": "the sectarian killings and kidnappings one morning my mom said",
+      "generated": "would to to make the set of two more one table",
+      "word_f1": 0.1904761904761905,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.1,
+      "bertscore_f1": -0.06762097775936127
+    },
+    {
+      "index": 188,
+      "target": "go unanswered so my younger boy says mom was looking",
+      "generated": "mime go in and check and i do to know someone",
+      "word_f1": 0.09523809523809525,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.02805059589445591
+    },
+    {
+      "index": 223,
+      "target": "multiple surgeries on the arm every time the arm got",
+      "generated": "had started another time in a few just hard time",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": -0.0006971417460590601
+    },
+    {
+      "index": 224,
+      "target": "wear a short sleeve blouse or a long sleeve blouse",
+      "generated": "two other doors spread out a long fkle",
+      "word_f1": 0.22222222222222224,
+      "content_f1": 0.16666666666666666,
+      "wer": 0.8,
+      "bertscore_f1": -0.1407710611820221
+    }
+  ],
+  "top_bertscore_f1": [
+    {
+      "index": 137,
+      "target": "television set and i find the new york mets now",
+      "generated": "cancer got to the hospital when after new york went really cold",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.2857142857142857,
+      "wer": 1.0,
+      "bertscore_f1": 0.1503933221101761
+    },
+    {
+      "index": 97,
+      "target": "moving fast enough i kept pushing him to move faster",
+      "generated": "been drifted to get to me me date never left",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.1463792771100998
+    },
+    {
+      "index": 59,
+      "target": "finished writing my first book i returned to big sur",
+      "generated": "glad return to the new york for co her and became",
+      "word_f1": 0.09523809523809525,
+      "content_f1": 0.0,
+      "wer": 1.1,
+      "bertscore_f1": 0.13670970499515533
+    },
+    {
+      "index": 106,
+      "target": "explosion sent people flying from their seats my friend jumped",
+      "generated": "the wind moves his back and he hits blood",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.12805652618408203
+    },
+    {
+      "index": 104,
+      "target": "home of twenty five years and my jeep gets stolen",
+      "generated": "one day later my my apartment gets a little bit of grease",
+      "word_f1": 0.2727272727272727,
+      "content_f1": 0.13333333333333333,
+      "wer": 1.2,
+      "bertscore_f1": 0.11862710118293762
+    },
+    {
+      "index": 130,
+      "target": "voice said the pain of the jump is nothing compared",
+      "generated": "next steps to the the metal seemed creepy was tossed",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.11823580414056778
+    },
+    {
+      "index": 174,
+      "target": "make shopping tolerable he made me look like a confident",
+      "generated": "teenage adult degree of my school i felt quite sneaky",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.11329329758882523
+    },
+    {
+      "index": 222,
+      "target": "arm got better the scar got worse and you know",
+      "generated": "tunnel and the freezes and in the bottle freezes",
+      "word_f1": 0.2105263157894737,
+      "content_f1": 0.0,
+      "wer": 0.9,
+      "bertscore_f1": 0.10471711307764053
+    },
+    {
+      "index": 171,
+      "target": "us trying to get us to buy all things chinese",
+      "generated": "fog of feeling and the the feeling of unable to tap",
+      "word_f1": 0.09523809523809525,
+      "content_f1": 0.0,
+      "wer": 1.1,
+      "bertscore_f1": 0.10347292572259903
+    },
+    {
+      "index": 189,
+      "target": "find one she liked always a fan of new words",
+      "generated": "world at the the moon game says his story on the birthday and",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.3,
+      "bertscore_f1": 0.09765563905239105
+    },
+    {
+      "index": 182,
+      "target": "long row of stalls the white lady needs a cock",
+      "generated": "says things drop a word book and he says the guy",
+      "word_f1": 0.1904761904761905,
+      "content_f1": 0.0,
+      "wer": 1.1,
+      "bertscore_f1": 0.09016896039247513
+    },
+    {
+      "index": 114,
+      "target": "sunset cars driving after sunset i remember watching the colors",
+      "generated": "some areas of room seem to be a moment of people anymore",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.2,
+      "bertscore_f1": 0.088740773499012
+    },
+    {
+      "index": 186,
+      "target": "model less confident behavior as i grabbed their hands announcing",
+      "generated": "been reported at the office that you going to get passes over",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.2,
+      "bertscore_f1": 0.08822762966156006
+    },
+    {
+      "index": 42,
+      "target": "first police detective i spoke with said get ready kid",
+      "generated": "a special kid is likely to to further his hair",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.08802032470703125
+    },
+    {
+      "index": 6,
+      "target": "someone else so anything up to age four the age",
+      "generated": "two more other two before the first year later",
+      "word_f1": 0.10526315789473685,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.08701875805854797
+    },
+    {
+      "index": 166,
+      "target": "driver driven to my teaching assignment and then delivered back",
+      "generated": "keep driving forward and break to get back and get  kick",
+      "word_f1": 0.28571428571428564,
+      "content_f1": 0.14285714285714288,
+      "wer": 1.1,
+      "bertscore_f1": 0.07949534803628922
+    },
+    {
+      "index": 45,
+      "target": "mirror and begin therapy when another asked what i thought",
+      "generated": "our room to say she's going to talk talk",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.0738564059138298
+    },
+    {
+      "index": 32,
+      "target": "lacked the emotional maturity and the language to really explore",
+      "generated": "my remember was remembering a variety of blood feelings",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.07310240715742111
+    },
+    {
+      "index": 58,
+      "target": "first time such intense feelings can make you feel small",
+      "generated": "logical virtue that also quite hold a serious virtue",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.0706256851553917
+    },
+    {
+      "index": 172,
+      "target": "quickly integrated himself into our shopping that day giving us",
+      "generated": "and a guy came to him to come out to the paper",
+      "word_f1": 0.0,
+      "content_f1": 0.0,
+      "wer": 1.2,
+      "bertscore_f1": 0.06957007944583893
+    }
+  ]
+}

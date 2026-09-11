@@ -1,0 +1,76 @@
+{
+  "status": "frozen_reference_baseline",
+  "frozen_on": "2026-08-30",
+  "scientific_scope": "known-text decoder; unseen test brain vectors",
+  "training_run": "fmri_minilm_knowntext_oofonly_h512_lr1e4_balanced_story_inputonly_ep20_b32_seed49_20260829",
+  "wandb": {
+    "entity": "giladland-university-of-oxford",
+    "project": "BrainDiffusion",
+    "run_id": "r66sbj0n"
+  },
+  "selected_checkpoint": {
+    "path": "/data/engs-pnpl/glandau/elf-runs/fmri_minilm_knowntext_oofonly_h512_lr1e4_balanced_story_inputonly_ep20_b32_seed49_20260829/best.pt",
+    "validation_step": 1000,
+    "validation_epoch": 2.729
+  },
+  "final_evaluation_run": "eval_fmri_minilm_knowntext_oofonly_h512_lr1e4_balanced_story_inputonly_ep20_b32_seed49_20260829_locked_steps32_seed49_unseenbrain_test107_20260830",
+  "final_evaluation_path": "/data/engs-pnpl/glandau/elf-runs/eval_fmri_minilm_knowntext_oofonly_h512_lr1e4_balanced_story_inputonly_ep20_b32_seed49_20260829_locked_steps32_seed49_unseenbrain_test107_20260830",
+  "architecture": {
+    "brain_encoder": "frozen MindEyeStyleMLP 40000->2048 residual trunk->1536",
+    "semantic_output": "four ordered 384-D delayed MiniLM blocks",
+    "bridge": "mean(four delay blocks) + zero-output residual MLP 1536->512->384",
+    "known_text_context_projector": "frozen 384->4096->64x512 projector",
+    "diffusion_decoder": "frozen corpus-overfit ELF-B",
+    "sampling_steps": 32,
+    "sampling_seed": 49
+  },
+  "training_contract": {
+    "bridge_training_rows": 11725,
+    "bridge_training_source": "story-level OOF MRI2SEM predictions only",
+    "story_balanced_sampling": true,
+    "validation_rows": 266,
+    "test_brain_rows_used_for_training_or_selection": 0,
+    "known_text_oracle_sentences": 12098,
+    "known_text_oracle_includes_test_sentences": true,
+    "end_to_end_brain_gradients": false
+  },
+  "validation_seed_robustness": {
+    "seeds": [7, 23, 101],
+    "baseline_mean_word_error_rate": 0.97568922,
+    "selected_mean_word_error_rate": 0.96641604,
+    "baseline_mean_word_overlap_f1": 0.06496111,
+    "selected_mean_word_overlap_f1": 0.07160239,
+    "baseline_mean_content_overlap_f1": 0.00836074,
+    "selected_mean_content_overlap_f1": 0.00822293,
+    "baseline_mean_bertscore_f1": -0.2149844,
+    "selected_mean_bertscore_f1": -0.1103133
+  },
+  "locked_test107_metrics": {
+    "num_examples": 107,
+    "raw_word_error_rate": 0.9757009345794393,
+    "capped_10_word_error_rate": 0.9728971962616823,
+    "word_overlap_f1": 0.05976694990178396,
+    "content_overlap_f1": 0.010183482146098969,
+    "bertscore_precision": -0.12376489490270615,
+    "bertscore_recall": -0.12029631435871124,
+    "bertscore_f1": -0.12138475477695465,
+    "generated_text_retrieval_top1": 0.0,
+    "generated_text_retrieval_top5": 0.05607476457953453,
+    "generated_text_retrieval_mean_rank": 51.0186882019043,
+    "generated_text_retrieval_median_rank": 48.0,
+    "exact_matches": 0
+  },
+  "future_selection_contract": {
+    "test107_status": "closed_after_single_locked_baseline_evaluation",
+    "development_split": "predicted validation 266",
+    "required_sampling_seeds": [7, 23, 101],
+    "primary_metrics": [
+      "content_overlap_f1",
+      "word_overlap_f1",
+      "generated_text_retrieval_mean_rank",
+      "generated_text_retrieval_top5",
+      "bertscore_f1"
+    ],
+    "test107_reuse": "evaluate only one final preselected candidate after the full experiment program"
+  }
+}

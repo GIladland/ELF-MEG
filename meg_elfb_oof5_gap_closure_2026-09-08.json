@@ -1,0 +1,367 @@
+{
+  "evaluation_contract": "same val110 rows, same 110 candidates, five generation seeds per system",
+  "gap_closure_fraction": {
+    "oof_flat": {
+      "content_f1": 0.0030416921263422265,
+      "generated_mean_rank": 0.015026882741517138,
+      "generated_median_rank": 0.028089887640449437,
+      "generated_top1": -0.0038095239232592117,
+      "generated_top5": -0.03389830805716591,
+      "wer": 0.047819971870604626,
+      "word_f1": 0.004488605656899846,
+      "word_plus_content": 0.003750803135169266
+    },
+    "oof_residual": {
+      "content_f1": -0.009257103791702434,
+      "generated_mean_rank": 0.025853110056860272,
+      "generated_median_rank": 0.03932584269662917,
+      "generated_top1": -0.017142857849800713,
+      "generated_top5": -0.016949156633129306,
+      "wer": 0.039381153305203996,
+      "word_f1": -0.0027650988107060463,
+      "word_plus_content": -0.006075467775339789
+    }
+  },
+  "oof_audit": {
+    "alignment_target_pack": "/data/engs-pnpl/glandau/elf-cache/tang_themoth_qc4wyals_nested_oof_20260908/interface/qc4wyals_oof_exact_alignment_train_valtail_ada002.npz",
+    "deployment_val_retrieval_110_way": {
+      "matched_cosine_mean": 0.7174241542816162,
+      "matched_cosine_median": 0.7137014865875244,
+      "mean_percentile": 0.7949124270225186,
+      "mean_rank": 23.354545454545455,
+      "median_rank": 7.5,
+      "n": 110,
+      "top1": 0.2909090909090909,
+      "top1_count": 32,
+      "top5": 0.45454545454545453,
+      "top5_count": 50
+    },
+    "deployment_val_vectors": {
+      "normalized_dim_variance_mean": 0.0001809786626836285,
+      "raw_norm_mean": 1.0,
+      "raw_norm_std": 9.843382997587469e-09,
+      "shape": [
+        110,
+        1536
+      ]
+    },
+    "duplicated_source_rows": 0,
+    "folds": [
+      {
+        "outer_fold": 0,
+        "path": "/data/engs-pnpl/glandau/elf-cache/tang_themoth_qc4wyals_nested_oof_20260908/qc4wyals_oof_outer_fold0_predicted_ada002.npz",
+        "rows": 559
+      },
+      {
+        "outer_fold": 1,
+        "path": "/data/engs-pnpl/glandau/elf-cache/tang_themoth_qc4wyals_nested_oof_20260908/qc4wyals_oof_outer_fold1_predicted_ada002.npz",
+        "rows": 520
+      },
+      {
+        "outer_fold": 2,
+        "path": "/data/engs-pnpl/glandau/elf-cache/tang_themoth_qc4wyals_nested_oof_20260908/qc4wyals_oof_outer_fold2_predicted_ada002.npz",
+        "rows": 527
+      },
+      {
+        "outer_fold": 3,
+        "path": "/data/engs-pnpl/glandau/elf-cache/tang_themoth_qc4wyals_nested_oof_20260908/qc4wyals_oof_outer_fold3_predicted_ada002.npz",
+        "rows": 518
+      },
+      {
+        "outer_fold": 4,
+        "path": "/data/engs-pnpl/glandau/elf-cache/tang_themoth_qc4wyals_nested_oof_20260908/qc4wyals_oof_outer_fold4_predicted_ada002.npz",
+        "rows": 528
+      }
+    ],
+    "missing_source_rows": 0,
+    "oof_coverage_exactly_once": true,
+    "oof_train_retrieval": {
+      "matched_cosine_mean": 0.6597781777381897,
+      "matched_cosine_median": 0.6712432503700256,
+      "mean_percentile": 0.7475766849698995,
+      "mean_rank": 670.1742081447964,
+      "median_rank": 373.0,
+      "n": 2652,
+      "top1": 0.01282051282051282,
+      "top1_count": 34,
+      "top5": 0.04675716440422323,
+      "top5_count": 124
+    },
+    "oof_train_retrieval_2652_way": {
+      "matched_cosine_mean": 0.6597781777381897,
+      "matched_cosine_median": 0.6712432503700256,
+      "mean_percentile": 0.7475766849698995,
+      "mean_rank": 670.1742081447964,
+      "median_rank": 373.0,
+      "n": 2652,
+      "top1": 0.01282051282051282,
+      "top1_count": 34,
+      "top5": 0.04675716440422323,
+      "top5_count": 124
+    },
+    "oof_train_vectors": {
+      "normalized_dim_variance_mean": 0.0002451558248139918,
+      "raw_norm_mean": 25.754241943359375,
+      "raw_norm_std": 5.029743671417236,
+      "shape": [
+        2652,
+        1536
+      ]
+    },
+    "outer_predictions_used_for_model_selection": false,
+    "partial_oof": false,
+    "protected_test_rows_included": 0,
+    "schema": "nested_session_oof_meg_to_elf_train_valtail_v1",
+    "source_pack": "/data/engs-pnpl/glandau/elf-cache/tang_themoth_qc4wyals_nested_oof_20260908/interface/qc4wyals_oof_predicted_train_valtail_ada002.npz",
+    "source_train_rows": 2652,
+    "train_rows": 2652,
+    "validation_tail_rows": 110
+  },
+  "schema": "meg_elfb_nested_oof_gap_closure_v1",
+  "systems": {
+    "exact_ada": {
+      "metrics": {
+        "content_f1": {
+          "max": 0.9061658558316311,
+          "mean": 0.8944821408537985,
+          "min": 0.8899978319363345,
+          "std": 0.006163199717823905
+        },
+        "generated_mean_rank": {
+          "max": 0.9999999403953552,
+          "mean": 0.9999999403953552,
+          "min": 0.9999999403953552,
+          "std": 0.0
+        },
+        "generated_median_rank": {
+          "max": 1.0,
+          "mean": 1.0,
+          "min": 1.0,
+          "std": 0.0
+        },
+        "generated_top1": {
+          "max": 0.9999999403953552,
+          "mean": 0.9999999403953552,
+          "min": 0.9999999403953552,
+          "std": 0.0
+        },
+        "generated_top5": {
+          "max": 0.9999999403953552,
+          "mean": 0.9999999403953552,
+          "min": 0.9999999403953552,
+          "std": 0.0
+        },
+        "wer": {
+          "max": 0.14454545454545453,
+          "mean": 0.13654545454545453,
+          "min": 0.12181818181818181,
+          "std": 0.008359682860052833
+        },
+        "word_f1": {
+          "max": 0.9008651144958493,
+          "mean": 0.8889393746479308,
+          "min": 0.8805905299628914,
+          "std": 0.007272921490154987
+        },
+        "word_plus_content": {
+          "max": 1.8070309703274803,
+          "mean": 1.7834215155017294,
+          "min": 1.770588361899226,
+          "std": 0.0131035439066807
+        }
+      },
+      "num_seeds": 5,
+      "pattern": "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_exact_seed*_20260901",
+      "runs": [
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_exact_seed101_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_exact_seed202_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_exact_seed303_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_exact_seed404_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_exact_seed49_20260901"
+      ]
+    },
+    "oof_flat": {
+      "metrics": {
+        "content_f1": {
+          "max": 0.023692065510247325,
+          "mean": 0.020110128730449588,
+          "min": 0.01642024642024642,
+          "std": 0.0026238144309963
+        },
+        "generated_mean_rank": {
+          "max": 44.8272705078125,
+          "mean": 42.35454330444336,
+          "min": 39.44545364379883,
+          "std": 2.035876071450698
+        },
+        "generated_median_rank": {
+          "max": 40.0,
+          "mean": 35.6,
+          "min": 31.0,
+          "std": 3.4409301068170506
+        },
+        "generated_top1": {
+          "max": 0.072727270424366,
+          "mean": 0.04181818105280399,
+          "min": 0.0181818176060915,
+          "std": 0.01958241696417786
+        },
+        "generated_top5": {
+          "max": 0.15454545617103577,
+          "mean": 0.11272727102041244,
+          "min": 0.06363636255264282,
+          "std": 0.030205906017721936
+        },
+        "wer": {
+          "max": 0.9990909090909091,
+          "mean": 0.9981818181818183,
+          "min": 0.9972727272727273,
+          "std": 0.0005749595745760727
+        },
+        "word_f1": {
+          "max": 0.056836636641027304,
+          "mean": 0.04978941368541707,
+          "min": 0.044430051763291276,
+          "std": 0.003999504203783424
+        },
+        "word_plus_content": {
+          "max": 0.08052870215127463,
+          "mean": 0.06989954241586664,
+          "min": 0.06231979570918496,
+          "std": 0.006064035821243378
+        }
+      },
+      "num_seeds": 5,
+      "pattern": "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_flat_seed*_20260901",
+      "runs": [
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_flat_seed101_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_flat_seed202_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_flat_seed303_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_flat_seed404_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_flat_seed49_20260901"
+      ]
+    },
+    "oof_residual": {
+      "metrics": {
+        "content_f1": {
+          "max": 0.014271486089667907,
+          "mean": 0.009323596486698092,
+          "min": 0.006223599632690541,
+          "std": 0.003253402477465172
+        },
+        "generated_mean_rank": {
+          "max": 42.509090423583984,
+          "mean": 41.89999923706055,
+          "min": 41.57272720336914,
+          "std": 0.3603027373233257
+        },
+        "generated_median_rank": {
+          "max": 37.0,
+          "mean": 35.2,
+          "min": 32.0,
+          "std": 1.7204650534085253
+        },
+        "generated_top1": {
+          "max": 0.045454543083906174,
+          "mean": 0.029090908542275428,
+          "min": 0.0181818176060915,
+          "std": 0.008907234690002146
+        },
+        "generated_top5": {
+          "max": 0.13636362552642822,
+          "mean": 0.12727272361516953,
+          "min": 0.11818181723356247,
+          "std": 0.005749592618599644
+        },
+        "wer": {
+          "max": 1.01,
+          "mean": 1.0058181818181817,
+          "min": 0.9990909090909091,
+          "std": 0.004130115160582001
+        },
+        "word_f1": {
+          "max": 0.04696469178413402,
+          "mean": 0.04367502277496281,
+          "min": 0.04076372002236856,
+          "std": 0.0021879146370360264
+        },
+        "word_plus_content": {
+          "max": 0.06123617787380192,
+          "mean": 0.0529986192616609,
+          "min": 0.04707133397704134,
+          "std": 0.0051018142613723175
+        }
+      },
+      "num_seeds": 5,
+      "pattern": "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_residual_seed*_20260901",
+      "runs": [
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_residual_seed101_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_residual_seed202_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_residual_seed303_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_residual_seed404_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_residual_seed49_20260901"
+      ]
+    },
+    "raw_meg": {
+      "metrics": {
+        "content_f1": {
+          "max": 0.02151785083603265,
+          "mean": 0.017442443990009427,
+          "min": 0.012060328263536818,
+          "std": 0.0031698097282121104
+        },
+        "generated_mean_rank": {
+          "max": 46.063636779785156,
+          "mean": 42.98545379638672,
+          "min": 40.063636779785156,
+          "std": 2.306867836283661
+        },
+        "generated_median_rank": {
+          "max": 39.0,
+          "mean": 36.6,
+          "min": 32.0,
+          "std": 2.4979991993593593
+        },
+        "generated_top1": {
+          "max": 0.06363636255264282,
+          "mean": 0.045454544574022294,
+          "min": 0.027272727340459824,
+          "std": 0.012856486786982094
+        },
+        "generated_top5": {
+          "max": 0.16363635659217834,
+          "mean": 0.14181818068027496,
+          "min": 0.11818181723356247,
+          "std": 0.019582416791235832
+        },
+        "wer": {
+          "max": 1.048181818181818,
+          "mean": 1.0414545454545454,
+          "min": 1.0363636363636364,
+          "std": 0.004287209499109635
+        },
+        "word_f1": {
+          "max": 0.051082084566463966,
+          "mean": 0.046005817351746706,
+          "min": 0.03841153368509308,
+          "std": 0.004520734948124799
+        },
+        "word_plus_content": {
+          "max": 0.07259993540249662,
+          "mean": 0.06344826134175613,
+          "min": 0.0504718619486299,
+          "std": 0.007656052790465172
+        }
+      },
+      "num_seeds": 5,
+      "pattern": "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_raw_seed*_20260901",
+      "runs": [
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_raw_seed101_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_raw_seed202_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_raw_seed303_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_raw_seed404_20260901",
+        "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_oofgap_raw_seed49_20260901"
+      ]
+    }
+  }
+}

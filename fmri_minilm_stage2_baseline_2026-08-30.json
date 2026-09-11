@@ -1,0 +1,91 @@
+{
+  "status": "frozen_stage2_development_baseline",
+  "frozen_on": "2026-08-30",
+  "scientific_scope": "validation-selected raw-fMRI E2E baseline; test107 remains closed",
+  "run": "fmri_minilm_rawbrain_e2e_projector_long100_resdelaytok_h1024_l2_h8_storybal_b32_seed49_20260830",
+  "wandb": {
+    "entity": "giladland-university-of-oxford",
+    "project": "BrainDiffusion",
+    "run_id": "ujh33py7"
+  },
+  "selected_checkpoint": {
+    "path": "/data/engs-pnpl/glandau/elf-runs/fmri_minilm_rawbrain_e2e_projector_long100_resdelaytok_h1024_l2_h8_storybal_b32_seed49_20260830/best.pt",
+    "validation_step": 35000,
+    "validation_epoch": 95.5223880597015,
+    "selection_metric": "content_word_overlap"
+  },
+  "architecture": {
+    "brain_input_dim": 40000,
+    "mri2sem_trunk": "frozen MindEyeStyleMLP residual trunk",
+    "mri2sem_projector": "trained 2048->1536 final projector",
+    "semantic_output": "four ordered delayed MiniLM vectors, 4x384",
+    "bridge": "trained residual delay-token transformer, hidden=1024 layers=2 heads=8 dropout=0.1",
+    "known_text_context_projector": "frozen exact-MiniLM 384->4096->64x512 projector",
+    "diffusion_decoder": "frozen corpus-overfit ELF-B",
+    "sampling_steps": 32
+  },
+  "training_contract": {
+    "train_rows": 11725,
+    "validation_rows": 266,
+    "story_balanced_sampling": true,
+    "seed": 49,
+    "test107_brain_rows_used_for_training_validation_or_selection": 0
+  },
+  "validation_metrics": {
+    "content_overlap_f1": 0.020534056463954738,
+    "word_overlap_f1": 0.06635897042184331,
+    "bertscore_precision": -0.09119401127099991,
+    "bertscore_recall": -0.06539422273635864,
+    "bertscore_f1": -0.07717763632535934,
+    "generated_text_retrieval_top1": 0.011278195488721804,
+    "generated_text_retrieval_top5": 0.05263157894736842,
+    "generated_text_retrieval_mean_rank": 101.78571428571429,
+    "generated_text_retrieval_median_rank": 89.0,
+    "semantic_cosine": 0.198869,
+    "word_error_rate": 1.031954887218045
+  },
+  "stage2_contract": {
+    "initialization": "all full-E2E and LoRA-E2E arms start from selected_checkpoint",
+    "development_split": "validation266 only",
+    "primary_metrics": [
+      "content_overlap_f1",
+      "word_overlap_f1",
+      "bertscore_f1",
+      "generated_text_retrieval_mean_rank",
+      "generated_text_retrieval_top5"
+    ],
+    "test107_status": "closed until a single multi-seed stage2 winner is selected"
+  },
+  "submitted_stage2_program": {
+    "validation_job": "8688007",
+    "validation_result": "35 ARC tests passed",
+    "training_array": "8688014[0-2]",
+    "arms": [
+      "full_elf",
+      "lora_attn_r8",
+      "lora_attn_mlp_r8"
+    ],
+    "bertscore_and_report_job": "8688015",
+    "content_objective_validation_job": "8688149",
+    "content_objective_validation_result": "38 ARC tests passed",
+    "content_focused_lora_array": "8688187[1-2]",
+    "content_focused_report_job": "8688190",
+    "frozen_sampler_array": "8688289[0-11]",
+    "frozen_sampler_report_job": "8688290",
+    "semantic_reranker_validation_job": "8688296",
+    "semantic_reranker_job": "8688297",
+    "semantic_reranker_report_job": "8688298",
+    "checkpoint_ensemble_reranker_job": "8688363",
+    "checkpoint_ensemble_report_job": "8688365",
+    "completed_checkpoint_ensemble_job": "8688321",
+    "fullchain_e2e_array": "8688309[0-2]",
+    "fullchain_content_isolation_job": "8688350[3]",
+    "fullchain_e2e_report_job": "8688364",
+    "accelerated_scale_jobs": {
+      "ada002_elfb": "8688334[1]",
+      "minilm384_elfl": "8688361[0]",
+      "ada002_elfl": "8688362[2]",
+      "report": "8688219"
+    }
+  }
+}

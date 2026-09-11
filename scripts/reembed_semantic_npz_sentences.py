@@ -105,6 +105,7 @@ def main() -> None:
         "embedding_shape": list(embeddings.shape),
         "input_prefix": args.input_prefix,
         "pooling": args.pooling,
+        "max_length": args.max_length,
         "normalized": not args.no_normalize,
         "source_schema": _schema(data, args.schema_key),
         "sample_sentences": sentences[:5],

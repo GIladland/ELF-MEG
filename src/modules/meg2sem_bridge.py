@@ -16,6 +16,7 @@ from modules.meg_adapter_blocks import ConvSequence, SubjectLayers
 
 
 NormalizationMode = Literal["auto", "never", "always"]
+MEG2SEMUnfreezeScope = Literal["all", "output"]
 
 
 @dataclass
@@ -217,6 +218,47 @@ class MinimalMEG2SEMRegressor(nn.Module):
         return self.net(meg)
 
 
+def configure_meg2sem_trainable(
+    model: nn.Module,
+    *,
+    trainable: bool,
+    scope: MEG2SEMUnfreezeScope = "all",
+) -> list[str]:
+    """Configure a conservative MEG2SEM fine-tuning scope.
+
+    ``output`` updates only the semantic readout/pooling modules for the
+    convolutional checkpoint (or the final linear layer for the minimal MLP).
+    This keeps the pretrained sensor/temporal representation fixed and limits
+    brain-side overfitting on small downstream corpora.
+    """
+
+    for parameter in model.parameters():
+        parameter.requires_grad_(False)
+    if not trainable:
+        return []
+    if scope == "all":
+        for parameter in model.parameters():
+            parameter.requires_grad_(True)
+    elif scope == "output":
+        modules: list[nn.Module] = []
+        for name in ("final_convs", "final_pooling", "projection_head"):
+            module = getattr(model, name, None)
+            if isinstance(module, nn.Module):
+                modules.append(module)
+        if isinstance(model, MinimalMEG2SEMRegressor):
+            modules.append(model.net[-1])
+        if not modules:
+            raise ValueError(
+                f"MEG2SEM output-only scope is unsupported for {type(model).__name__}."
+            )
+        for module in modules:
+            for parameter in module.parameters():
+                parameter.requires_grad_(True)
+    else:
+        raise ValueError(f"Unsupported MEG2SEM unfreeze scope: {scope!r}")
+    return [name for name, parameter in model.named_parameters() if parameter.requires_grad]
+
+
 class MEG2SEMToELFContextAdapter(nn.Module):
     """Use MEG2SEM semantic predictions as the condition source for ELF."""
 
@@ -228,12 +270,16 @@ class MEG2SEMToELFContextAdapter(nn.Module):
         normalize_semantic_output: bool,
         residual_mean: Optional[torch.Tensor] = None,
         residual_target_scale: float = 1.0,
+        freeze_meg2sem_batchnorm_stats: bool = False,
+        detach_meg2sem_for_context: bool = False,
     ) -> None:
         super().__init__()
         self.meg2sem = meg2sem
         self.semantic_projector = semantic_projector
         self.normalize_semantic_output = normalize_semantic_output
         self.residual_target_scale = float(residual_target_scale)
+        self.freeze_meg2sem_batchnorm_stats = bool(freeze_meg2sem_batchnorm_stats)
+        self.detach_meg2sem_for_context = bool(detach_meg2sem_for_context)
         if residual_mean is None:
             self.register_buffer("residual_mean", None)
         else:
@@ -242,6 +288,26 @@ class MEG2SEMToELFContextAdapter(nn.Module):
     @property
     def uses_residual_reconstruction(self) -> bool:
         return self.residual_mean is not None
+
+    def train(self, mode: bool = True) -> "MEG2SEMToELFContextAdapter":
+        """Keep frozen submodules in inference mode during partial E2E tuning.
+
+        ``adapter.train()`` is called by the shared ELF training step. Without
+        this guard, a parameter-frozen MEG2SEM still updates BatchNorm running
+        statistics and a frozen semantic projector still enables dropout. That
+        makes a nominally frozen control drift and obscures attribution.
+        """
+
+        super().train(mode)
+        if not any(parameter.requires_grad for parameter in self.meg2sem.parameters()):
+            self.meg2sem.eval()
+        elif self.freeze_meg2sem_batchnorm_stats:
+            for module in self.meg2sem.modules():
+                if isinstance(module, nn.modules.batchnorm._BatchNorm):
+                    module.eval()
+        if not any(parameter.requires_grad for parameter in self.semantic_projector.parameters()):
+            self.semantic_projector.eval()
+        return self
 
     def semantic_projector_input(
         self,
@@ -272,7 +338,10 @@ class MEG2SEMToELFContextAdapter(nn.Module):
             meg_lengths=meg_lengths,
             subjects=subjects,
         )
-        context, context_mask = self.semantic_projector(semantic_vectors)
+        projector_input = (
+            semantic_vectors.detach() if self.detach_meg2sem_for_context else semantic_vectors
+        )
+        context, context_mask = self.semantic_projector(projector_input)
         return MEGAdapterOutput(
             context=context,
             context_mask=context_mask.to(dtype=torch.bool),

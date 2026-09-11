@@ -1,0 +1,279 @@
+{
+  "source_metrics_json": "/data/engs-pnpl/glandau/elf-runs/fmri_minilm_t5_prefix_20260831/dualhead_scoreaware_fullaudit_record0_metrics.json",
+  "top_word_f1": [
+    {
+      "index": 199,
+      "target": "long enough ago i was fourteen a long time ago",
+      "generated": "long time ago, there was one hundred years ago that",
+      "word_f1": 0.5,
+      "content_f1": 0.5714285714285714,
+      "wer": 0.7,
+      "bertscore_f1": 0.09799891710281372
+    },
+    {
+      "index": 92,
+      "target": "go back to my normal life and i'm highly suspicious",
+      "generated": "know and now i'm thinking sort of way back to",
+      "word_f1": 0.4000000000000001,
+      "content_f1": 0.2857142857142857,
+      "wer": 1.0,
+      "bertscore_f1": 0.13556228578090668
+    },
+    {
+      "index": 248,
+      "target": "opened the freezer to get a frozen bottle of water",
+      "generated": "back in the water two times a week",
+      "word_f1": 0.33333333333333326,
+      "content_f1": 0.1818181818181818,
+      "wer": 0.9,
+      "bertscore_f1": 0.12098375707864761
+    },
+    {
+      "index": 263,
+      "target": "went into flamingo louisville and i said what's the story",
+      "generated": "JA pinned down the grated hem and said \"hello\"",
+      "word_f1": 0.3157894736842105,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.12428370118141174
+    },
+    {
+      "index": 2,
+      "target": "adopt one day and you know how everybody always says",
+      "generated": "now I know one of my friends and I can't",
+      "word_f1": 0.3,
+      "content_f1": 0.3333333333333333,
+      "wer": 1.0,
+      "bertscore_f1": 0.012650614604353905
+    },
+    {
+      "index": 10,
+      "target": "learn in spite of years of babysitting and parenting experience",
+      "generated": "one of july's chefs at work and one of them",
+      "word_f1": 0.3,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": -0.08665358275175095
+    },
+    {
+      "index": 17,
+      "target": "one day we get a phone call from our case",
+      "generated": "i know there's a good day to get there a",
+      "word_f1": 0.3,
+      "content_f1": 0.3636363636363636,
+      "wer": 1.0,
+      "bertscore_f1": 0.12204394489526749
+    },
+    {
+      "index": 41,
+      "target": "ever i asked do you know what the meat barn",
+      "generated": "said i know uh, and i say i know you",
+      "word_f1": 0.3,
+      "content_f1": 0.20000000000000004,
+      "wer": 0.9,
+      "bertscore_f1": 0.16888593137264252
+    },
+    {
+      "index": 61,
+      "target": "whole lot of nothing nothing had never filled my days",
+      "generated": "years ago I've had a lot of great things like",
+      "word_f1": 0.3,
+      "content_f1": 0.14285714285714285,
+      "wer": 1.0,
+      "bertscore_f1": 0.04580828547477722
+    },
+    {
+      "index": 62,
+      "target": "time in serious need of a positive force a detour",
+      "generated": "bath baths a little bit of water and a few",
+      "word_f1": 0.3,
+      "content_f1": 0.0,
+      "wer": 0.9,
+      "bertscore_f1": -0.0347331278026104
+    }
+  ],
+  "top_content_f1": [
+    {
+      "index": 199,
+      "target": "long enough ago i was fourteen a long time ago",
+      "generated": "long time ago, there was one hundred years ago that",
+      "word_f1": 0.5,
+      "content_f1": 0.5714285714285714,
+      "wer": 0.7,
+      "bertscore_f1": 0.09799891710281372
+    },
+    {
+      "index": 261,
+      "target": "you know the thing is it's not inactivtiy that's taking",
+      "generated": "know about this whole thing now and even though it's",
+      "word_f1": 0.3,
+      "content_f1": 0.4615384615384615,
+      "wer": 1.0,
+      "bertscore_f1": -0.1359860748052597
+    },
+    {
+      "index": 17,
+      "target": "one day we get a phone call from our case",
+      "generated": "i know there's a good day to get there a",
+      "word_f1": 0.3,
+      "content_f1": 0.3636363636363636,
+      "wer": 1.0,
+      "bertscore_f1": 0.12204394489526749
+    },
+    {
+      "index": 2,
+      "target": "adopt one day and you know how everybody always says",
+      "generated": "now I know one of my friends and I can't",
+      "word_f1": 0.3,
+      "content_f1": 0.3333333333333333,
+      "wer": 1.0,
+      "bertscore_f1": 0.012650614604353905
+    },
+    {
+      "index": 110,
+      "target": "the sectarian killings and kidnappings one morning my mom said",
+      "generated": "i know the one who said a little bit of",
+      "word_f1": 0.3,
+      "content_f1": 0.3333333333333333,
+      "wer": 1.0,
+      "bertscore_f1": -0.0530085526406765
+    },
+    {
+      "index": 219,
+      "target": "one nursing twenty four hours around the clock at home",
+      "generated": "really nice people around here so I was one of",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.3333333333333333,
+      "wer": 1.0,
+      "bertscore_f1": -0.12845100462436676
+    },
+    {
+      "index": 226,
+      "target": "helmut newton they said you know helmut newton the guy",
+      "generated": "said i said i told you know jay and i",
+      "word_f1": 0.3,
+      "content_f1": 0.3333333333333333,
+      "wer": 0.9,
+      "bertscore_f1": 0.10342630743980408
+    },
+    {
+      "index": 262,
+      "target": "inspiring so one day i was walking past flamingo louisville",
+      "generated": "one peasants every day peasants",
+      "word_f1": 0.26666666666666666,
+      "content_f1": 0.3333333333333333,
+      "wer": 0.9,
+      "bertscore_f1": -0.12210963666439056
+    },
+    {
+      "index": 92,
+      "target": "go back to my normal life and i'm highly suspicious",
+      "generated": "know and now i'm thinking sort of way back to",
+      "word_f1": 0.4000000000000001,
+      "content_f1": 0.2857142857142857,
+      "wer": 1.0,
+      "bertscore_f1": 0.13556228578090668
+    },
+    {
+      "index": 35,
+      "target": "called us a week or two later this great grandmother",
+      "generated": "two days later one day i remember seeing two people",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.26666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.07515816390514374
+    }
+  ],
+  "top_bertscore_f1": [
+    {
+      "index": 33,
+      "target": "forever but that i wanted to help him find peace",
+      "generated": "back then and i know a lot about him a",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 0.9,
+      "bertscore_f1": 0.20393161475658417
+    },
+    {
+      "index": 41,
+      "target": "ever i asked do you know what the meat barn",
+      "generated": "said i know uh, and i say i know you",
+      "word_f1": 0.3,
+      "content_f1": 0.20000000000000004,
+      "wer": 0.9,
+      "bertscore_f1": 0.16888593137264252
+    },
+    {
+      "index": 45,
+      "target": "mirror and begin therapy when another asked what i thought",
+      "generated": "said to me that way and now i'm asking for",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.16526426374912262
+    },
+    {
+      "index": 150,
+      "target": "sudden my mother comes into the kitchen with two tickets",
+      "generated": "two days later we started seeing one of us smiling",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.15384615384615383,
+      "wer": 1.0,
+      "bertscore_f1": 0.16079887747764587
+    },
+    {
+      "index": 188,
+      "target": "go unanswered so my younger boy says mom was looking",
+      "generated": "now my father said yesterday that he was pointing at",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.0,
+      "wer": 1.0,
+      "bertscore_f1": 0.1431206464767456
+    },
+    {
+      "index": 13,
+      "target": "later i don't think they told us anything about transracial",
+      "generated": "know now that people don't get a shot at it,",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.13590273261070251
+    },
+    {
+      "index": 92,
+      "target": "go back to my normal life and i'm highly suspicious",
+      "generated": "know and now i'm thinking sort of way back to",
+      "word_f1": 0.4000000000000001,
+      "content_f1": 0.2857142857142857,
+      "wer": 1.0,
+      "bertscore_f1": 0.13556228578090668
+    },
+    {
+      "index": 170,
+      "target": "market i quickly realized that very little english was spoken",
+      "generated": "now one thing i know a little bit i get",
+      "word_f1": 0.20000000000000004,
+      "content_f1": 0.15384615384615383,
+      "wer": 0.9,
+      "bertscore_f1": 0.13189151883125305
+    },
+    {
+      "index": 5,
+      "target": "race what age now i grew up with three sisters",
+      "generated": "know now that one of my children is raising children",
+      "word_f1": 0.10000000000000002,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.12884937226772308
+    },
+    {
+      "index": 263,
+      "target": "went into flamingo louisville and i said what's the story",
+      "generated": "JA pinned down the grated hem and said \"hello\"",
+      "word_f1": 0.3157894736842105,
+      "content_f1": 0.16666666666666666,
+      "wer": 1.0,
+      "bertscore_f1": 0.12428370118141174
+    }
+  ]
+}

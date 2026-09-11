@@ -1,0 +1,70 @@
+{
+  "contract": "paired validation-row comparison; no test data",
+  "baseline": "/tmp/fmri_stage2_baseline_metrics.json",
+  "candidate": "/tmp/fmri_stage2_leader_metrics.json",
+  "bootstrap_samples": 50000,
+  "seed": 49,
+  "metrics": {
+    "content_f1": {
+      "num_rows": 266,
+      "baseline_mean": 0.020534056463954738,
+      "candidate_mean": 0.023005092111682113,
+      "candidate_minus_baseline": 0.0024710356477273764,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.0017113752475594573,
+        0.006906320435179346
+      ],
+      "bootstrap_probability_candidate_better": 0.87502,
+      "rows_candidate_better": 14,
+      "rows_tied": 240,
+      "rows_candidate_worse": 12
+    },
+    "word_f1": {
+      "num_rows": 266,
+      "baseline_mean": 0.06635897042184331,
+      "candidate_mean": 0.0697085537159035,
+      "candidate_minus_baseline": 0.003349583294060182,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.002501952337327474,
+        0.009251645924593438
+      ],
+      "bootstrap_probability_candidate_better": 0.86936,
+      "rows_candidate_better": 49,
+      "rows_tied": 180,
+      "rows_candidate_worse": 37
+    },
+    "per_row_wer": {
+      "num_rows": 266,
+      "baseline_mean": 1.031954887218045,
+      "candidate_mean": 1.0308270676691729,
+      "candidate_minus_baseline": -0.0011278195488721823,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.007518796992481206,
+        0.005263157894736843
+      ],
+      "bootstrap_probability_candidate_better": 0.64952,
+      "rows_candidate_better": 33,
+      "rows_tied": 209,
+      "rows_candidate_worse": 24
+    },
+    "bertscore_f1": {
+      "num_rows": 266,
+      "baseline_mean": -0.0771776341837113,
+      "candidate_mean": -0.060364145117276176,
+      "candidate_minus_baseline": 0.016813489066435136,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        0.01037316258114146,
+        0.02330194593035921
+      ],
+      "bootstrap_probability_candidate_better": 1.0,
+      "rows_candidate_better": 141,
+      "rows_tied": 39,
+      "rows_candidate_worse": 86
+    }
+  },
+  "corpus_wer": {
+    "baseline": 1.031954887218045,
+    "candidate": 1.0308270676691729,
+    "candidate_minus_baseline": -0.0011278195488721998
+  }
+}

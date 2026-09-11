@@ -1,0 +1,231 @@
+{
+  "aggregate": {
+    "bertscore_f1": {
+      "max": -0.07443635910749435,
+      "mean": -0.07777941972017288,
+      "min": -0.08256546407938004,
+      "std_population": 0.003263898009628339
+    },
+    "bertscore_precision": {
+      "max": -0.0833493024110794,
+      "mean": -0.09123743027448654,
+      "min": -0.10287579894065857,
+      "std_population": 0.007257218056393738
+    },
+    "bertscore_recall": {
+      "max": -0.06403585523366928,
+      "mean": -0.06642000377178192,
+      "min": -0.0686677098274231,
+      "std_population": 0.0019118802469288063
+    },
+    "content_f1": {
+      "max": 0.0165846274937184,
+      "mean": 0.01482617026467294,
+      "min": 0.013097735597735598,
+      "std_population": 0.001146991935844706
+    },
+    "content_precision": {
+      "max": 0.01808441558441558,
+      "mean": 0.015565656565656564,
+      "min": 0.01325757575757576,
+      "std_population": 0.00155507157950424
+    },
+    "content_recall": {
+      "max": 0.0158008658008658,
+      "mean": 0.01456926406926407,
+      "min": 0.013365800865800867,
+      "std_population": 0.0009070116398800549
+    },
+    "exact_match": {
+      "max": 0.0,
+      "mean": 0.0,
+      "min": 0.0,
+      "std_population": 0.0
+    },
+    "generated_mean_rank": {
+      "max": 41.20909118652344,
+      "mean": 40.359998321533205,
+      "min": 39.1909065246582,
+      "std_population": 0.8336444394866395
+    },
+    "generated_median_rank": {
+      "max": 39.0,
+      "mean": 34.8,
+      "min": 32.0,
+      "std_population": 2.4819347291981715
+    },
+    "generated_top1": {
+      "max": 0.06363636255264282,
+      "mean": 0.03636363558471203,
+      "min": 0.0181818176060915,
+      "std_population": 0.015212000223378918
+    },
+    "generated_top5": {
+      "max": 0.19090908765792847,
+      "mean": 0.16363635957241057,
+      "min": 0.12727272510528564,
+      "std_population": 0.023706189670859322
+    },
+    "latent_mean_rank": {
+      "max": 37.599998474121094,
+      "mean": 37.599998474121094,
+      "min": 37.599998474121094,
+      "std_population": 0.0
+    },
+    "latent_median_rank": {
+      "max": 32.0,
+      "mean": 32.0,
+      "min": 32.0,
+      "std_population": 0.0
+    },
+    "latent_top1": {
+      "max": 0.05454545468091965,
+      "mean": 0.05454545468091965,
+      "min": 0.05454545468091965,
+      "std_population": 0.0
+    },
+    "latent_top5": {
+      "max": 0.19999998807907104,
+      "mean": 0.19999998807907104,
+      "min": 0.19999998807907104,
+      "std_population": 0.0
+    },
+    "wer": {
+      "max": 1.0363636363636364,
+      "mean": 1.028181818181818,
+      "min": 1.0227272727272727,
+      "std_population": 0.005110352480929175
+    },
+    "word_f1": {
+      "max": 0.055276120742627916,
+      "mean": 0.05270406570631732,
+      "min": 0.049154469385260254,
+      "std_population": 0.0020784117505237296
+    },
+    "word_precision": {
+      "max": 0.05606027810573266,
+      "mean": 0.053601993965630326,
+      "min": 0.04964351305260396,
+      "std_population": 0.002317095029070101
+    },
+    "word_recall": {
+      "max": 0.055454545454545444,
+      "mean": 0.052363636363636355,
+      "min": 0.04909090909090909,
+      "std_population": 0.002040904029149421
+    }
+  },
+  "num_runs": 5,
+  "runs": [
+    {
+      "bertscore_f1": -0.08256546407938004,
+      "bertscore_precision": -0.10287579894065857,
+      "bertscore_recall": -0.06403585523366928,
+      "content_f1": 0.013097735597735598,
+      "content_precision": 0.01325757575757576,
+      "content_recall": 0.013365800865800867,
+      "exact_match": 0.0,
+      "generated_mean_rank": 40.727272033691406,
+      "generated_median_rank": 39.0,
+      "generated_top1": 0.027272727340459824,
+      "generated_top5": 0.17272727191448212,
+      "latent_mean_rank": 37.599998474121094,
+      "latent_median_rank": 32.0,
+      "latent_top1": 0.05454545468091965,
+      "latent_top5": 0.19999998807907104,
+      "run": "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_robust_full_elf_step10000_snapshot_s32_cfg10_seed101_20260901",
+      "wer": 1.029090909090909,
+      "word_f1": 0.05207772713261034,
+      "word_precision": 0.05281778827233371,
+      "word_recall": 0.051818181818181805
+    },
+    {
+      "bertscore_f1": -0.07611041516065598,
+      "bertscore_precision": -0.08689196407794952,
+      "bertscore_recall": -0.06774087250232697,
+      "content_f1": 0.015066978476069385,
+      "content_precision": 0.015977633477633476,
+      "content_recall": 0.014664502164502165,
+      "exact_match": 0.0,
+      "generated_mean_rank": 39.54545211791992,
+      "generated_median_rank": 32.0,
+      "generated_top1": 0.0181818176060915,
+      "generated_top5": 0.12727272510528564,
+      "latent_mean_rank": 37.599998474121094,
+      "latent_median_rank": 32.0,
+      "latent_top1": 0.05454545468091965,
+      "latent_top5": 0.19999998807907104,
+      "run": "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_robust_full_elf_step10000_snapshot_s32_cfg10_seed202_20260901",
+      "wer": 1.03,
+      "word_f1": 0.055276120742627916,
+      "word_precision": 0.0557208448117539,
+      "word_recall": 0.055454545454545444
+    },
+    {
+      "bertscore_f1": -0.0750313326716423,
+      "bertscore_precision": -0.0833493024110794,
+      "bertscore_recall": -0.0686677098274231,
+      "content_f1": 0.014241516059697878,
+      "content_precision": 0.015086580086580086,
+      "content_recall": 0.013755411255411255,
+      "exact_match": 0.0,
+      "generated_mean_rank": 41.20909118652344,
+      "generated_median_rank": 36.0,
+      "generated_top1": 0.036363635212183,
+      "generated_top5": 0.145454540848732,
+      "latent_mean_rank": 37.599998474121094,
+      "latent_median_rank": 32.0,
+      "latent_top1": 0.05454545468091965,
+      "latent_top5": 0.19999998807907104,
+      "run": "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_robust_full_elf_step10000_snapshot_s32_cfg10_seed303_20260901",
+      "wer": 1.0227272727272727,
+      "word_f1": 0.05409987454456917,
+      "word_precision": 0.05606027810573266,
+      "word_recall": 0.05272727272727272
+    },
+    {
+      "bertscore_f1": -0.07443635910749435,
+      "bertscore_precision": -0.0867079496383667,
+      "bertscore_recall": -0.06423186510801315,
+      "content_f1": 0.0165846274937184,
+      "content_precision": 0.01808441558441558,
+      "content_recall": 0.0158008658008658,
+      "exact_match": 0.0,
+      "generated_mean_rank": 39.1909065246582,
+      "generated_median_rank": 33.0,
+      "generated_top1": 0.036363635212183,
+      "generated_top5": 0.1818181723356247,
+      "latent_mean_rank": 37.599998474121094,
+      "latent_median_rank": 32.0,
+      "latent_top1": 0.05454545468091965,
+      "latent_top5": 0.19999998807907104,
+      "run": "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_robust_full_elf_step10000_snapshot_s32_cfg10_seed404_20260901",
+      "wer": 1.0227272727272727,
+      "word_f1": 0.049154469385260254,
+      "word_precision": 0.04964351305260396,
+      "word_recall": 0.04909090909090909
+    },
+    {
+      "bertscore_f1": -0.08075352758169174,
+      "bertscore_precision": -0.09636213630437851,
+      "bertscore_recall": -0.06742371618747711,
+      "content_f1": 0.015139993696143429,
+      "content_precision": 0.01542207792207792,
+      "content_recall": 0.015259740259740258,
+      "exact_match": 0.0,
+      "generated_mean_rank": 41.12726974487305,
+      "generated_median_rank": 34.0,
+      "generated_top1": 0.06363636255264282,
+      "generated_top5": 0.19090908765792847,
+      "latent_mean_rank": 37.599998474121094,
+      "latent_median_rank": 32.0,
+      "latent_top1": 0.05454545468091965,
+      "latent_top5": 0.19999998807907104,
+      "run": "/data/engs-pnpl/glandau/elf-runs/eval_qc4wyals_val110_robust_full_elf_step10000_snapshot_s32_cfg10_seed49_20260901",
+      "wer": 1.0363636363636364,
+      "word_f1": 0.05291213672651895,
+      "word_precision": 0.0537675455857274,
+      "word_recall": 0.05272727272727273
+    }
+  ]
+}
