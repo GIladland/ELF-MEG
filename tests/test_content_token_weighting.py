@@ -13,7 +13,10 @@ for path in (REPO_ROOT, SRC_ROOT):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
-from scripts.train_npz_semantic_to_elf import build_content_token_weights  # noqa: E402
+from scripts.train_npz_semantic_to_elf import (  # noqa: E402
+    build_content_token_weights,
+    build_decoder_position_logit_bias,
+)
 
 
 class FakeOffsetTokenizer:
@@ -26,6 +29,25 @@ class FakeOffsetTokenizer:
 
 
 class ContentTokenWeightingTest(unittest.TestCase):
+    def test_position_prior_reads_only_selected_training_rows(self) -> None:
+        token_ids = torch.tensor([[2, 3], [2, 4], [1, 1]])
+        attention = torch.ones_like(token_ids)
+        bias = build_decoder_position_logit_bias(
+            token_ids,
+            attention,
+            torch.tensor([0, 1]),
+            vocabulary_size=6,
+            strength=1.0,
+            smoothing=0.25,
+            clip=5.0,
+        )
+
+        self.assertEqual(float(bias[0, 2]), 0.0)
+        self.assertLess(float(bias[0, 1]), 0.0)
+        self.assertEqual(float(bias[1, 3]), 0.0)
+        self.assertEqual(float(bias[1, 4]), 0.0)
+        self.assertLess(float(bias[1, 1]), 0.0)
+
     def test_only_content_word_subtokens_are_upweighted(self) -> None:
         weights = build_content_token_weights(
             FakeOffsetTokenizer(),

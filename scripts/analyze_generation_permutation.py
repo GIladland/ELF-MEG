@@ -294,6 +294,11 @@ def main() -> None:
         raise ValueError("generated/targets length mismatch")
     n = len(targets)
     matrices = pairwise_matrices(generated, targets)
+    # Preserve the same row permutation for both terms of the predeclared
+    # lexical selection metric.
+    matrices["word_content_f1_sum"] = (
+        matrices["word_f1"] + matrices["content_f1"]
+    )
     if args.bertscore:
         matrices["bertscore_raw_f1"] = bertscore_matrix(generated, targets, args)
 

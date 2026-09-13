@@ -46,6 +46,15 @@ def parse_args() -> argparse.Namespace:
             "instead of in-sample MRI features."
         ),
     )
+    parser.add_argument(
+        "--semantic-delay-mode",
+        choices=("mean", "ordered"),
+        default="mean",
+        help=(
+            "Mean-pool four delayed semantic blocks or retain the full ordered "
+            "1,536-D predicted-ADA vector."
+        ),
+    )
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--output-json", required=True)
     parser.add_argument("--train-count", type=int, default=11725)
@@ -61,6 +70,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--head-hidden-dim", type=int, default=512)
     parser.add_argument("--pairwise-weight", type=float, default=0.3)
     parser.add_argument("--ce-weight", type=float, default=1.0)
+    parser.add_argument(
+        "--selection-metric",
+        choices=("conditional_content", "word_f1"),
+        default="conditional_content",
+        help="Choose checkpoints for content discrimination or exact-word recovery.",
+    )
     parser.add_argument(
         "--content-ce-weight",
         type=float,
@@ -280,14 +295,24 @@ def main() -> None:
             if len(train_rows) != args.train_count or len(val_rows) != args.val_count:
                 raise ValueError("Unexpected OOF semantic row counts.")
             values = np.asarray(semantic["input_embeddings"], dtype=np.float32)
-            if values.shape[1] != 1536:
-                raise ValueError("OOF ordered decoder expects four 384-D delay blocks.")
+            if values.shape[1] not in {384, 1536}:
+                raise ValueError(
+                    "OOF ordered decoder expects 384-D semantics or four delayed "
+                    "384-D blocks."
+                )
             semantic_sentences = np.asarray([str(value) for value in semantic["sentence"].tolist()])
             if not np.array_equal(semantic_sentences[train_rows], np.asarray(train_sentences)):
                 raise ValueError("OOF train sentences are misaligned.")
             if not np.array_equal(semantic_sentences[val_rows], np.asarray(val_sentences)):
                 raise ValueError("OOF validation sentences are misaligned.")
-            values = values.reshape(len(values), 4, 384).mean(axis=1)
+            if values.shape[1] == 1536 and args.semantic_delay_mode == "mean":
+                values = values.reshape(len(values), 4, 384).mean(axis=1)
+            elif values.shape[1] == 1536 and args.semantic_delay_mode == "ordered":
+                pass
+            elif values.shape[1] == 384 and args.semantic_delay_mode == "ordered":
+                raise ValueError(
+                    "semantic-delay-mode=ordered requires a 1,536-D four-block input."
+                )
             train_features = F.normalize(torch.as_tensor(values[train_rows]), p=2, dim=-1)
             val_features = F.normalize(torch.as_tensor(values[val_rows]), p=2, dim=-1)
     else:
@@ -385,13 +410,22 @@ def main() -> None:
         eligible = []
         for subtraction, result in evaluation.items():
             matched = result["matched"]
-            # Content is primary, but a model must show matched-brain advantage;
-            # WER breaks ties rather than allowing a language prior to win.
-            score = (
-                matched["content_words_overlap"]
-                + result["conditional_content_margin"]
-                - 0.01 * matched["word_error_rate"]
-            )
+            if args.selection_metric == "word_f1":
+                # The ordered head is used only as a soft ELF decoder prior;
+                # select the state that best repairs exact tokens and use WER
+                # as a small tie-break rather than treating it as a generator.
+                score = (
+                    matched["words_overlap"]
+                    - 0.01 * matched["word_error_rate"]
+                )
+            else:
+                # Content is primary, but a model must show matched-brain advantage;
+                # WER breaks ties rather than allowing a language prior to win.
+                score = (
+                    matched["content_words_overlap"]
+                    + result["conditional_content_margin"]
+                    - 0.01 * matched["word_error_rate"]
+                )
             eligible.append((score, subtraction))
         epoch_score, chosen_subtraction = max(eligible)
         record = {

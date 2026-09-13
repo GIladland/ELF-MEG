@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional
 
 import torch
@@ -282,6 +284,39 @@ def _apply_token_sequence_bias(
 
 
 @torch.no_grad()
+def _apply_position_logit_bias(
+    decoder_logits: torch.Tensor,
+    position_logit_bias: torch.Tensor,
+    *,
+    target_start: int,
+) -> torch.Tensor:
+    """Add a train-only token-position prior to target decoder slots."""
+
+    if position_logit_bias.ndim != 2:
+        raise ValueError("position_logit_bias must be [target_position, vocabulary]")
+    if position_logit_bias.shape[1] != decoder_logits.shape[-1]:
+        raise ValueError(
+            "Position-bias vocabulary does not match decoder logits: "
+            f"bias={position_logit_bias.shape[1]} logits={decoder_logits.shape[-1]}."
+        )
+    if not 0 <= target_start < decoder_logits.shape[1]:
+        raise ValueError(f"Invalid position-bias target_start={target_start}")
+    target_positions = min(
+        int(position_logit_bias.shape[0]),
+        int(decoder_logits.shape[1] - target_start),
+    )
+    if target_positions <= 0:
+        return decoder_logits
+    result = decoder_logits.clone()
+    result[:, target_start : target_start + target_positions] += (
+        position_logit_bias[:target_positions]
+        .to(device=result.device, dtype=result.dtype)
+        .unsqueeze(0)
+    )
+    return result
+
+
+@torch.no_grad()
 def _dlm_decode_batch(z: torch.Tensor, model: nn.Module, t_final_val,
                       config, self_cond_cfg_scale: float,
                       token_logit_bias: torch.Tensor | None = None,
@@ -292,7 +327,9 @@ def _dlm_decode_batch(z: torch.Tensor, model: nn.Module, t_final_val,
                       token_sequence_bias: torch.Tensor | None = None,
                       ordered_token_ids: torch.Tensor | None = None,
                       ordered_token_bias: torch.Tensor | None = None,
-                      ordered_token_max_positions: int = 0) -> torch.Tensor:
+                      ordered_token_max_positions: int = 0,
+                      position_logit_bias: torch.Tensor | None = None,
+                      position_logit_bias_target_start: int = 0) -> torch.Tensor:
     """Decode z -> tokens with the DLM decoder head."""
     batch_size = z.shape[0]
     if isinstance(t_final_val, torch.Tensor) and t_final_val.dim() == 0:
@@ -310,6 +347,12 @@ def _dlm_decode_batch(z: torch.Tensor, model: nn.Module, t_final_val,
             z_input, t_final, deterministic=True,
             self_cond_cfg_scale=sc_batch,
             decoder_step_active=True,
+        )
+    if position_logit_bias is not None:
+        decoder_logits = _apply_position_logit_bias(
+            decoder_logits,
+            position_logit_bias,
+            target_start=position_logit_bias_target_start,
         )
     ordered_blocked_positions = None
     if token_logit_bias is not None:

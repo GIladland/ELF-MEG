@@ -1,0 +1,208 @@
+{
+  "contract": {
+    "run_tag": "dascoli_sentence_only_acc050",
+    "checkpoint": "/data/engs-pnpl/glandau/elf-runs/qc4wyals_elfb_dascoli_lora8_mid_ep40_seed49_20260911/best.pt",
+    "n": 110,
+    "null": "random one-to-one reassignment of generated sentences to target rows",
+    "permutations": 100000,
+    "seed": 20260910,
+    "bleu1": "macro sentence BLEU-1 with modified unigram precision and brevity penalty",
+    "rouge1": "macro ROUGE-1 F1 with Porter stemming",
+    "bertscore": "raw non-rescaled roberta-large, layer 17"
+  },
+  "permutation_tests": {
+    "content_f1": {
+      "observed": 0.22234115600585938,
+      "null_mean": 0.010488159023225307,
+      "null_std": 0.004073543939739466,
+      "null_ci95": [
+        0.0036471860948950052,
+        0.01949714631773531
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "word_f1": {
+      "observed": 0.2990911310369318,
+      "null_mean": 0.04959381744265556,
+      "null_std": 0.005932311527431011,
+      "null_ci95": [
+        0.03845340767875314,
+        0.06177802477031946
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "bleu1": {
+      "observed": 0.2762677972966974,
+      "null_mean": 0.04564720392227173,
+      "null_std": 0.005498046055436134,
+      "null_ci95": [
+        0.03534723436459899,
+        0.05693508125841616
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "rouge1_f1": {
+      "observed": 0.31524769176136364,
+      "null_mean": 0.05389261245727539,
+      "null_std": 0.006100569386035204,
+      "null_ci95": [
+        0.04243425726890564,
+        0.06632585078477858
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "wer": {
+      "observed": 0.8736363636363637,
+      "null_mean": 1.1284873485565186,
+      "null_std": 0.004443367477506399,
+      "null_ci95": [
+        1.1190909147262573,
+        1.1363636255264282
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "lower"
+    },
+    "bertscore_raw_f1": {
+      "observed": 0.8387920032848012,
+      "null_mean": 0.8115818500518799,
+      "null_std": 0.0006046777707524598,
+      "null_ci95": [
+        0.8104844093322754,
+        0.8128656148910522
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    }
+  },
+  "retrieval_chance_tests": {
+    "note": "Exact one-sided binomial chance tests; these are not row-permutation tests.",
+    "generated_top1": {
+      "hits": 48,
+      "rate": 0.4363636374473572,
+      "chance": 0.00909090909090909,
+      "p": 2.4067377031333238e-67
+    },
+    "generated_top5": {
+      "hits": 68,
+      "rate": 0.6181818246841431,
+      "chance": 0.045454545454545456,
+      "p": 3.4534783372526944e-62
+    }
+  },
+  "top_generations": [
+    {
+      "index": 55,
+      "target": "botter because i couldn't hear the t's just the r's",
+      "generated": "horn because somebody couldn't hear the t's going r's",
+      "content_f1": 0.6666666666666666,
+      "word_f1": 0.631578947368421,
+      "bleu1": 0.5965595245361328,
+      "rouge1_f1": 0.7200000286102295,
+      "overlapping_content_words": "couldn't, hear, r's, t's",
+      "bertscore_raw_f1": 0.9077855944633484
+    },
+    {
+      "index": 109,
+      "target": "home of twenty five years and my jeep gets stolen",
+      "generated": "home of twenty five years then my knowledge gets no end there s",
+      "content_f1": 0.6666666666666666,
+      "word_f1": 0.608695652173913,
+      "bleu1": 0.5384615659713745,
+      "rouge1_f1": 0.6086956262588501,
+      "overlapping_content_words": "five, gets, home, twenty, years",
+      "bertscore_raw_f1": 0.8714532256126404
+    },
+    {
+      "index": 49,
+      "target": "leave baghdad on thursday november twenty third of two thousand",
+      "generated": "leave baghdad world with about twenty third of two cops",
+      "content_f1": 0.6666666666666666,
+      "word_f1": 0.6,
+      "bleu1": 0.6000000238418579,
+      "rouge1_f1": 0.6000000238418579,
+      "overlapping_content_words": "baghdad, leave, third, twenty, two",
+      "bertscore_raw_f1": 0.8456363677978516
+    },
+    {
+      "index": 92,
+      "target": "end of class bob picks one of my gesture drawings",
+      "generated": "end of class kar picks one of the person's",
+      "content_f1": 0.6153846153846153,
+      "word_f1": 0.631578947368421,
+      "bleu1": 0.5965595245361328,
+      "rouge1_f1": 0.6000000238418579,
+      "overlapping_content_words": "class, end, one, picks",
+      "bertscore_raw_f1": 0.9113134145736694
+    },
+    {
+      "index": 19,
+      "target": "i started feeling things i started feeling hot and cold",
+      "generated": "s started feeling reda community started feeling hot and then out of go syrs community",
+      "content_f1": 0.5555555555555556,
+      "word_f1": 0.48,
+      "bleu1": 0.4000000059604645,
+      "rouge1_f1": 0.47999998927116394,
+      "overlapping_content_words": "feeling, feeling, hot, started, started",
+      "bertscore_raw_f1": 0.8667082786560059
+    },
+    {
+      "index": 108,
+      "target": "wrong job or the wrong marriage i'm in the wrong",
+      "generated": "wrong on killings or the wrong relationship i'm in",
+      "content_f1": 0.5454545454545454,
+      "word_f1": 0.631578947368421,
+      "bleu1": 0.5965595245361328,
+      "rouge1_f1": 0.6666666865348816,
+      "overlapping_content_words": "i'm, wrong, wrong",
+      "bertscore_raw_f1": 0.9076066017150879
+    },
+    {
+      "index": 75,
+      "target": "something different by age thirty i had done most everything",
+      "generated": "something different by age thirty everyone's had ocy igo allda lets",
+      "content_f1": 0.5333333333333333,
+      "word_f1": 0.5714285714285713,
+      "bleu1": 0.5454545617103577,
+      "rouge1_f1": 0.5454545617103577,
+      "overlapping_content_words": "age, different, something, thirty",
+      "bertscore_raw_f1": 0.8953571319580078
+    },
+    {
+      "index": 95,
+      "target": "new york times business sections and the wall street journal",
+      "generated": "new yorker many pieces of the wall street journal",
+      "content_f1": 0.5333333333333333,
+      "word_f1": 0.5263157894736842,
+      "bleu1": 0.49713295698165894,
+      "rouge1_f1": 0.5263158082962036,
+      "overlapping_content_words": "journal, new, street, wall",
+      "bertscore_raw_f1": 0.9009681344032288
+    },
+    {
+      "index": 26,
+      "target": "took us a long time to heal my stepfather broke",
+      "generated": "took us a long time floridae my rd place tied",
+      "content_f1": 0.4615384615384615,
+      "word_f1": 0.6,
+      "bleu1": 0.6000000238418579,
+      "rouge1_f1": 0.6000000238418579,
+      "overlapping_content_words": "long, time, took",
+      "bertscore_raw_f1": 0.8656995892524719
+    },
+    {
+      "index": 58,
+      "target": "my new family on base even though it was dangerous",
+      "generated": "my new town ca base even guns emmees it was",
+      "content_f1": 0.4615384615384615,
+      "word_f1": 0.6,
+      "bleu1": 0.6000000238418579,
+      "rouge1_f1": 0.6000000238418579,
+      "overlapping_content_words": "base, even, new",
+      "bertscore_raw_f1": 0.8432523608207703
+    }
+  ]
+}

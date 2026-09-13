@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "row_count": 110,
+  "scope": "Person names only. Places, organizations, brands, deities, demonyms, and eponymous syndrome names are excluded.",
+  "review_contract": "Every target and generated row was manually reviewed. Empty rows in the maps mean no person name was identified.",
+  "target_person_names": {
+    "16": ["vijay"],
+    "34": ["helmut newton"],
+    "84": ["bob"],
+    "87": ["judy"],
+    "92": ["bob"],
+    "101": ["sarah"],
+    "106": ["tricia"]
+  },
+  "systems": {
+    "t5_beam4": {
+      "paired_text_sha256": "f139cde72056b80a6f701d9e1ca6fc3735953be2bb0b65b59e91ed89aae326d2",
+      "generated_person_names": {
+        "80": ["adam"],
+        "87": ["mike"],
+        "101": ["steve"],
+        "106": ["steve"]
+      }
+    },
+    "current_hybrid": {
+      "paired_text_sha256": "eae8f57b6591fbb58a365e340a6964f9fee5643804f614e162c083d50a12f3a5",
+      "generated_person_names": {
+        "80": ["adam"],
+        "87": ["mike"],
+        "101": ["steve"],
+        "106": ["steve"]
+      }
+    },
+    "elfm_lexical_composite": {
+      "paired_text_sha256": "f883688387fedcece5467a698f521c0b9e58f89654fb77919f901f89f6141d4a",
+      "generated_person_names": {
+        "83": ["bob"]
+      }
+    }
+  }
+}

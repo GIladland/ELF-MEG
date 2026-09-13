@@ -1,0 +1,208 @@
+{
+  "contract": {
+    "run_tag": "dascoli_joint_sem0035_floor1_acc050",
+    "checkpoint": "/data/engs-pnpl/glandau/elf-runs/qc4wyals_elfb_dascoli_lora8_mid_ep40_seed49_20260911/best.pt",
+    "n": 110,
+    "null": "random one-to-one reassignment of generated sentences to target rows",
+    "permutations": 100000,
+    "seed": 20260910,
+    "bleu1": "macro sentence BLEU-1 with modified unigram precision and brevity penalty",
+    "rouge1": "macro ROUGE-1 F1 with Porter stemming",
+    "bertscore": "raw non-rescaled roberta-large, layer 17"
+  },
+  "permutation_tests": {
+    "content_f1": {
+      "observed": 0.28839350613680753,
+      "null_mean": 0.010985380969941616,
+      "null_std": 0.004462279379367828,
+      "null_ci95": [
+        0.0036471860948950052,
+        0.020972338970750567
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "word_f1": {
+      "observed": 0.3665808244185014,
+      "null_mean": 0.03764719143509865,
+      "null_std": 0.0059189945459365845,
+      "null_ci95": [
+        0.026890886388719084,
+        0.05004040468484163
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "bleu1": {
+      "observed": 0.3586221521550959,
+      "null_mean": 0.03676557540893555,
+      "null_std": 0.0057937949895858765,
+      "null_ci95": [
+        0.02619471391662955,
+        0.04889778047800064
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "rouge1_f1": {
+      "observed": 0.37377458052201706,
+      "null_mean": 0.04334068298339844,
+      "null_std": 0.006147717125713825,
+      "null_ci95": [
+        0.03206066153943539,
+        0.05606850879266858
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    },
+    "wer": {
+      "observed": 0.6672727272727272,
+      "null_mean": 1.0192269086837769,
+      "null_std": 0.004328273236751556,
+      "null_ci95": [
+        1.0090909004211426,
+        1.0263636112213135
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "lower"
+    },
+    "bertscore_raw_f1": {
+      "observed": 0.8469260475852273,
+      "null_mean": 0.8124532103538513,
+      "null_std": 0.000660496880300343,
+      "null_ci95": [
+        0.8112813711166382,
+        0.8138863474130631
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    }
+  },
+  "retrieval_chance_tests": {
+    "note": "Exact one-sided binomial chance tests; these are not row-permutation tests.",
+    "generated_top1": {
+      "hits": 52,
+      "rate": 0.4727272689342499,
+      "chance": 0.00909090909090909,
+      "p": 3.5076792050084986e-75
+    },
+    "generated_top5": {
+      "hits": 76,
+      "rate": 0.6909090876579285,
+      "chance": 0.045454545454545456,
+      "p": 5.66904095285795e-75
+    }
+  },
+  "top_generations": [
+    {
+      "index": 109,
+      "target": "home of twenty five years and my jeep gets stolen",
+      "generated": "home of twenty five years the my appearance gets nothing",
+      "content_f1": 0.7142857142857143,
+      "word_f1": 0.7,
+      "bleu1": 0.699999988079071,
+      "rouge1_f1": 0.699999988079071,
+      "overlapping_content_words": "five, gets, home, twenty, years",
+      "bertscore_raw_f1": 0.8943658471107483
+    },
+    {
+      "index": 95,
+      "target": "new york times business sections and the wall street journal",
+      "generated": "new york times high guys put the wall street journal",
+      "content_f1": 0.7058823529411765,
+      "word_f1": 0.7,
+      "bleu1": 0.699999988079071,
+      "rouge1_f1": 0.699999988079071,
+      "overlapping_content_words": "journal, new, street, times, wall, york",
+      "bertscore_raw_f1": 0.9067395329475403
+    },
+    {
+      "index": 92,
+      "target": "end of class bob picks one of my gesture drawings",
+      "generated": "end went class bob picks one of durham finally different",
+      "content_f1": 0.6250000000000001,
+      "word_f1": 0.6,
+      "bleu1": 0.6000000238418579,
+      "rouge1_f1": 0.6000000238418579,
+      "overlapping_content_words": "bob, class, end, one, picks",
+      "bertscore_raw_f1": 0.8576592206954956
+    },
+    {
+      "index": 73,
+      "target": "enrolled in a state university to get my master's degree",
+      "generated": "enrolled mostly a twenty university to i'd get master's degree broad depat",
+      "content_f1": 0.625,
+      "word_f1": 0.6363636363636365,
+      "bleu1": 0.5833333134651184,
+      "rouge1_f1": 0.6399999856948853,
+      "overlapping_content_words": "degree, enrolled, get, master's, university",
+      "bertscore_raw_f1": 0.8894295692443848
+    },
+    {
+      "index": 91,
+      "target": "ever trying anything different for even attempting anything new and",
+      "generated": "ever trying anything else would even attempting animal talk and",
+      "content_f1": 0.625,
+      "word_f1": 0.6,
+      "bleu1": 0.6000000238418579,
+      "rouge1_f1": 0.6000000238418579,
+      "overlapping_content_words": "anything, attempting, even, ever, trying",
+      "bertscore_raw_f1": 0.8792973160743713
+    },
+    {
+      "index": 55,
+      "target": "botter because i couldn't hear the t's just the r's",
+      "generated": "dog because north couldn't hear the t's come much r's",
+      "content_f1": 0.6153846153846154,
+      "word_f1": 0.6,
+      "bleu1": 0.6000000238418579,
+      "rouge1_f1": 0.692307710647583,
+      "overlapping_content_words": "couldn't, hear, r's, t's",
+      "bertscore_raw_f1": 0.909682035446167
+    },
+    {
+      "index": 26,
+      "target": "took us a long time to heal my stepfather broke",
+      "generated": "took us a long time florida law my nassel broke",
+      "content_f1": 0.6153846153846153,
+      "word_f1": 0.7,
+      "bleu1": 0.699999988079071,
+      "rouge1_f1": 0.699999988079071,
+      "overlapping_content_words": "broke, long, time, took",
+      "bertscore_raw_f1": 0.8802062273025513
+    },
+    {
+      "index": 35,
+      "target": "dangerous edgy pictures of women and he wants to shoot",
+      "generated": "dangerous edgy act gonna women and he looks to shoot",
+      "content_f1": 0.6153846153846153,
+      "word_f1": 0.7,
+      "bleu1": 0.699999988079071,
+      "rouge1_f1": 0.699999988079071,
+      "overlapping_content_words": "dangerous, edgy, shoot, women",
+      "bertscore_raw_f1": 0.9199961423873901
+    },
+    {
+      "index": 16,
+      "target": "driving vijay we were at the temple vijay vijay vijay",
+      "generated": "driving vijay dances were high up from ground vijay vijay",
+      "content_f1": 0.6153846153846153,
+      "word_f1": 0.5,
+      "bleu1": 0.5,
+      "rouge1_f1": 0.5,
+      "overlapping_content_words": "driving, vijay, vijay, vijay",
+      "bertscore_raw_f1": 0.908854067325592
+    },
+    {
+      "index": 49,
+      "target": "leave baghdad on thursday november twenty third of two thousand",
+      "generated": "leave baghdad modeling camp low twenty third of two students",
+      "content_f1": 0.5882352941176471,
+      "word_f1": 0.6,
+      "bleu1": 0.6000000238418579,
+      "rouge1_f1": 0.6000000238418579,
+      "overlapping_content_words": "baghdad, leave, third, twenty, two",
+      "bertscore_raw_f1": 0.8671817183494568
+    }
+  ]
+}

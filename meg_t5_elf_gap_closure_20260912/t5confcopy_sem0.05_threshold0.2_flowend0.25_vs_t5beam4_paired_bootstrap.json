@@ -1,0 +1,56 @@
+{
+  "contract": "paired validation-row comparison; no test data",
+  "baseline": "meg_t5_elf_gap_closure_20260912/arc_results/t5_source/beam4_min10_max20_lp0p8.json",
+  "candidate": "meg_t5_elf_gap_closure_20260912/arc_results/confidence_copy/sem0.05_threshold0.2_flowend0.25/capped10_metrics.json",
+  "bootstrap_samples": 100000,
+  "seed": 49,
+  "metrics": {
+    "content_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.026689901008082825,
+      "candidate_mean": 0.028342793570066294,
+      "candidate_minus_baseline": 0.0016528925619834708,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        0.0,
+        0.004958677685950413
+      ],
+      "bootstrap_probability_candidate_better": 0.63336,
+      "rows_candidate_better": 1,
+      "rows_tied": 109,
+      "rows_candidate_worse": 0
+    },
+    "word_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.10397754636144728,
+      "candidate_mean": 0.10412640335240955,
+      "candidate_minus_baseline": 0.0001488569909622539,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.002583732057416269,
+        0.0030303030303030307
+      ],
+      "bootstrap_probability_candidate_better": 0.51863,
+      "rows_candidate_better": 1,
+      "rows_tied": 108,
+      "rows_candidate_worse": 1
+    },
+    "per_row_wer": {
+      "num_rows": 110,
+      "baseline_mean": 0.9790909090909092,
+      "candidate_mean": 0.9781818181818184,
+      "candidate_minus_baseline": -0.0009090909090909089,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.0027272727272727266,
+        0.0
+      ],
+      "bootstrap_probability_candidate_better": 0.63505,
+      "rows_candidate_better": 1,
+      "rows_tied": 109,
+      "rows_candidate_worse": 0
+    }
+  },
+  "corpus_wer": {
+    "baseline": 0.9790909090909091,
+    "candidate": 0.9781818181818182,
+    "candidate_minus_baseline": -0.0009090909090909705
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "system": "elfm_lexical_composite",
+  "row_count": 110,
+  "paired_text_sha256": "f883688387fedcece5467a698f521c0b9e58f89654fb77919f901f89f6141d4a",
+  "contract": {
+    "unit": "validation row",
+    "entity_scope": "person names only",
+    "annotations": "manual full-set review bound to paired_text_sha256",
+    "categories_on_named_targets": "exact recovery, wrong-name substitution, and deletion are mutually exclusive"
+  },
+  "counts": {
+    "named_target_rows": 7,
+    "unnamed_target_rows": 103,
+    "named_target_to_any_name": 0,
+    "exact_name_recovery": 0,
+    "name_substitution": 0,
+    "name_deletion": 7,
+    "false_name_insertion": 1
+  },
+  "rates": {
+    "named_target_to_any_name": 0.0,
+    "exact_name_recovery": 0.0,
+    "name_substitution": 0.0,
+    "name_deletion": 1.0,
+    "false_name_insertion": 0.009708737864077669
+  },
+  "row_indices": {
+    "named_target_to_any_name": [],
+    "exact_name_recovery": [],
+    "name_substitution": [],
+    "name_deletion": [
+      16,
+      34,
+      84,
+      87,
+      92,
+      101,
+      106
+    ],
+    "false_name_insertion": [
+      83
+    ]
+  },
+  "annotated_rows": [
+    {
+      "index": 16,
+      "target": "driving vijay we were at the temple vijay vijay vijay",
+      "generated": "people stopping by we're going back to the front stage",
+      "target_person_names": [
+        "vijay"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 34,
+      "target": "helmut newton they said you know helmut newton the guy",
+      "generated": "Skin w near town this is top of three cool dance shops",
+      "target_person_names": [
+        "helmut newton"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 83,
+      "target": "entire life i had never held a stick of charcoal",
+      "generated": "bob grouper a salad and we suddenly pulled",
+      "target_person_names": [],
+      "generated_person_names": [
+        "bob"
+      ],
+      "category": "false_name_insertion"
+    },
+    {
+      "index": 84,
+      "target": "next week bob one of the three instructors says today",
+      "generated": "kind of like things cause i keep on the photo",
+      "target_person_names": [
+        "bob"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 87,
+      "target": "competitive and so i ask judy who is standing next",
+      "generated": "said um and um these urges is up cigarette and says",
+      "target_person_names": [
+        "judy"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 92,
+      "target": "end of class bob picks one of my gesture drawings",
+      "generated": "keep today's fire and that is the move",
+      "target_person_names": [
+        "bob"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 101,
+      "target": "dear friend sarah who's also a southerner i say sarah",
+      "generated": "me hell and i say that there are some people who",
+      "target_person_names": [
+        "sarah"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 106,
+      "target": "dear friend of mine says you know tricia i love",
+      "generated": "My office so good causes uh we work on good",
+      "target_person_names": [
+        "tricia"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    }
+  ]
+}

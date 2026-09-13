@@ -788,6 +788,7 @@ def generate(
     content_keyword_template: str = "labeled",
     repetition_penalty: float = 1.0,
     no_repeat_ngram_size: int = 0,
+    length_penalty: float = 1.0,
     max_output_words: int = 10,
 ) -> list[str]:
     projector.eval()
@@ -846,6 +847,8 @@ def generate(
         generation_limits = {}
         if min_target_tokens > 0:
             generation_limits["min_new_tokens"] = int(min_target_tokens)
+        if num_beams > 1:
+            generation_limits["length_penalty"] = float(length_penalty)
         ids = t5.generate(
             encoder_outputs=BaseModelOutput(last_hidden_state=context),
             attention_mask=mask,

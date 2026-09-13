@@ -1,0 +1,111 @@
+index,target,generated,content_f1,word_f1,bleu1,rouge1_f1,overlapping_content_words,bertscore_raw_f1
+100,school as a part time student but i'm still consulting,time to get married and i'm working on a painting,0.30769230769230765,0.3,0.30000001192092896,0.3636363744735718,"i'm, time",0.87554532289505
+36,somebody else thinking you're cool can make you think differently,think the gun is going to make fucking illilla's come,0.26666666666666666,0.20000000000000004,0.20000000298023224,0.1818181872367859,"make, think",0.8284592628479004
+72,us military you will forever be an al qaeda target,military helicopters that resulted in the death of an insurgent,0.20000000000000004,0.20000000000000004,0.20000000298023224,0.20000000298023224,military,0.8538364768028259
+37,college loans and you know bought me an apartment paid,went to college and i thought i would have earned,0.2,0.20000000000000004,0.20000000298023224,0.20000000298023224,college,0.8348458409309387
+75,something different by age thirty i had done most everything,the way that i really thought about opening up something,0.2,0.20000000000000004,0.20000000298023224,0.20000000298023224,something,0.8454697132110596
+14,embankment and then finally came to a last thud and,startling uh just a little screams and in chaos came,0.1818181818181818,0.3,0.30000001192092896,0.30000001192092896,came,0.8160924315452576
+93,anything but things at home start to get a little,really love the things you're running out of things that,0.1818181818181818,0.10000000000000002,0.10000000149011612,0.095238097012043,things,0.8300087451934814
+103,two instructors and several students review the work give us,progress to the next two years of ihin's,0.16666666666666666,0.22222222222222224,0.1947001963853836,0.21052631735801697,two,0.8288255333900452
+66,gonna see another day am i gonna see my family,time i remember one day this is so perfect,0.16666666666666666,0.2105263157894737,0.19885317981243134,0.21052631735801697,day,0.8446770906448364
+34,helmut newton they said you know helmut newton the guy,taller than a few people pretend you know exactly what,0.16666666666666666,0.20000000000000004,0.20000000298023224,0.20000000298023224,know,0.8263921737670898
+98,committed relationship for the past eighteen years with his boyfriend,either though i'm not shy about being ten years,0.16666666666666666,0.10526315789473685,0.09942658990621567,0.10000000149011612,years,0.8284564018249512
+54,they speak they swallow letters one time a soldier asked,more than one hundred years ago i was going to,0.16666666666666666,0.10000000000000002,0.10000000149011612,0.10000000149011612,one,0.8106849789619446
+71,stay i left baghdad early the next morning going back,so soon i was able to call the next flight,0.15384615384615385,0.3,0.30000001192092896,0.30000001192092896,next,0.8662554025650024
+91,ever trying anything different for even attempting anything new and,things happen to me so i haven't done anything else,0.14285714285714288,0.10000000000000002,0.10000000149011612,0.095238097012043,anything,0.8290780186653137
+97,go back to my normal life and i'm highly suspicious,start playing like i'm talking about thirty minutes and,0.14285714285714285,0.2105263157894737,0.19885317981243134,0.2857142984867096,i'm,0.8250897526741028
+49,leave baghdad on thursday november twenty third of two thousand,go far the next two weeks my security security security,0.125,0.10000000000000002,0.10000000149011612,0.10000000149011612,two,0.8023431301116943
+55,botter because i couldn't hear the t's just the r's,go around the wraps in the water i figured,0.0,0.3157894736842105,0.2982797622680664,0.27272728085517883,,0.837658703327179
+7,long enough ago i was fourteen a long time ago,started to a few moments and i was a few,0.0,0.3,0.30000001192092896,0.30000001192092896,,0.8374132513999939
+62,the street he turned left and instead of turning around,we stopped and he kept running back into the lab,0.0,0.3,0.30000001192092896,0.30000001192092896,,0.8553456664085388
+2,weeks in the hospital weeks blind and mute as well,cius fare in the corner i get to know,0.0,0.2105263157894737,0.19885317981243134,0.21052631735801697,,0.8488523960113525
+53,thinking about my family back home and their saety later,go about my team i'm the bba candidate for,0.0,0.2105263157894737,0.19885317981243134,0.20000000298023224,,0.8531457781791687
+84,next week bob one of the three instructors says today,kind of thing i'm talking to all the people,0.0,0.2105263157894737,0.19885317981243134,0.20000000298023224,,0.8325731158256531
+85,man the artists model starts to undress and i say,little kid who was always cold and i got,0.0,0.2105263157894737,0.19885317981243134,0.21052631735801697,,0.8453699350357056
+15,eyes closed and her mouth open and blood was trickling,hands and air and i poured water she knew with,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8404891490936279
+19,i started feeling things i started feeling hot and cold,smoke and i was spitzed by frock pants and i'm,0.0,0.20000000000000004,0.20000000298023224,0.2857142984867096,,0.843630850315094
+21,get help please please get help and then a bunch,cop and there are a lot of cops talking about,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8332669138908386
+29,got this very beautiful thin scratch of a surgery incision,sigma hair and this washed out of his face and,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8229661583900452
+33,i really started modeling to pay off my college loans,anything the whole scene went beyond my home and i,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8534581065177917
+48,the sectarian killings and kidnappings one morning my mom said,the final drum and i go to the two feminists,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8364571332931519
+58,my new family on base even though it was dangerous,one of my wife's case i was going to be,0.0,0.20000000000000004,0.20000000298023224,0.190476194024086,,0.8374429941177368
+60,dad one evening i took a two mile walk to,go for a minute i can decide if i are,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8537923693656921
+64,hear about a kidnapping almost every day in the news,do you know the break in the hands you know,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8380882740020752
+82,class will focus on process the process of art making,math before or after they passed one of the events,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8398714065551758
+83,entire life i had never held a stick of charcoal,i took my little bites out of the kitchen area,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8492136001586914
+94,business one but when i started going to art school,double double - i mean he said now we have to,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8407556414604187
+102,moving fast enough i kept pushing him to move faster,i would go to bed and talk to my son,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8506240248680115
+106,dear friend of mine says you know tricia i love,president of the world i'm proud steve and i said,0.0,0.20000000000000004,0.20000000298023224,0.190476194024086,,0.8457216620445251
+105,the process won't allow that you've got to let go,know that extreme people can't like heighting,0.0,0.11764705882352941,0.09306272119283676,0.20000000298023224,,0.8490263223648071
+0,years old i got really sick um and no one,workplace worsened i thought about my night at,0.0,0.11111111111111112,0.0973500981926918,0.1111111119389534,,0.8465514183044434
+10,eating this rice um suddenly i heard a loud bang,start marching i say no matter what happened,0.0,0.11111111111111112,0.0973500981926918,0.1111111119389534,,0.8446708917617798
+13,heard another thud and then i kind of heard and,y i say i'm an engineer you know,0.0,0.11111111111111112,0.0973500981926918,0.10526315867900848,,0.8230497241020203
+86,busily getting out their easels and knowingly getting out sheets,he's the greenery family and we're all the,0.0,0.11111111111111112,0.0973500981926918,0.10000000149011612,,0.8064320087432861
+101,dear friend sarah who's also a southerner i say sarah,the witches and i'm sure steve and i,0.0,0.11111111111111112,0.0973500981926918,0.10000000149011612,,0.847988486289978
+11,remember the plate flying and yellow rice everywhere like confetti,fire in the hands of the witnesses who've got,0.0,0.10526315789473685,0.09942658990621567,0.10000000149011612,,0.7948325276374817
+20,kept getting louder and louder the silence then i finally,i felt something in my life i knew of,0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.8365058898925781
+22,famous things called the jaws of life to cut open,one of these cigarette tables and be a cigarette,0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.837233304977417
+24,i remember being incredibly uncomfortable in a cold hospital bed,home between america and i'm a few years old,0.0,0.10526315789473685,0.09942658990621567,0.20000000298023224,,0.8377395868301392
+28,kind of semi lame at my side and you know,wine in the blues community and he's gonna race,0.0,0.10526315789473685,0.09942658990621567,0.10000000149011612,,0.8396568894386292
+42,please deliver me and my child intact and healthy out,getting the letter it's the mother's mailbox and said,0.0,0.10526315789473685,0.09942658990621567,0.095238097012043,,0.8162726163864136
+63,driving at least a hundred mile per hour or even,closer to the world today a lot of nineteen,0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.8026441931724548
+68,voice said the pain of the jump is nothing compared,don't know my first word of paper i knew,0.0,0.10526315789473685,0.09942658990621567,0.10000000149011612,,0.8411011695861816
+77,working with companies like retail banking traffic reporting hazardous waste,familiarity with the sex of the house but it's,0.0,0.10526315789473685,0.09942658990621567,0.10000000149011612,,0.8462651371955872
+78,started consulting and i started taking classes to figure out,i just pass my alxotted planes carrying the dog,0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.8278622627258301
+96,piece gets progressively more undone until the final piece explodes,fluids that sparked the equivalent of primitive winds and,0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.8052829504013062
+4,made a promise to god that um if god delivers,i go away we come back to making her home,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8220014572143555
+5,offering to give thanks for delivering my child home safely,gonna go backward i will go to five churches to,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8321354389190674
+6,mother and i drove in our red ford mercury car,no plans to get along with me and i'm happy,0.0,0.10000000000000002,0.10000000149011612,0.190476194024086,,0.822795569896698
+8,still really sick i could barely hold my head up,bleeding two years ago she thought i thought i thought,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8294895887374878
+26,took us a long time to heal my stepfather broke,home and i had a nice job and i went,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8259572386741638
+30,arm got better the scar got worse and you know,a mighty glas where the damage is going to the,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8269004821777344
+31,multiple surgeries on the arm every time the arm got,can take this part of the conversation i want to,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8255079388618469
+50,alive better than you be close and always in danger,give me you grieving your life you think you mean,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8294451832771301
+52,sunset cars driving after sunset i remember watching the colors,people and it was a beautiful day and i go,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8503315448760986
+59,i wanted i asked to go on vacation to see,got a lot of altitude i was a certified candidate,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8519343137741089
+67,freeway all of a sudden i see a nearby chekcpoint,couch i thought about four hours later i started talking,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8226586580276489
+69,remember feeling any pain i just ran i ran for,tell you guys did our last minute routine and i,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8346366882324219
+74,losing my new safe home america like i lost baghdad,because i was a complete shiverner there was a question,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8238427639007568
+76,north to boston which caused my family to collectively take,go to the museum and online butchers and you can,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.848753809928894
+79,needlepoint directing french i found this brochure for the school,know one thing we know one of the biggest questions,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8317676186561584
+87,competitive and so i ask judy who is standing next,one year old mike and it says he's got a,0.0,0.10000000000000002,0.10000000149011612,0.095238097012043,,0.8435890078544617
+90,start making these hopeless stick figures every forty five seconds,i didn't play all of these songs just took them,0.0,0.10000000000000002,0.10000000149011612,0.095238097012043,,0.827218234539032
+99,big donor cause i was working at harvard business school,go to the park every day a day i want,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8277245759963989
+108,wrong job or the wrong marriage i'm in the wrong,familiar with the aforementioned things i have no longer clothes,0.0,0.10000000000000002,0.10000000149011612,0.190476194024086,,0.8433105945587158
+109,home of twenty five years and my jeep gets stolen,tells me about kisses and links to other craigs and,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8049288392066956
+1,with a hyper allergy something called stevens johnson syndrome and,don't know if i bad luck but i don't know,0.0,0.0,0.0,0.0,,0.7957631945610046
+3,slept every night in the hospital to take care of,sat dr sat dr sat dr s,0.0,0.0,0.0,0.0,,0.7772529125213623
+9,squeaky round styrofoam plate with bunch of yellow rice on,supposed to be like uhing that's why,0.0,0.0,0.0,0.0,,0.7699090242385864
+12,us no trees no nothing just endless miraculous blue sky,there is a great cemetery i know that's where,0.0,0.0,0.0,0.0,,0.8062275052070618
+16,driving vijay we were at the temple vijay vijay vijay,people and they're trying to find our way back stage,0.0,0.0,0.0,0.0,,0.8082121014595032
+17,you awake if you're awake say something say something please,find the gun a little bit down and the gun,0.0,0.0,0.0,0.0,,0.8219473361968994
+18,this nonstop loop of my stepfather almost like that cliche,back seat i ran across the street i scream,0.0,0.0,0.0,0.0,,0.8281360864639282
+23,parents got taken somewhere else my arm you know because,way past our car car we traversed streets uh,0.0,0.0,0.0,0.0,,0.8070030212402344
+25,remember you know in the emergency room i remember vague,organizational table table and it's a corporate table table,0.0,0.0,0.0,0.0,,0.8241442441940308
+27,one nursing twenty four hours around the clock at home,going into a great lady on a visit to my,0.0,0.0,0.0,0.0,,0.8301270008087158
+32,wear a short sleeve blouse or a long sleeve blouse,red card i didn't want to go to college i'm,0.0,0.0,0.0,0.0,,0.8165401220321655
+35,dangerous edgy pictures of women and he wants to shoot,ff the right right this american man sat simply,0.0,0.0,0.0,0.0,,0.8313841223716736
+38,back in another hospital bed staring at another white ceiling,was a good thing and i was a really good,0.0,0.0,0.0,0.0,,0.8146266341209412
+39,pregnant which was a real surprise but a happy one,scary thing i don't know what might people come,0.0,0.0,0.0,0.0,,0.8067411184310913
+40,complete bed rest the last trimester of my pregnancy and,got this thing from this stupid lie but he was,0.0,0.0,0.0,0.0,,0.7911874055862427
+41,one time for five days with a fetal heart monitor,snoopers apartment complex and uh my doctor's dormitory um and,0.0,0.0,0.0,0.0,,0.8054185509681702
+43,friend she used to study english literature so she and,made it out of death for me i told i,0.0,0.0,0.0,0.0,,0.816498339176178
+44,explosion sent people flying from their seats my friend jumped,fire in the back of the room it started to,0.0,0.0,0.0,0.0,,0.8409558534622192
+45,driver sped away trying to get to safety not knowing,cop the glove compartment and the only person I see,0.0,0.0,0.0,0.0,,0.8371386528015137
+46,twenty five minutes ride to school took two hours because,city like a hundred million people died in the early,0.0,0.0,0.0,0.0,,0.826310932636261
+47,shia civil war and to see a strong iraqi military,going ahead of life all the time with this appointment,0.0,0.0,0.0,0.0,,0.8166632056236267
+51,arrived in kurdistan state in northern iraq and i managed,tell people on the planet so far you know about,0.0,0.0,0.0,0.0,,0.8013947010040283
+56,a whole new language i don't remember i ever said,door open and we hear the owner saying nobody else,0.0,0.0,0.0,0.0,,0.8327130675315857
+57,iraqi police iraqi military local mayors leaders with top us,uh the chess commanders there are two other reasons why,0.0,0.0,0.0,0.0,,0.7966465950012207
+61,passenger seat the driver was listening to really loud music,driver's bed and i took my car home,0.0,0.0,0.0,0.10526315867900848,,0.8487768769264221
+65,movie the lead actor always survive because it's a movie,bankruptcy and other things they're appointing and,0.0,0.0,0.0,0.0,,0.8128928542137146
+70,soldiers rushed to help me asking what happened what happened,step together and my sun exposure and i walked the,0.0,0.0,0.0,0.0,,0.8282589912414551
+73,enrolled in a state university to get my master's degree,substantively as it's the young men and women,0.0,0.0,0.0,0.10000000149011612,,0.8128902912139893
+80,best to look artsy to fit in but even though,great emotion that i'm adam a day and,0.0,0.0,0.0,0.0,,0.8182152509689331
+81,wrong way to make art now this makes me extremely,inside the brain of the people you can't,0.0,0.0,0.0,0.0,,0.8250185251235962
+88,going to look different i'm paralyzed what is mine supposed,feeling and i learned something about my computer we knew,0.0,0.0,0.0,0.095238097012043,,0.8356567025184631
+89,no way i'm gonna excel drawing this naked man's essence,crazy people like me to tell me i know,0.0,0.0,0.0,0.095238097012043,,0.8354839086532593
+92,end of class bob picks one of my gesture drawings,make this pick the rodeo th make the,0.0,0.0,0.0,0.1111111119389534,,0.8311005234718323
+95,new york times business sections and the wall street journal,next time someone remembers i forgot about my entire life,0.0,0.0,0.0,0.10000000149011612,,0.8072361946105957
+104,piled high with artwork and at my review board one,said that as i said i've got lots,0.0,0.0,0.0,0.0,,0.8212928771972656
+107,consulting work and even though i'm getting paid a fire,get me to the studios knowing that we are looking,0.0,0.0,0.0,0.095238097012043,,0.8266292810440063

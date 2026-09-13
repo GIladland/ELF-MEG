@@ -73,6 +73,24 @@ def get_sampling_steps(
     raise ValueError(f"Unknown time_schedule: {time_schedule}")
 
 
+def truncate_sampling_steps(t_steps: torch.Tensor, end_time: float) -> torch.Tensor:
+    """Return a monotonic prefix ending exactly at a requested flow time."""
+    if t_steps.ndim != 1 or t_steps.numel() < 2:
+        raise ValueError("t_steps must be a one-dimensional schedule with at least two values")
+    if not 0.0 <= float(end_time) <= 1.0:
+        raise ValueError("end_time must be in [0, 1]")
+    if bool((t_steps[1:] < t_steps[:-1]).any()):
+        raise ValueError("t_steps must be monotonic")
+    if end_time == 1.0:
+        return t_steps
+    start = t_steps[:1]
+    if end_time == 0.0:
+        return start
+    interior = t_steps[(t_steps > 0.0) & (t_steps < float(end_time))]
+    endpoint = torch.as_tensor([end_time], dtype=t_steps.dtype, device=t_steps.device)
+    return torch.cat([start, interior, endpoint])
+
+
 # ============================================
 # CFG Scale Sampling (how to sample cfg scale)
 # ============================================

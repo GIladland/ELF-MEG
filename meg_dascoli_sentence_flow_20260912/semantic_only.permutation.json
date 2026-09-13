@@ -1,0 +1,208 @@
+{
+  "contract": {
+    "run_tag": "dascoli_semantic_only_acc050",
+    "checkpoint": "/data/engs-pnpl/glandau/elf-runs/qc4wyals_elfb_dascoli_lora8_mid_ep40_seed49_20260911/best.pt",
+    "n": 110,
+    "null": "random one-to-one reassignment of generated sentences to target rows",
+    "permutations": 100000,
+    "seed": 20260910,
+    "bleu1": "macro sentence BLEU-1 with modified unigram precision and brevity penalty",
+    "rouge1": "macro ROUGE-1 F1 with Porter stemming",
+    "bertscore": "raw non-rescaled roberta-large, layer 17"
+  },
+  "permutation_tests": {
+    "content_f1": {
+      "observed": 0.017633301561528987,
+      "null_mean": 0.008413217030465603,
+      "null_std": 0.0033780091907829046,
+      "null_ci95": [
+        0.002584670437499881,
+        0.015646036295220253
+      ],
+      "one_sided_p": 0.007639923600763992,
+      "direction": "higher"
+    },
+    "word_f1": {
+      "observed": 0.059851221604780715,
+      "null_mean": 0.05223403871059418,
+      "null_std": 0.00582409743219614,
+      "null_ci95": [
+        0.041021810844540596,
+        0.063858225941658
+      ],
+      "one_sided_p": 0.0972490275097249,
+      "direction": "higher"
+    },
+    "bleu1": {
+      "observed": 0.05581199472600763,
+      "null_mean": 0.04809032380580902,
+      "null_std": 0.005367656238377094,
+      "null_ci95": [
+        0.03773966059088707,
+        0.058814811706542965
+      ],
+      "one_sided_p": 0.07814921850781492,
+      "direction": "higher"
+    },
+    "rouge1_f1": {
+      "observed": 0.06267530701377175,
+      "null_mean": 0.0553615428507328,
+      "null_std": 0.006023736670613289,
+      "null_ci95": [
+        0.043798289354890586,
+        0.06741199884563684
+      ],
+      "one_sided_p": 0.11326886731132689,
+      "direction": "higher"
+    },
+    "wer": {
+      "observed": 1.0054545454545454,
+      "null_mean": 1.0085902214050293,
+      "null_std": 0.0035832927096635103,
+      "null_ci95": [
+        1.0009090900421143,
+        1.0154545307159424
+      ],
+      "one_sided_p": 0.22448775512244878,
+      "direction": "lower"
+    },
+    "bertscore_raw_f1": {
+      "observed": 0.815297421542081,
+      "null_mean": 0.8127233386039734,
+      "null_std": 0.0005608789506368339,
+      "null_ci95": [
+        0.8116555213928223,
+        0.8138548195362091
+      ],
+      "one_sided_p": 9.99990000099999e-06,
+      "direction": "higher"
+    }
+  },
+  "retrieval_chance_tests": {
+    "note": "Exact one-sided binomial chance tests; these are not row-permutation tests.",
+    "generated_top1": {
+      "hits": 7,
+      "rate": 0.06363636255264282,
+      "chance": 0.00909090909090909,
+      "p": 7.213855498985451e-05
+    },
+    "generated_top5": {
+      "hits": 16,
+      "rate": 0.145454540848732,
+      "chance": 0.045454545454545456,
+      "p": 3.939427617670053e-05
+    }
+  },
+  "top_generations": [
+    {
+      "index": 7,
+      "target": "long enough ago i was fourteen a long time ago",
+      "generated": "twenty eight minutes a funness in time for about long",
+      "content_f1": 0.30769230769230765,
+      "word_f1": 0.3,
+      "bleu1": 0.30000001192092896,
+      "rouge1_f1": 0.30000001192092896,
+      "overlapping_content_words": "long, time",
+      "bertscore_raw_f1": 0.8071138262748718
+    },
+    {
+      "index": 33,
+      "target": "i really started modeling to pay off my college loans",
+      "generated": "battitune leaping this thing and the is started",
+      "content_f1": 0.22222222222222224,
+      "word_f1": 0.11111111111111112,
+      "bleu1": 0.0973500981926918,
+      "rouge1_f1": 0.1111111119389534,
+      "overlapping_content_words": "started",
+      "bertscore_raw_f1": 0.8116403818130493
+    },
+    {
+      "index": 59,
+      "target": "i wanted i asked to go on vacation to see",
+      "generated": "go home a mark a year up westwestfield",
+      "content_f1": 0.20000000000000004,
+      "word_f1": 0.11111111111111112,
+      "bleu1": 0.0973500981926918,
+      "rouge1_f1": 0.1111111119389534,
+      "overlapping_content_words": "go",
+      "bertscore_raw_f1": 0.8168538212776184
+    },
+    {
+      "index": 20,
+      "target": "kept getting louder and louder the silence then i finally",
+      "generated": "started getting hurting back to my whie",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.11764705882352941,
+      "bleu1": 0.09306272119283676,
+      "rouge1_f1": 0.11764705926179886,
+      "overlapping_content_words": "getting",
+      "bertscore_raw_f1": 0.8194299340248108
+    },
+    {
+      "index": 15,
+      "target": "eyes closed and her mouth open and blood was trickling",
+      "generated": "seat was pinned underneath a fire and blood fell from",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.3,
+      "bleu1": 0.30000001192092896,
+      "rouge1_f1": 0.30000001192092896,
+      "overlapping_content_words": "blood",
+      "bertscore_raw_f1": 0.858155369758606
+    },
+    {
+      "index": 57,
+      "target": "iraqi police iraqi military local mayors leaders with top us",
+      "generated": "state security a a police officer and a navy",
+      "content_f1": 0.15384615384615385,
+      "word_f1": 0.10526315789473685,
+      "bleu1": 0.09942658990621567,
+      "rouge1_f1": 0.10526315867900848,
+      "overlapping_content_words": "police",
+      "bertscore_raw_f1": 0.826066792011261
+    },
+    {
+      "index": 106,
+      "target": "dear friend of mine says you know tricia i love",
+      "generated": "writer said thankeen really uh really talented i know",
+      "content_f1": 0.15384615384615383,
+      "word_f1": 0.2105263157894737,
+      "bleu1": 0.19885317981243134,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "know",
+      "bertscore_raw_f1": 0.8425197601318359
+    },
+    {
+      "index": 73,
+      "target": "enrolled in a state university to get my master's degree",
+      "generated": "madeve account the world motivation claims of the state body and train",
+      "content_f1": 0.14285714285714288,
+      "word_f1": 0.0909090909090909,
+      "bleu1": 0.0833333358168602,
+      "rouge1_f1": 0.08695652335882187,
+      "overlapping_content_words": "state",
+      "bertscore_raw_f1": 0.8277049660682678
+    },
+    {
+      "index": 90,
+      "target": "start making these hopeless stick figures every forty five seconds",
+      "generated": "start doing things a protesti to a cool doing things",
+      "content_f1": 0.14285714285714285,
+      "word_f1": 0.10000000000000002,
+      "bleu1": 0.10000000149011612,
+      "rouge1_f1": 0.10000000149011612,
+      "overlapping_content_words": "start",
+      "bertscore_raw_f1": 0.8123887181282043
+    },
+    {
+      "index": 32,
+      "target": "wear a short sleeve blouse or a long sleeve blouse",
+      "generated": "long term getting school but cause i really tried to go",
+      "content_f1": 0.14285714285714285,
+      "word_f1": 0.09523809523809525,
+      "bleu1": 0.09090909361839294,
+      "rouge1_f1": 0.095238097012043,
+      "overlapping_content_words": "long",
+      "bertscore_raw_f1": 0.8093108534812927
+    }
+  ]
+}

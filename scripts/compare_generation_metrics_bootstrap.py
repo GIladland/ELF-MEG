@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import re
 from collections import Counter
@@ -69,7 +70,32 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_json(path: str) -> dict:
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if isinstance(payload.get("best"), dict):
+        best = payload["best"]
+        normalized = dict(payload)
+        if "generated" not in normalized and "generated" in best:
+            normalized["generated"] = best["generated"]
+        if "generation_quality" not in normalized and "matched" in best:
+            normalized["generation_quality"] = best["matched"]
+        return normalized
+    return payload
+
+
+def load_bertscore_f1(path: str) -> np.ndarray:
+    """Load row-aligned BERTScore F1 from JSON or an audit ranking CSV."""
+    source = Path(path)
+    if source.suffix.lower() != ".csv":
+        return np.asarray(load_json(path)["per_sample"]["f1"], dtype=np.float64)
+    with source.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    if not rows or "index" not in rows[0] or "bertscore_raw_f1" not in rows[0]:
+        raise ValueError("BERTScore CSV requires index and bertscore_raw_f1 columns")
+    rows.sort(key=lambda row: int(row["index"]))
+    indices = [int(row["index"]) for row in rows]
+    if indices != list(range(len(rows))):
+        raise ValueError("BERTScore CSV indices must be exactly 0..N-1")
+    return np.asarray([float(row["bertscore_raw_f1"]) for row in rows])
 
 
 def paired_summary(
@@ -184,6 +210,15 @@ def main() -> None:
                 rng=rng,
                 samples=args.samples,
             ),
+            "word_content_f1_sum": paired_summary(
+                np.asarray(baseline_overlap["per_sample"], dtype=np.float64)
+                + np.asarray(baseline_overlap["per_sample_content"], dtype=np.float64),
+                np.asarray(candidate_overlap["per_sample"], dtype=np.float64)
+                + np.asarray(candidate_overlap["per_sample_content"], dtype=np.float64),
+                higher_is_better=True,
+                rng=rng,
+                samples=args.samples,
+            ),
             "per_row_wer": paired_summary(
                 np.asarray(baseline_overlap["per_sample_wer"], dtype=np.float64),
                 np.asarray(candidate_overlap["per_sample_wer"], dtype=np.float64),
@@ -200,14 +235,10 @@ def main() -> None:
     }
 
     if bool(args.baseline_bertscore) != bool(args.candidate_bertscore):
-        raise ValueError("provide both BERTScore JSONs or neither")
+        raise ValueError("provide both BERTScore files or neither")
     if args.baseline_bertscore:
-        baseline_bert = np.asarray(
-            load_json(args.baseline_bertscore)["per_sample"]["f1"], dtype=np.float64
-        )
-        candidate_bert = np.asarray(
-            load_json(args.candidate_bertscore)["per_sample"]["f1"], dtype=np.float64
-        )
+        baseline_bert = load_bertscore_f1(args.baseline_bertscore)
+        candidate_bert = load_bertscore_f1(args.candidate_bertscore)
         result["metrics"]["bertscore_f1"] = paired_summary(
             baseline_bert,
             candidate_bert,

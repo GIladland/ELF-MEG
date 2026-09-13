@@ -1,0 +1,56 @@
+{
+  "contract": "paired validation-row comparison; no test data",
+  "baseline": "/data/engs-pnpl/glandau/elf-runs/qc4wyals_elfb_dascoli_eval_lora8_mid_ep40_sem0035_floor1_joint_weighted_acc0.50_seed49_20260911/best_metrics.json",
+  "candidate": "/data/engs-pnpl/glandau/elf-runs/meg_dascoli_sentence_flow_20260912/direct_source_acc050.t5retrieval.json",
+  "bootstrap_samples": 50000,
+  "seed": 49,
+  "metrics": {
+    "content_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.28839349669000663,
+      "candidate_mean": 0.4531721620625363,
+      "candidate_minus_baseline": 0.1647786653725297,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        0.1363498043884689,
+        0.1941669112054878
+      ],
+      "bootstrap_probability_candidate_better": 1.0,
+      "rows_candidate_better": 82,
+      "rows_tied": 21,
+      "rows_candidate_worse": 7
+    },
+    "word_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.3665808117638782,
+      "candidate_mean": 0.4990909090909091,
+      "candidate_minus_baseline": 0.13251009732703095,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        0.11093730233950223,
+        0.15521173678446926
+      ],
+      "bootstrap_probability_candidate_better": 1.0,
+      "rows_candidate_better": 83,
+      "rows_tied": 21,
+      "rows_candidate_worse": 6
+    },
+    "per_row_wer": {
+      "num_rows": 110,
+      "baseline_mean": 0.6672727272727272,
+      "candidate_mean": 0.5018181818181818,
+      "candidate_minus_baseline": -0.1654545454545455,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.19454545454545452,
+        -0.13818181818181818
+      ],
+      "bootstrap_probability_candidate_better": 1.0,
+      "rows_candidate_better": 87,
+      "rows_tied": 23,
+      "rows_candidate_worse": 0
+    }
+  },
+  "corpus_wer": {
+    "baseline": 0.6672727272727272,
+    "candidate": 0.5018181818181818,
+    "candidate_minus_baseline": -0.1654545454545454
+  }
+}

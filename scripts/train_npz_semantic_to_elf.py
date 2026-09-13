@@ -44,7 +44,19 @@ from modules.fmri2sem_bridge import (
     load_mri2sem_model,
 )
 from modules.lora import inject_elf_lora, load_elf_state_dict, lora_parameter_count
+from modules.dascoli_sentence_source import (
+    SimulatedDAscoliSentences,
+    align_word_confidence_to_tokens,
+    build_position_vocabulary,
+    external_sentence_source,
+    force_vocabulary_token_confidence,
+    normalized_words,
+    simulate_dascoli_sentences,
+    transform_token_confidence,
+)
 from modules.t5_encoder import get_encoder
+from utils.generation_utils import _generate_samples_single_batch
+from utils.sampling_utils import get_sampling_steps, restore_cond
 from scripts.meg_context_overfit import (
     _CONTENT_WORD_STOPWORDS,
     _WORD_RE,
@@ -88,6 +100,16 @@ def safe_wandb_log(payload: dict, *, step: int) -> None:
         logger.warning("W&B logging failed at step %d; continuing locally: %s", step, exc)
 
 
+def atomic_torch_save(payload: dict, path: Path) -> None:
+    """Write a checkpoint beside its destination, then atomically replace it."""
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    try:
+        torch.save(payload, temporary)
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 if not hasattr(np, "_core"):
     sys.modules.setdefault("numpy._core", np.core)
     sys.modules.setdefault("numpy._core.multiarray", np.core.multiarray)
@@ -118,6 +140,16 @@ def parse_args() -> argparse.Namespace:
             "Deterministically roll only the held-out brain rows after alignment checks. "
             "Nonzero values are evaluation controls for matched-versus-deranged conditioning; "
             "text targets and train rows remain fixed."
+        ),
+    )
+    parser.add_argument(
+        "--semantic-val-roll",
+        type=int,
+        default=0,
+        help=(
+            "Deterministically roll only the held-out condition vectors after the "
+            "train/validation boundary is established. Nonzero values are leakage-safe "
+            "matched-versus-deranged controls; targets and train rows remain fixed."
         ),
     )
     parser.add_argument("--brain-model-checkpoint", default="")
@@ -207,6 +239,26 @@ def parse_args() -> argparse.Namespace:
         help="Skip ordered-head positions whose adjusted top-1/top-2 logit margin is smaller.",
     )
     parser.add_argument("--brain-ordered-decode-bias-strength", type=float, default=0.0)
+
+    parser.add_argument(
+        "--semantic-lexical-head-checkpoint",
+        default="",
+        help=(
+            "Optional train-only word head whose input is the NPZ semantic vector itself. "
+            "Its top-k words are injected only as a soft ELF decoder-logit bias; it never "
+            "provides a generated sentence or a second inference condition. The existing "
+            "--brain-lexical-* controls configure selection and bias strength."
+        ),
+    )
+    parser.add_argument(
+        "--semantic-ordered-head-checkpoint",
+        default="",
+        help=(
+            "Optional train-only position-aware word head paired with "
+            "--semantic-lexical-head-checkpoint. Its predictions are soft ELF "
+            "decoder biases, never a generated prefix."
+        ),
+    )
     parser.add_argument(
         "--brain-ordered-decode-max-positions",
         type=int,
@@ -284,6 +336,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--num-examples", type=int, default=0)
+    parser.add_argument(
+        "--eval-target-length",
+        type=int,
+        default=0,
+        help=(
+            "Optional validation generation canvas shorter than the training tokenizer "
+            "canvas. Zero uses the full canvas; 22 reproduces the published Apple "
+            "ELF-M validation decode while retaining its 27-token model configuration."
+        ),
+    )
     parser.add_argument(
         "--val-num-examples",
         type=int,
@@ -424,7 +486,53 @@ def parse_args() -> argparse.Namespace:
         default=0.1,
     )
     parser.add_argument("--decoder_prob", type=float, default=0.5)
+    parser.add_argument(
+        "--decoder_p_mean",
+        type=float,
+        default=0.8,
+        help=(
+            "Mean of the logistic-normal target-latent mixing coefficient used for "
+            "decoder training. Lower values remove more target signal and force greater "
+            "use of the semantic condition."
+        ),
+    )
+    parser.add_argument(
+        "--decoder_p_std",
+        type=float,
+        default=0.8,
+        help="Standard deviation of the decoder logistic-normal mixing coefficient.",
+    )
     parser.add_argument("--decoder_noise_scale", type=float, default=2.5)
+    parser.add_argument(
+        "--decoder-position-prior-strength",
+        type=float,
+        default=0.0,
+        help=(
+            "Scale a target-position token prior estimated exclusively from selected "
+            "training rows and added to ELF decoder logits at evaluation."
+        ),
+    )
+    parser.add_argument("--decoder-position-prior-smoothing", type=float, default=0.25)
+    parser.add_argument("--decoder-position-prior-clip", type=float, default=5.0)
+    parser.add_argument(
+        "--decoder-flow-latent-cache",
+        default="",
+        help=(
+            "Optional NPY cache of target latents sampled from noise by the frozen "
+            "semantic-conditioned flow. When set, these deployment-matched latents "
+            "replace sentence-source latents for decoder training only."
+        ),
+    )
+    parser.add_argument("--decoder-flow-latent-batch-size", type=int, default=16)
+    parser.add_argument("--decoder-flow-latent-seed", type=int, default=66)
+    parser.add_argument(
+        "--decoder-flow-latent-direct",
+        action="store_true",
+        help=(
+            "Feed cached frozen-flow target latents directly to the decoder objective "
+            "instead of mixing them with ground-truth target latents."
+        ),
+    )
     parser.add_argument(
         "--semantic-alignment-target-npz",
         default="",
@@ -572,6 +680,127 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--last_n_blocks", type=int, default=1)
     parser.add_argument("--generation-t5-retrieval", action="store_true")
+    parser.add_argument(
+        "--dascoli-simulated-source",
+        action="store_true",
+        help=(
+            "Train/evaluate confidence-weighted transport from a target-derived simulated "
+            "full D'Ascoli sentence. This is an explicitly labelled validation ceiling, not "
+            "a brain-decoding result."
+        ),
+    )
+    parser.add_argument(
+        "--sentence-source-eval-json",
+        default="",
+        help=(
+            "Optional aligned validation metrics JSON whose generated sentences replace the "
+            "simulated validation proposals. Training proposals remain target-derived simulated "
+            "corruptions; this enables validation-only T5-to-flow editing without target leakage."
+        ),
+    )
+    parser.add_argument(
+        "--sentence-source-eval-confidence",
+        type=float,
+        default=0.5,
+        help=(
+            "Uniform proposed-word confidence when --sentence-source-eval-json has no "
+            "word_confidence field."
+        ),
+    )
+    parser.add_argument(
+        "--sentence-source-eval-confidence-field",
+        default="word_confidence",
+        help=(
+            "Field or dotted field path containing aligned external word confidence, "
+            "for example word_confidence_variants.teacher_margin."
+        ),
+    )
+    parser.add_argument("--dascoli-expected-words", type=int, default=10)
+    parser.add_argument(
+        "--dascoli-train-accuracies",
+        type=float,
+        nargs="+",
+        default=[0.25, 0.50, 0.75, 0.90],
+        help="Per-row word-correctness probabilities mixed during training.",
+    )
+    parser.add_argument("--dascoli-eval-accuracy", type=float, default=0.50)
+    parser.add_argument(
+        "--dascoli-eval-mode",
+        choices=[
+            "semantic_only",
+            "sentence_only",
+            "joint_unweighted",
+            "joint_weighted",
+            "joint_shuffled",
+        ],
+        default="joint_weighted",
+    )
+    parser.add_argument(
+        "--dascoli-global-trust",
+        type=float,
+        default=1.0,
+        help="Multiply calibrated per-token confidence by this value before clipping to [0,1].",
+    )
+    parser.add_argument(
+        "--dascoli-confidence-floor",
+        type=float,
+        default=0.0,
+        help=(
+            "Minimum non-padding source trust after calibration; 1.0 is the "
+            "unweighted full-sentence endpoint."
+        ),
+    )
+    parser.add_argument(
+        "--dascoli-eval-semantic-scale",
+        type=float,
+        default=1.0,
+        help="Scale the semantic context during D'Ascoli evaluation (0=sentence only, 1=full).",
+    )
+    parser.add_argument(
+        "--sentence-source-flow-end-time",
+        type=float,
+        default=1.0,
+        help=(
+            "Stop source-to-target ODE editing at this time in [0,1]. Zero decodes the "
+            "source latent directly; one applies the full learned transport."
+        ),
+    )
+    parser.add_argument(
+        "--sentence-source-copy-confidence-threshold",
+        type=float,
+        default=-1.0,
+        help=(
+            "If in [0,1], hard-copy external source tokens at or above this raw "
+            "confidence after diffusion decoding. Negative disables hard copying."
+        ),
+    )
+    parser.add_argument(
+        "--sentence-source-edit-latent-preservation",
+        type=float,
+        default=0.0,
+        help=(
+            "For source positions below the hard-copy threshold, blend this fraction "
+            "of the original source latent back immediately before decoding. Zero is "
+            "the existing full-edit behavior; one is latent-preserving at editable tokens."
+        ),
+    )
+    parser.add_argument(
+        "--sentence-source-copy-function-words",
+        action="store_true",
+        help=(
+            "Always hard-copy proposal tokens in the evaluator function-word list, "
+            "leaving the confidence gate to edit content words."
+        ),
+    )
+    parser.add_argument(
+        "--dascoli-source-dropout-prob",
+        type=float,
+        default=0.10,
+        help=(
+            "Training-only probability of setting a complete source row's confidence to zero; "
+            "preserves a semantic-only branch and prevents compulsory copying."
+        ),
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--use_wandb", action="store_true")
@@ -595,6 +824,14 @@ def parse_args() -> argparse.Namespace:
         help="Validation metric used to select best.pt. negative_wer directly minimizes corpus WER.",
     )
     parser.add_argument("--save-best-checkpoint", action="store_true")
+    parser.add_argument(
+        "--save-trainable-only-checkpoint",
+        action="store_true",
+        help=(
+            "Store only trainable ELF parameters plus a parent initialization reference. "
+            "Requires a frozen adapter and --init-e2e-checkpoint; useful on constrained ARC storage."
+        ),
+    )
     parser.add_argument("--save-final-checkpoint", action="store_true")
     parser.add_argument(
         "--save-eval-checkpoints",
@@ -673,6 +910,45 @@ def format_overlap_counts(counts: dict[str, int] | None) -> str:
 def make_batches(num_examples: int, batch_size: int, generator: torch.Generator) -> list[torch.Tensor]:
     perm = torch.randperm(num_examples, generator=generator)
     return [perm[start:start + batch_size] for start in range(0, num_examples, batch_size)]
+
+
+def build_decoder_position_logit_bias(
+    input_ids: torch.Tensor,
+    attention_mask: torch.Tensor,
+    train_indices: torch.Tensor,
+    *,
+    vocabulary_size: int,
+    strength: float,
+    smoothing: float,
+    clip: float,
+) -> torch.Tensor | None:
+    """Estimate a leakage-safe positional token prior from selected train rows."""
+
+    if strength < 0.0:
+        raise ValueError("decoder position-prior strength must be non-negative")
+    if strength == 0.0:
+        return None
+    if smoothing <= 0.0:
+        raise ValueError("decoder position-prior smoothing must be positive")
+    if clip <= 0.0:
+        raise ValueError("decoder position-prior clip must be positive")
+    selected_ids = input_ids.index_select(0, train_indices.detach().cpu()).long()
+    selected_mask = attention_mask.index_select(
+        0, train_indices.detach().cpu()
+    ).float()
+    if selected_ids.ndim != 2 or selected_mask.shape != selected_ids.shape:
+        raise ValueError("token IDs and masks must be aligned two-dimensional tensors")
+    counts = torch.full(
+        (selected_ids.shape[1], vocabulary_size),
+        float(smoothing),
+        dtype=torch.float32,
+    )
+    counts.scatter_add_(1, selected_ids.T, selected_mask.T)
+    log_probability = counts.log() - counts.sum(dim=1, keepdim=True).log()
+    # Center each slot at its most common token. The prior only penalizes less
+    # plausible options and therefore cannot manufacture a positive logit spike.
+    centered = log_probability - log_probability.max(dim=1, keepdim=True).values
+    return centered.clamp(min=-float(clip), max=0.0) * float(strength)
 
 
 def select_strings(items: list[str], indices: torch.Tensor) -> list[str]:
@@ -1140,12 +1416,64 @@ def load_e2e_initialization(
         raise ValueError(f"Unsupported checkpoint payload in {checkpoint_path}: {type(ckpt).__name__}")
 
     loaded: list[str] = []
+    parent_checkpoint = ckpt.get("parent_init_e2e_checkpoint")
+    if parent_checkpoint:
+        parent_checkpoint = str(parent_checkpoint)
+        if Path(parent_checkpoint).resolve() == Path(checkpoint_path).resolve():
+            raise ValueError("Compact checkpoint cannot refer to itself as its parent.")
+        load_e2e_initialization(
+            model,
+            adapter,
+            parent_checkpoint,
+            device,
+            adapter_mismatch=adapter_mismatch,
+        )
+        loaded.append("parent_init_e2e_checkpoint")
     if "model_state_dict" in ckpt:
         load_elf_state_dict(model, ckpt["model_state_dict"])
         loaded.append("model_state_dict")
     elif "params" in ckpt:
         load_elf_state_dict(model, ckpt["params"])
         loaded.append("params")
+
+    trainable_model_state = ckpt.get("trainable_model_state_dict")
+    if trainable_model_state is not None:
+        missing, unexpected = model.load_state_dict(trainable_model_state, strict=False)
+        if unexpected:
+            raise ValueError(
+                f"Unexpected trainable ELF keys in {checkpoint_path}: {sorted(unexpected)}"
+            )
+        if not trainable_model_state:
+            raise ValueError(f"Compact checkpoint {checkpoint_path} has no trainable ELF tensors.")
+        logger.info(
+            "Applied %d trainable ELF tensors from compact checkpoint; %d parent/base keys retained.",
+            len(trainable_model_state),
+            len(missing),
+        )
+        loaded.append("trainable_model_state_dict")
+
+    trainable_adapter_state = ckpt.get("trainable_adapter_state_dict")
+    if trainable_adapter_state is not None:
+        if not trainable_adapter_state:
+            raise ValueError(
+                f"Compact checkpoint {checkpoint_path} has no trainable adapter tensors."
+            )
+        missing, unexpected = adapter.load_state_dict(
+            trainable_adapter_state,
+            strict=False,
+        )
+        if unexpected:
+            raise ValueError(
+                f"Unexpected trainable adapter keys in {checkpoint_path}: "
+                f"{sorted(unexpected)}"
+            )
+        logger.info(
+            "Applied %d trainable adapter tensors from compact checkpoint; "
+            "%d parent/base keys retained.",
+            len(trainable_adapter_state),
+            len(missing),
+        )
+        loaded.append("trainable_adapter_state_dict")
 
     adapter_state = ckpt.get("adapter_state_dict")
     if adapter_state is None:
@@ -1409,6 +1737,136 @@ def encode_target_latent_memmap(
     return np.load(cache_path, mmap_mode="r")
 
 
+@torch.no_grad()
+def frozen_flow_target_latent_memmap(
+    *,
+    cache_path: Path,
+    model: nn.Module,
+    adapter: nn.Module,
+    semantic_vectors: torch.Tensor,
+    target_length: int,
+    context_length: int,
+    latent_dim: int,
+    config,
+    sampling_steps: int,
+    cfg_scale: float,
+    self_cond_cfg_scale: float,
+    device: torch.device,
+    batch_size: int,
+    seed: int,
+) -> np.memmap:
+    """Cache target latents produced by the frozen deployment flow from noise."""
+
+    expected_shape = (
+        int(semantic_vectors.shape[0]),
+        int(target_length),
+        int(latent_dim),
+    )
+    if cache_path.exists():
+        cached = np.load(cache_path, mmap_mode="r")
+        if tuple(cached.shape) != expected_shape:
+            raise ValueError(
+                f"Frozen-flow latent cache shape mismatch: {cached.shape} != {expected_shape}"
+            )
+        logger.info("Using frozen-flow target latent cache %s shape=%s", cache_path, cached.shape)
+        return cached
+
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = cache_path.with_name(f".{cache_path.name}.{os.getpid()}.tmp.npy")
+    cached = np.lib.format.open_memmap(
+        temporary_path,
+        mode="w+",
+        dtype=np.float16,
+        shape=expected_shape,
+    )
+    sampling_config = SamplingConfig(
+        sampling_method="ode",
+        num_sampling_steps=[int(sampling_steps)],
+        cfgs=[float(cfg_scale)],
+        self_cond_cfg_scales=[float(self_cond_cfg_scale)],
+        time_schedule=config.time_schedule,
+    )
+    t_steps = get_sampling_steps(
+        n_steps=int(sampling_steps),
+        time_schedule=config.time_schedule,
+        P_mean=config.denoiser_p_mean,
+        P_std=config.denoiser_p_std,
+        device=device,
+        dtype=torch.float32,
+    )
+    generator = torch.Generator(
+        device=device.type if device.type == "cuda" else "cpu"
+    ).manual_seed(int(seed))
+    model.eval()
+    adapter.eval()
+    use_batch_size = max(1, int(batch_size))
+    try:
+        for start in range(0, semantic_vectors.shape[0], use_batch_size):
+            stop = min(start + use_batch_size, semantic_vectors.shape[0])
+            context, context_mask = adapter(
+                semantic_vectors[start:stop].to(device=device, dtype=torch.float32)
+            )
+            if context.shape[1] != context_length:
+                raise ValueError(
+                    f"Frozen-flow context length {context.shape[1]} != {context_length}"
+                )
+            zeros_target = torch.zeros(
+                (context.shape[0], target_length, context.shape[-1]),
+                dtype=context.dtype,
+                device=device,
+            )
+            cond_seq = torch.cat([context, zeros_target], dim=1)
+            cond_mask = torch.cat(
+                [
+                    context_mask.to(device=device, dtype=context.dtype),
+                    torch.zeros(
+                        (context.shape[0], target_length),
+                        dtype=context.dtype,
+                        device=device,
+                    ),
+                ],
+                dim=1,
+            )
+            z = torch.randn(
+                cond_seq.shape,
+                generator=generator,
+                device=device,
+                dtype=context.dtype,
+            ) * config.denoiser_noise_scale
+            latent = _generate_samples_single_batch(
+                model=model,
+                generator=generator,
+                z=z,
+                t_steps=t_steps.to(dtype=context.dtype),
+                cond_seq=cond_seq,
+                cond_seq_mask=cond_mask,
+                config=config,
+                sampling_config=sampling_config,
+                cfg_scale=float(cfg_scale),
+                self_cond_cfg_scale=float(self_cond_cfg_scale),
+            )
+            cached[start:stop] = (
+                latent[:, context_length:].detach().cpu().to(torch.float16).numpy()
+            )
+            if start == 0 or stop == semantic_vectors.shape[0] or stop % (use_batch_size * 20) == 0:
+                logger.info(
+                    "cached frozen-flow target latents rows %d:%d / %d",
+                    start,
+                    stop,
+                    semantic_vectors.shape[0],
+                )
+        cached.flush()
+        os.replace(temporary_path, cache_path)
+    except Exception:
+        try:
+            temporary_path.unlink()
+        except FileNotFoundError:
+            pass
+        raise
+    logger.info("Saved frozen-flow target latent cache %s", cache_path)
+    return np.load(cache_path, mmap_mode="r")
+
+
 def select_memmap_rows(mmap: np.memmap, indices: torch.Tensor) -> torch.Tensor:
     index_np = indices.detach().cpu().numpy()
     return torch.as_tensor(np.asarray(mmap[index_np]), dtype=torch.float32)
@@ -1527,6 +1985,20 @@ def main() -> None:
         raise ValueError(f"Need at least one training example after holdout; got total_n={total_n}, val_n={val_n}.")
     semantic_vectors = semantic_vectors[:total_n]
     sentences = sentences[:total_n]
+    normalized_semantic_val_roll = (
+        int(args.semantic_val_roll) % int(val_n) if val_n > 0 else 0
+    )
+    if normalized_semantic_val_roll:
+        semantic_vectors = semantic_vectors.clone()
+        semantic_vectors[train_split_n:total_n] = torch.roll(
+            semantic_vectors[train_split_n:total_n],
+            shifts=normalized_semantic_val_roll,
+            dims=0,
+        )
+        logger.warning(
+            "Applied held-out semantic-condition derangement roll=%d; train rows and targets unchanged.",
+            normalized_semantic_val_roll,
+        )
     semantic_alignment_targets = None
     if args.semantic_alignment_target_npz:
         alignment_data = np.load(args.semantic_alignment_target_npz, allow_pickle=True)
@@ -1672,11 +2144,278 @@ def main() -> None:
         args.steps / max(1, steps_per_epoch),
     )
 
+    dascoli_simulation: SimulatedDAscoliSentences | None = None
+    dascoli_source_summary = None
+    external_eval_source = False
+    if args.sentence_source_eval_json and not args.dascoli_simulated_source:
+        raise ValueError(
+            "--sentence-source-eval-json currently requires --dascoli-simulated-source "
+            "to provide leakage-safe corrupted training proposals."
+        )
+    if args.dascoli_simulated_source:
+        if args.dascoli_expected_words <= 0:
+            raise ValueError("--dascoli-expected-words must be positive.")
+        if not 0.0 <= args.dascoli_global_trust <= 1.0:
+            raise ValueError("--dascoli-global-trust must be in [0, 1].")
+        if not 0.0 <= args.dascoli_confidence_floor <= 1.0:
+            raise ValueError("--dascoli-confidence-floor must be in [0, 1].")
+        if not 0.0 <= args.dascoli_eval_semantic_scale <= 1.0:
+            raise ValueError("--dascoli-eval-semantic-scale must be in [0, 1].")
+        if not 0.0 <= args.sentence_source_flow_end_time <= 1.0:
+            raise ValueError("--sentence-source-flow-end-time must be in [0, 1].")
+        if args.sentence_source_copy_confidence_threshold > 1.0:
+            raise ValueError(
+                "--sentence-source-copy-confidence-threshold must be negative or in [0, 1]."
+            )
+        if not 0.0 <= args.dascoli_source_dropout_prob <= 1.0:
+            raise ValueError("--dascoli-source-dropout-prob must be in [0, 1].")
+        if not 0.0 <= args.sentence_source_eval_confidence <= 1.0:
+            raise ValueError("--sentence-source-eval-confidence must be in [0, 1].")
+        selected_train_sentences = [sentences[index] for index in train_indices.tolist()]
+        position_vocabulary, global_vocabulary = build_position_vocabulary(
+            selected_train_sentences,
+            expected_words=args.dascoli_expected_words,
+        )
+        train_simulation = simulate_dascoli_sentences(
+            sentences[:train_split_n],
+            position_vocabulary=position_vocabulary,
+            global_vocabulary=global_vocabulary,
+            accuracies=args.dascoli_train_accuracies,
+            seed=args.seed + 70_001,
+        )
+        if val_n > 0:
+            if args.sentence_source_eval_json:
+                with Path(args.sentence_source_eval_json).open("r", encoding="utf-8") as handle:
+                    external_payload = json.load(handle)
+                validation_simulation = external_sentence_source(
+                    external_payload,
+                    expected_targets=sentences[train_split_n:total_n],
+                    expected_words=args.dascoli_expected_words,
+                    default_confidence=args.sentence_source_eval_confidence,
+                    confidence_field=args.sentence_source_eval_confidence_field,
+                )
+                external_eval_source = True
+            else:
+                validation_simulation = simulate_dascoli_sentences(
+                    sentences[train_split_n:total_n],
+                    position_vocabulary=position_vocabulary,
+                    global_vocabulary=global_vocabulary,
+                    accuracies=[args.dascoli_eval_accuracy],
+                    seed=args.seed + 70_003,
+                )
+            simulation_width = max(
+                train_simulation.word_confidence.shape[1],
+                validation_simulation.word_confidence.shape[1],
+            )
+
+            def pad_simulation_width(
+                simulation: SimulatedDAscoliSentences,
+            ) -> SimulatedDAscoliSentences:
+                padding = simulation_width - simulation.word_confidence.shape[1]
+                if padding <= 0:
+                    return simulation
+                return SimulatedDAscoliSentences(
+                    sentences=simulation.sentences,
+                    word_confidence=F.pad(simulation.word_confidence, (0, padding)),
+                    correct_word_mask=F.pad(
+                        simulation.correct_word_mask, (0, padding), value=False
+                    ),
+                    row_accuracy=simulation.row_accuracy,
+                )
+
+            train_simulation = pad_simulation_width(train_simulation)
+            validation_simulation = pad_simulation_width(validation_simulation)
+            dascoli_simulation = SimulatedDAscoliSentences(
+                sentences=train_simulation.sentences + validation_simulation.sentences,
+                word_confidence=torch.cat(
+                    [train_simulation.word_confidence, validation_simulation.word_confidence], dim=0
+                ),
+                correct_word_mask=torch.cat(
+                    [train_simulation.correct_word_mask, validation_simulation.correct_word_mask], dim=0
+                ),
+                row_accuracy=torch.cat(
+                    [train_simulation.row_accuracy, validation_simulation.row_accuracy], dim=0
+                ),
+            )
+        else:
+            dascoli_simulation = train_simulation
+        train_correct = dascoli_simulation.correct_word_mask[:train_split_n]
+        eval_correct = dascoli_simulation.correct_word_mask[train_split_n:total_n]
+        dascoli_source_summary = {
+            "role": (
+                "external_validation_sentence_proposal"
+                if external_eval_source
+                else "target_derived_validation_ceiling"
+            ),
+            "expected_words": args.dascoli_expected_words,
+            "train_accuracies": list(args.dascoli_train_accuracies),
+            "eval_accuracy_probability": args.dascoli_eval_accuracy,
+            "eval_mode": args.dascoli_eval_mode,
+            "global_trust": args.dascoli_global_trust,
+            "confidence_floor": args.dascoli_confidence_floor,
+            "eval_semantic_scale": args.dascoli_eval_semantic_scale,
+            "source_flow_end_time": args.sentence_source_flow_end_time,
+            "source_copy_confidence_threshold": (
+                args.sentence_source_copy_confidence_threshold
+                if args.sentence_source_copy_confidence_threshold >= 0.0
+                else None
+            ),
+            "source_copy_function_words": args.sentence_source_copy_function_words,
+            "source_dropout_probability": args.dascoli_source_dropout_prob,
+            "external_eval_source_json": (
+                str(Path(args.sentence_source_eval_json).resolve())
+                if external_eval_source
+                else None
+            ),
+            "external_eval_default_word_confidence": (
+                args.sentence_source_eval_confidence if external_eval_source else None
+            ),
+            "external_eval_confidence_field": (
+                args.sentence_source_eval_confidence_field if external_eval_source else None
+            ),
+            "validation_proposals_use_target_text": not external_eval_source,
+            "train_realized_position_accuracy": float(train_correct.float().mean()),
+            "eval_realized_position_accuracy": (
+                float(eval_correct.float().mean()) if eval_correct.numel() else None
+            ),
+            "train_only_position_vocabulary_sizes": [len(words) for words in position_vocabulary],
+            "train_only_global_vocabulary_size": len(global_vocabulary),
+        }
+        np.savez_compressed(
+            output_dir / "dascoli_simulation.npz",
+            sentence=np.asarray(dascoli_simulation.sentences, dtype=object),
+            word_confidence=dascoli_simulation.word_confidence.numpy(),
+            correct_word_mask=dascoli_simulation.correct_word_mask.numpy(),
+            row_accuracy=dascoli_simulation.row_accuracy.numpy(),
+            split=np.asarray(
+                ["train"] * train_split_n + [eval_split] * val_n,
+                dtype=object,
+            ),
+        )
+        logger.warning(
+            "Enabled sentence-source flow: train_position_accuracy=%.3f "
+            "eval_position_accuracy=%s mode=%s role=%s.",
+            dascoli_source_summary["train_realized_position_accuracy"],
+            dascoli_source_summary["eval_realized_position_accuracy"],
+            args.dascoli_eval_mode,
+            dascoli_source_summary["role"],
+        )
+
     tokenizer = AutoTokenizer.from_pretrained(args.encoder_model_name)
     if tokenizer.pad_token_id is None and tokenizer.eos_token is not None:
         tokenizer.pad_token = tokenizer.eos_token
     input_ids, attention_mask = tokenize_sentences(tokenizer, sentences)
     target_length = input_ids.shape[1]
+    source_input_ids = None
+    source_attention_mask = None
+    source_token_confidence = None
+    source_copy_token_confidence = None
+    if dascoli_simulation is not None:
+        if not getattr(tokenizer, "is_fast", False):
+            raise ValueError("D'Ascoli confidence alignment requires a fast tokenizer.")
+        preliminary_source_ids, preliminary_source_mask = tokenize_sentences(
+            tokenizer, dascoli_simulation.sentences
+        )
+        if preliminary_source_ids.shape[1] > target_length:
+            expanded_target_length = int(preliminary_source_ids.shape[1])
+            padding = expanded_target_length - target_length
+            input_ids = F.pad(
+                input_ids,
+                (0, padding),
+                value=(
+                    tokenizer.pad_token_id
+                    if tokenizer.pad_token_id is not None
+                    else tokenizer.eos_token_id
+                ),
+            )
+            attention_mask = F.pad(attention_mask, (0, padding), value=0)
+            target_length = expanded_target_length
+            logger.warning(
+                "Expanded target_length to %d to preserve every sentence-source token.",
+                target_length,
+            )
+        source_token_lengths = preliminary_source_mask.sum(dim=1)
+        truncated_source_rows = int((source_token_lengths > target_length).sum())
+        dascoli_source_summary["source_rows_truncated_to_target_length"] = truncated_source_rows
+        dascoli_source_summary["source_untruncated_max_tokens"] = int(
+            preliminary_source_ids.shape[1]
+        )
+        if truncated_source_rows:
+            logger.warning(
+                "Truncating %d/%d simulated source rows to audited target_length=%d "
+                "(source maximum=%d) to preserve the ELF-B validation contract.",
+                truncated_source_rows,
+                total_n,
+                target_length,
+                preliminary_source_ids.shape[1],
+            )
+        encoded_source = tokenizer(
+            dascoli_simulation.sentences,
+            add_special_tokens=True,
+            padding="max_length",
+            truncation=True,
+            max_length=target_length,
+            return_offsets_mapping=True,
+            return_tensors="pt",
+        )
+        source_input_ids = encoded_source["input_ids"].to(torch.long)
+        source_attention_mask = encoded_source["attention_mask"].to(torch.long)
+        source_raw_token_confidence = align_word_confidence_to_tokens(
+            sentences=dascoli_simulation.sentences,
+            word_confidence=dascoli_simulation.word_confidence,
+            offset_mapping=encoded_source["offset_mapping"],
+            attention_mask=source_attention_mask,
+        )
+        source_copy_token_confidence = source_raw_token_confidence
+        if args.sentence_source_copy_function_words:
+            source_copy_token_confidence = force_vocabulary_token_confidence(
+                sentences=dascoli_simulation.sentences,
+                token_confidence=source_raw_token_confidence,
+                offset_mapping=encoded_source["offset_mapping"],
+                attention_mask=source_attention_mask,
+                preserved_words=set(_CONTENT_WORD_STOPWORDS),
+            )
+        source_token_confidence = transform_token_confidence(
+            source_raw_token_confidence,
+            source_attention_mask,
+            global_trust=args.dascoli_global_trust,
+            confidence_floor=args.dascoli_confidence_floor,
+        )
+    if args.eval_target_length < 0 or args.eval_target_length > target_length:
+        raise ValueError(
+            f"eval target length must be in [0, {target_length}], got "
+            f"{args.eval_target_length}."
+        )
+    eval_generation_target_length = (
+        int(args.eval_target_length)
+        if args.eval_target_length > 0
+        else int(target_length)
+    )
+    if eval_generation_target_length != target_length:
+        logger.info(
+            "Validation generation uses target canvas %d while the model/training "
+            "canvas remains %d.",
+            eval_generation_target_length,
+            target_length,
+        )
+    decoder_position_logit_bias = build_decoder_position_logit_bias(
+        input_ids,
+        attention_mask,
+        train_indices,
+        vocabulary_size=len(tokenizer),
+        strength=args.decoder_position_prior_strength,
+        smoothing=args.decoder_position_prior_smoothing,
+        clip=args.decoder_position_prior_clip,
+    )
+    if decoder_position_logit_bias is not None:
+        logger.info(
+            "Enabled train-only decoder position prior strength=%.4f smoothing=%.4f "
+            "clip=%.3f shape=%s.",
+            args.decoder_position_prior_strength,
+            args.decoder_position_prior_smoothing,
+            args.decoder_position_prior_clip,
+            tuple(decoder_position_logit_bias.shape),
+        )
     config = build_config(args, max_length=args.context_length + target_length)
 
     encoder_config, encoder = get_encoder(args.encoder_model_name, dtype=torch.float32)
@@ -1810,6 +2549,18 @@ def main() -> None:
                 "or --semantic-adapter-kind delay_fusion/residual_mlp."
             )
     brain_trainable_names = None
+    if args.semantic_ordered_head_checkpoint and not args.semantic_lexical_head_checkpoint:
+        raise ValueError(
+            "--semantic-ordered-head-checkpoint requires "
+            "--semantic-lexical-head-checkpoint."
+        )
+    if args.brain_input_npz and (
+        args.semantic_lexical_head_checkpoint or args.semantic_ordered_head_checkpoint
+    ):
+        raise ValueError(
+            "Use either raw-brain lexical conditioning or direct-semantic lexical "
+            "conditioning, not both."
+        )
     if args.brain_input_npz:
         fmri2sem = load_mri2sem_model(
             args.brain_model_checkpoint,
@@ -2131,6 +2882,227 @@ def main() -> None:
             sum(parameter.numel() for parameter in fmri2sem.parameters() if parameter.requires_grad),
             sum(parameter.numel() for parameter in fmri2sem.parameters()),
         )
+    elif args.semantic_lexical_head_checkpoint:
+        lexical_payload = torch.load(
+            args.semantic_lexical_head_checkpoint,
+            map_location="cpu",
+            weights_only=False,
+        )
+        lexical_payload = lexical_payload.get(
+            "packaged_lexical_head_bundle", lexical_payload
+        )
+        lexical_vocabulary = [
+            str(word) for word in lexical_payload.get("vocabulary", [])
+        ]
+        if not lexical_vocabulary:
+            raise ValueError("Direct-semantic lexical-head checkpoint has no vocabulary.")
+        if lexical_payload.get("feature") != "semantic":
+            raise ValueError(
+                "Direct-semantic lexical conditioning requires a head trained with "
+                "feature='semantic'."
+            )
+        lexical_input_dim = int(lexical_payload.get("input_dim", 0))
+        if lexical_input_dim != adapter_input_dim:
+            raise ValueError(
+                f"Lexical-head input_dim={lexical_input_dim} does not match "
+                f"semantic NPZ dim={adapter_input_dim}."
+            )
+        content_head = ContentLogitHead(
+            input_dim=lexical_input_dim,
+            hidden_dim=int(lexical_payload.get("hidden_dim", 0)),
+            output_dim=len(lexical_vocabulary),
+        )
+        content_head.load_state_dict(lexical_payload["head_state_dict"], strict=True)
+        lexical_logit_prior = lexical_payload.get("logit_prior")
+        if lexical_logit_prior is None:
+            raise ValueError(
+                "Direct-semantic lexical-head checkpoint lacks its train-only logit prior."
+            )
+        lexical_logit_prior = torch.as_tensor(
+            lexical_logit_prior, dtype=torch.float32
+        )
+
+        # These prototypes are required by the shared lexical wrapper, but a
+        # pure decoder-bias evaluation keeps the zero-initialized context gate
+        # frozen. Build them only from the already-selected training rows so a
+        # future gate ablation remains leakage-safe as well.
+        prototype_semantic = F.normalize(
+            text_semantic_vectors[:total_n].detach().cpu().float(), p=2, dim=-1
+        )
+        token_to_index = {
+            token: index for index, token in enumerate(lexical_vocabulary)
+        }
+        lexical_sums = torch.zeros(
+            (len(lexical_vocabulary), prototype_semantic.shape[1]),
+            dtype=torch.float32,
+        )
+        lexical_counts = torch.zeros(
+            len(lexical_vocabulary), dtype=torch.float32
+        )
+        for row in train_indices.detach().cpu().tolist():
+            row_words = {
+                match.group(0).lower() for match in _WORD_RE.finditer(sentences[row])
+            }
+            for token in row_words:
+                index = token_to_index.get(token)
+                if index is None:
+                    continue
+                lexical_sums[index] += prototype_semantic[row]
+                lexical_counts[index] += 1.0
+        train_global = prototype_semantic.index_select(
+            0, train_indices.detach().cpu()
+        ).mean(dim=0)
+        lexical_prototypes = lexical_sums / lexical_counts[:, None].clamp_min(1.0)
+        lexical_prototypes[lexical_counts == 0] = train_global
+        lexical_prototypes = F.normalize(lexical_prototypes, p=2, dim=-1)
+
+        encoded_lexical_tokens = [
+            tokenizer(token, add_special_tokens=False)["input_ids"][:8]
+            for token in lexical_vocabulary
+        ]
+        lexical_token_width = max(
+            1, max((len(ids) for ids in encoded_lexical_tokens), default=0)
+        )
+        lexical_token_ids = torch.full(
+            (len(lexical_vocabulary), lexical_token_width),
+            -1,
+            dtype=torch.long,
+        )
+        for row, token_ids in enumerate(encoded_lexical_tokens):
+            if token_ids:
+                lexical_token_ids[row, : len(token_ids)] = torch.as_tensor(
+                    token_ids, dtype=torch.long
+                )
+
+        ordered_head = None
+        ordered_log_prior = None
+        ordered_token_ids = None
+        ordered_prototypes = None
+        if args.semantic_ordered_head_checkpoint:
+            ordered_payload = torch.load(
+                args.semantic_ordered_head_checkpoint,
+                map_location="cpu",
+                weights_only=False,
+            )
+            ordered_vocabulary = [
+                str(word) for word in ordered_payload.get("vocabulary", [])
+            ]
+            ordered_positions = int(ordered_payload.get("positions", 0))
+            ordered_input_dim = int(ordered_payload.get("input_dim", 0))
+            ordered_hidden_dim = int(ordered_payload.get("hidden_dim", 0))
+            if not ordered_vocabulary or ordered_positions <= 0:
+                raise ValueError("Direct-semantic ordered-head checkpoint is incomplete.")
+            if ordered_input_dim != adapter_input_dim:
+                raise ValueError(
+                    f"Ordered-head input_dim={ordered_input_dim} does not match "
+                    f"semantic NPZ dim={adapter_input_dim}."
+                )
+            ordered_head = OrderedWordLogitHead(
+                input_dim=ordered_input_dim,
+                hidden_dim=ordered_hidden_dim,
+                positions=ordered_positions,
+                vocabulary_size=len(ordered_vocabulary),
+            )
+            ordered_head.load_state_dict(
+                ordered_payload["head_state_dict"], strict=True
+            )
+            ordered_log_prior = torch.as_tensor(
+                ordered_payload["log_prior"], dtype=torch.float32
+            )
+            ordered_index = {
+                token: index for index, token in enumerate(ordered_vocabulary)
+            }
+            ordered_sums = torch.zeros(
+                (len(ordered_vocabulary), prototype_semantic.shape[1]),
+                dtype=torch.float32,
+            )
+            ordered_counts = torch.zeros(
+                len(ordered_vocabulary), dtype=torch.float32
+            )
+            for row in train_indices.detach().cpu().tolist():
+                row_words = {
+                    match.group(0).lower()
+                    for match in _WORD_RE.finditer(sentences[row])
+                }
+                for token in row_words:
+                    index = ordered_index.get(token)
+                    if index is None:
+                        continue
+                    ordered_sums[index] += prototype_semantic[row]
+                    ordered_counts[index] += 1.0
+            ordered_prototypes = ordered_sums / ordered_counts[:, None].clamp_min(1.0)
+            ordered_prototypes[ordered_counts == 0] = train_global
+            ordered_prototypes = F.normalize(ordered_prototypes, p=2, dim=-1)
+            encoded_ordered_tokens = [
+                tokenizer(token, add_special_tokens=False)["input_ids"][:8]
+                if token not in {"<pad>", "<unk>"}
+                else []
+                for token in ordered_vocabulary
+            ]
+            ordered_token_width = max(
+                1, max((len(ids) for ids in encoded_ordered_tokens), default=0)
+            )
+            ordered_token_ids = torch.full(
+                (len(ordered_vocabulary), ordered_token_width),
+                -1,
+                dtype=torch.long,
+            )
+            for row, token_ids in enumerate(encoded_ordered_tokens):
+                if token_ids:
+                    ordered_token_ids[row, : len(token_ids)] = torch.as_tensor(
+                        token_ids, dtype=torch.long
+                    )
+
+        adapter = FMRI2SEMLexicalToELFContextAdapter(
+            nn.Identity(),
+            adapter,
+            content_head=content_head,
+            lexical_prototypes=lexical_prototypes,
+            lexical_vocabulary=lexical_vocabulary,
+            lexical_logit_prior=lexical_logit_prior,
+            lexical_token_ids=lexical_token_ids,
+            lexical_topk=args.brain_lexical_topk,
+            lexical_temperature=args.brain_lexical_temperature,
+            lexical_prior_subtraction=args.brain_lexical_prior_subtraction,
+            lexical_decode_bias_strength=args.brain_lexical_decode_bias_strength,
+            lexical_max_prior_probability=args.brain_lexical_max_prior_probability,
+            lexical_decode_bias_once=args.brain_lexical_decode_bias_once,
+            lexical_decode_bias_mode=args.brain_lexical_decode_bias_mode,
+            lexical_context_mode=args.brain_lexical_context_mode,
+            lexical_decode_bias_max_positions=(
+                args.brain_lexical_decode_bias_max_positions
+            ),
+            ordered_head=ordered_head,
+            ordered_log_prior=ordered_log_prior,
+            ordered_token_ids=ordered_token_ids,
+            ordered_prototypes=ordered_prototypes,
+            ordered_prior_subtraction=args.brain_ordered_prior_subtraction,
+            ordered_min_prior_probability=(
+                args.brain_ordered_min_prior_probability
+            ),
+            ordered_min_margin=args.brain_ordered_min_margin,
+            ordered_decode_bias_strength=(
+                args.brain_ordered_decode_bias_strength
+            ),
+            ordered_decode_max_positions=(
+                args.brain_ordered_decode_max_positions
+            ),
+        ).to(device)
+        logger.info(
+            "Enabled direct-semantic frozen lexical head vocabulary=%d topk=%d "
+            "prior_subtraction=%.3f decode_bias=%.3f bias_once=%s bias_mode=%s "
+            "max_prior=%.3f ordered=%s ordered_bias=%.3f; inference still receives "
+            "only the NPZ semantic vector.",
+            len(lexical_vocabulary),
+            args.brain_lexical_topk,
+            args.brain_lexical_prior_subtraction,
+            args.brain_lexical_decode_bias_strength,
+            args.brain_lexical_decode_bias_once,
+            args.brain_lexical_decode_bias_mode,
+            args.brain_lexical_max_prior_probability,
+            bool(ordered_head is not None),
+            args.brain_ordered_decode_bias_strength,
+        )
     if args.freeze_semantic_adapter:
         for param in adapter.parameters():
             param.requires_grad_(False)
@@ -2201,6 +3173,61 @@ def main() -> None:
         logger.info("Using lazy per-batch target T5 latent encoding")
         target_latents = None
 
+    source_latents = None
+    need_source_latents = bool(
+        dascoli_simulation is not None
+        and (not args.eval_only or args.dascoli_eval_mode != "semantic_only")
+    )
+    if need_source_latents:
+        logger.info("Encoding sentence-source T5 latents in memory")
+        source_latents = encode_text_batched(
+            input_ids=source_input_ids,
+            attention_mask=source_attention_mask,
+            encoder=encoder,
+            latent_mean=config.latent_mean,
+            latent_std=config.latent_std,
+            device=device,
+            batch_size=args.target_latent_encode_batch_size,
+        ).to(torch.float16)
+
+    if args.decoder_flow_latent_direct and not args.decoder_flow_latent_cache:
+        raise ValueError(
+            "--decoder-flow-latent-direct requires --decoder-flow-latent-cache."
+        )
+    if args.decoder_flow_latent_cache and dascoli_simulation is not None:
+        raise ValueError(
+            "Frozen-flow decoder latents cannot be combined with a D'Ascoli sentence source."
+        )
+    decoder_training_source_latents: torch.Tensor | np.memmap | None = source_latents
+    if args.decoder_flow_latent_cache:
+        decoder_training_source_latents = frozen_flow_target_latent_memmap(
+            cache_path=Path(args.decoder_flow_latent_cache),
+            model=model,
+            adapter=adapter,
+            # Cache only the physical training prefix. Validation ADA rows are
+            # not needed to construct a decoder-training input.
+            semantic_vectors=semantic_vectors[:train_split_n],
+            target_length=target_length,
+            context_length=args.context_length,
+            latent_dim=encoder_config.d_model,
+            config=config,
+            sampling_steps=args.num_sampling_steps,
+            cfg_scale=args.cfg_scale,
+            self_cond_cfg_scale=args.self_cond_cfg_scale,
+            device=device,
+            batch_size=args.decoder_flow_latent_batch_size,
+            seed=args.decoder_flow_latent_seed,
+        )
+
+    def get_decoder_training_source_latents(
+        indices: torch.Tensor,
+    ) -> torch.Tensor | None:
+        if isinstance(decoder_training_source_latents, torch.Tensor):
+            return decoder_training_source_latents.index_select(0, indices)
+        if isinstance(decoder_training_source_latents, np.memmap):
+            return select_memmap_rows(decoder_training_source_latents, indices)
+        return None
+
     def get_target_latents(indices: torch.Tensor) -> torch.Tensor:
         if isinstance(target_latents, torch.Tensor):
             return target_latents.index_select(0, indices)
@@ -2258,6 +3285,7 @@ def main() -> None:
             {
                 **vars(args),
                 "target_length": target_length,
+                "eval_generation_target_length": eval_generation_target_length,
                 "num_total_examples": total_n,
                 "num_train_examples": train_n,
                 "train_split_boundary": train_split_n,
@@ -2268,6 +3296,7 @@ def main() -> None:
                 "brain_input_summary": brain_input_summary,
                 "brain_trainable_names": brain_trainable_names,
                 "elf_lora_layers": lora_layers,
+                "dascoli_source_summary": dascoli_source_summary,
             },
             f,
             indent=2,
@@ -2284,6 +3313,7 @@ def main() -> None:
             config={
                 **vars(args),
                 "target_length": target_length,
+                "eval_generation_target_length": eval_generation_target_length,
                 "num_total_examples": total_n,
                 "num_train_examples": train_n,
                 "train_split_boundary": train_split_n,
@@ -2319,7 +3349,132 @@ def main() -> None:
     retrieval_indices = eval_pool_indices[:retrieval_n]
     eval_target_latents = get_target_latents(eval_indices)
     retrieval_target_latents = get_target_latents(retrieval_indices) if retrieval_n > 0 else eval_target_latents
+    eval_generation_target_latents = eval_target_latents[
+        :, :eval_generation_target_length
+    ]
+    eval_generation_target_mask = target_mask.index_select(0, eval_indices)[
+        :, :eval_generation_target_length
+    ]
     best_score = None
+
+    def eval_source_arguments() -> tuple[
+        torch.Tensor | None,
+        torch.Tensor | None,
+        torch.Tensor | None,
+        torch.Tensor | None,
+        torch.Tensor | None,
+        bool,
+    ]:
+        if dascoli_simulation is None or args.dascoli_eval_mode == "semantic_only":
+            return None, None, None, None, None, False
+        if source_latents is None or source_token_confidence is None or source_attention_mask is None:
+            raise RuntimeError("D'Ascoli source tensors were not encoded.")
+        latents = source_latents.index_select(0, eval_indices)[
+            :, :eval_generation_target_length
+        ]
+        if args.dascoli_eval_mode == "joint_unweighted":
+            confidence = source_attention_mask.index_select(0, eval_indices)[
+                :, :eval_generation_target_length
+            ].to(torch.float32)
+        else:
+            confidence = source_token_confidence.index_select(0, eval_indices)[
+                :, :eval_generation_target_length
+            ]
+        copy_ids = None
+        copy_mask = None
+        copy_confidence = None
+        if args.sentence_source_copy_confidence_threshold >= 0.0:
+            if source_copy_token_confidence is None:
+                raise RuntimeError("Raw sentence-source confidence was not encoded.")
+            copy_ids = source_input_ids.index_select(0, eval_indices)[
+                :, :eval_generation_target_length
+            ]
+            copy_mask = source_attention_mask.index_select(0, eval_indices)[
+                :, :eval_generation_target_length
+            ]
+            copy_confidence = source_copy_token_confidence.index_select(0, eval_indices)[
+                :, :eval_generation_target_length
+            ]
+        disable_semantic = args.dascoli_eval_mode == "sentence_only"
+        if args.dascoli_eval_mode == "joint_shuffled":
+            latents = latents.roll(1, dims=0)
+            confidence = confidence.roll(1, dims=0)
+            if copy_ids is not None:
+                copy_ids = copy_ids.roll(1, dims=0)
+                copy_mask = copy_mask.roll(1, dims=0)
+                copy_confidence = copy_confidence.roll(1, dims=0)
+        return latents, confidence, copy_ids, copy_mask, copy_confidence, disable_semantic
+
+    def attach_dascoli_eval_metadata(metrics: dict) -> None:
+        if dascoli_simulation is None:
+            return
+        eval_rows = eval_indices.tolist()
+        paired_rows = eval_rows
+        if args.dascoli_eval_mode == "joint_shuffled" and eval_rows:
+            paired_rows = eval_rows[-1:] + eval_rows[:-1]
+        paired_source_sentences = [
+            dascoli_simulation.sentences[index] for index in paired_rows
+        ]
+        eval_target_sentences = select_strings(sentences, eval_indices)
+        paired_position_scores = []
+        paired_bag_f1_scores = []
+        for source_sentence, target_sentence in zip(
+            paired_source_sentences, eval_target_sentences
+        ):
+            source_words = normalized_words(source_sentence)
+            target_words = normalized_words(target_sentence)
+            paired_position_scores.append(
+                sum(source == target for source, target in zip(source_words, target_words))
+                / max(1, len(target_words))
+            )
+            source_counts = Counter(source_words)
+            target_counts = Counter(target_words)
+            overlap = sum((source_counts & target_counts).values())
+            precision = overlap / max(1, len(source_words))
+            recall = overlap / max(1, len(target_words))
+            paired_bag_f1_scores.append(
+                0.0 if precision + recall == 0.0 else 2.0 * precision * recall / (precision + recall)
+            )
+        eval_word_confidence = dascoli_simulation.word_confidence.index_select(
+            0, eval_indices
+        )
+        paired_word_confidence = (
+            eval_word_confidence.roll(1, dims=0)
+            if args.dascoli_eval_mode == "joint_shuffled"
+            else eval_word_confidence
+        )
+        sentence_source_metadata = {
+            **dascoli_source_summary,
+            "realized_eval_position_accuracy": float(
+                dascoli_simulation.correct_word_mask.index_select(0, eval_indices).float().mean()
+            ),
+            "mean_eval_word_confidence": float(
+                dascoli_simulation.word_confidence.index_select(0, eval_indices).mean()
+            ),
+            "paired_source_position_accuracy": float(np.mean(paired_position_scores)),
+            "paired_source_word_f1": float(np.mean(paired_bag_f1_scores)),
+            "source_sentences": paired_source_sentences,
+            "unshuffled_source_sentences": [
+                dascoli_simulation.sentences[index] for index in eval_rows
+            ],
+            "word_confidence": paired_word_confidence.tolist(),
+            "unshuffled_word_confidence": eval_word_confidence.tolist(),
+            "correct_word_mask": dascoli_simulation.correct_word_mask.index_select(
+                0, eval_indices
+            ).tolist(),
+        }
+        metrics["sentence_source"] = sentence_source_metadata
+        if not external_eval_source:
+            metrics["dascoli_simulation"] = sentence_source_metadata
+
+    (
+        eval_source_latents,
+        eval_source_confidence,
+        eval_source_token_ids,
+        eval_source_attention_mask,
+        eval_source_copy_confidence,
+        eval_disable_semantic,
+    ) = eval_source_arguments()
 
     def current_semantic_interface_metrics() -> dict[str, float] | None:
         if semantic_alignment_targets is None:
@@ -2400,9 +3555,17 @@ def main() -> None:
             tokenizer=tokenizer,
             encoder=encoder if args.generation_t5_retrieval else None,
             target_sentences=select_strings(sentences, eval_indices),
-            target_latents=eval_target_latents if args.generation_t5_retrieval else None,
-            target_mask=target_mask.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
-            target_length=target_length,
+            target_latents=(
+                eval_generation_target_latents
+                if args.generation_t5_retrieval
+                else None
+            ),
+            target_mask=(
+                eval_generation_target_mask
+                if args.generation_t5_retrieval
+                else None
+            ),
+            target_length=eval_generation_target_length,
             context_length=args.context_length,
             config=config,
             sampling_config=sampling_config,
@@ -2410,6 +3573,21 @@ def main() -> None:
             generator=make_eval_generator(),
             condition_source="semantic",
             condition_batch_size=args.batch_size,
+            source_latents=eval_source_latents,
+            source_confidence=eval_source_confidence,
+            source_token_ids=eval_source_token_ids,
+            source_attention_mask=eval_source_attention_mask,
+            source_copy_confidence=eval_source_copy_confidence,
+            source_copy_confidence_threshold=(
+                args.sentence_source_copy_confidence_threshold
+                if args.sentence_source_copy_confidence_threshold >= 0.0
+                else None
+            ),
+            source_edit_latent_preservation=args.sentence_source_edit_latent_preservation,
+            disable_semantic_condition=eval_disable_semantic,
+            semantic_condition_scale=args.dascoli_eval_semantic_scale,
+            source_flow_end_time=args.sentence_source_flow_end_time,
+            decoder_position_logit_bias=decoder_position_logit_bias,
         )
         eval_metrics["step"] = 0
         eval_metrics["epoch"] = epoch
@@ -2420,6 +3598,7 @@ def main() -> None:
         interface_metrics = current_semantic_interface_metrics()
         if interface_metrics is not None:
             eval_metrics["semantic_interface"] = interface_metrics
+        attach_dascoli_eval_metadata(eval_metrics)
         eval_metrics["eval_checkpoint_scores"] = eval_checkpoint_scores(eval_metrics)
         with (output_dir / "eval_step_000000.json").open("w", encoding="utf-8") as f:
             json.dump(eval_metrics, f, ensure_ascii=False, indent=2)
@@ -2474,6 +3653,11 @@ def main() -> None:
     adapter_params = [parameter for parameter in adapter.parameters() if parameter.requires_grad]
     if not model_params and not adapter_params:
         raise ValueError("No trainable parameters. Use --eval-only for frozen evaluation.")
+    if args.save_trainable_only_checkpoint:
+        if not args.init_e2e_checkpoint:
+            raise ValueError(
+                "--save-trainable-only-checkpoint requires --init-e2e-checkpoint."
+            )
     effective_elf_lr = args.elf_lr if args.elf_lr > 0.0 else args.lr
     if isinstance(adapter, FMRI2SEMToELFContextAdapter):
         brain_params = [
@@ -2520,6 +3704,49 @@ def main() -> None:
     saved_eval_checkpoints: list[dict] = []
     eval_index = 0
 
+    def training_checkpoint_payload(*, checkpoint_step: int, checkpoint_epoch: float, score):
+        payload = {
+            "step": checkpoint_step,
+            "epoch": checkpoint_epoch,
+            "score": score,
+            "args": vars(args),
+            "config": {
+                key: value
+                for key, value in vars(config).items()
+                if isinstance(value, (str, int, float, bool, type(None), list, tuple))
+            },
+        }
+        if args.save_trainable_only_checkpoint:
+            trainable_model_names = {
+                name for name, parameter in model.named_parameters() if parameter.requires_grad
+            }
+            trainable_adapter_names = {
+                name for name, parameter in adapter.named_parameters() if parameter.requires_grad
+            }
+            model_state = model.state_dict()
+            adapter_state = adapter.state_dict()
+            payload["checkpoint_format"] = (
+                "trainable_e2e_delta_v2"
+                if trainable_adapter_names
+                else "trainable_elf_delta_v1"
+            )
+            payload["parent_init_e2e_checkpoint"] = args.init_e2e_checkpoint
+            if trainable_model_names:
+                payload["trainable_model_state_dict"] = {
+                    name: model_state[name].detach().cpu()
+                    for name in sorted(trainable_model_names)
+                }
+            if trainable_adapter_names:
+                payload["trainable_adapter_state_dict"] = {
+                    name: adapter_state[name].detach().cpu()
+                    for name in sorted(trainable_adapter_names)
+                }
+        else:
+            payload["checkpoint_format"] = "full_v1"
+            payload["model_state_dict"] = model.state_dict()
+            payload["adapter_state_dict"] = adapter.state_dict()
+        return payload
+
     for step in range(1, args.steps + 1):
         current_lr = learning_rate_for_step(
             base_lr=args.lr,
@@ -2541,6 +3768,23 @@ def main() -> None:
         else:
             batches = make_batches(train_n, args.batch_size, order_generator)
             indices = train_indices.index_select(0, batches[(step - 1) % len(batches)])
+        batch_source_confidence = (
+            source_token_confidence.index_select(0, indices)
+            if source_token_confidence is not None
+            else None
+        )
+        if (
+            batch_source_confidence is not None
+            and args.dascoli_source_dropout_prob > 0.0
+        ):
+            source_drop = torch.rand(
+                (batch_source_confidence.shape[0], 1), generator=order_generator
+            ) < args.dascoli_source_dropout_prob
+            batch_source_confidence = torch.where(
+                source_drop,
+                torch.zeros_like(batch_source_confidence),
+                batch_source_confidence,
+            )
         batch = OverfitBatch(
             indices=indices,
             meg=meg.index_select(0, indices),
@@ -2551,6 +3795,8 @@ def main() -> None:
             target_ids=target_ids.index_select(0, indices),
             target_mask=train_target_mask.index_select(0, indices),
             target_weights=decoder_token_weights.index_select(0, indices),
+            source_latents=get_decoder_training_source_latents(indices),
+            source_confidence=batch_source_confidence,
         )
         active_denoiser_weight, active_decoder_weight = curriculum_loss_weights(
             epoch=epoch,
@@ -2753,9 +3999,17 @@ def main() -> None:
             tokenizer=tokenizer,
             encoder=encoder if args.generation_t5_retrieval else None,
             target_sentences=select_strings(sentences, eval_indices),
-            target_latents=eval_target_latents if args.generation_t5_retrieval else None,
-            target_mask=target_mask.index_select(0, eval_indices) if args.generation_t5_retrieval else None,
-            target_length=target_length,
+            target_latents=(
+                eval_generation_target_latents
+                if args.generation_t5_retrieval
+                else None
+            ),
+            target_mask=(
+                eval_generation_target_mask
+                if args.generation_t5_retrieval
+                else None
+            ),
+            target_length=eval_generation_target_length,
             context_length=args.context_length,
             config=config,
             sampling_config=sampling_config,
@@ -2763,6 +4017,21 @@ def main() -> None:
             generator=make_eval_generator(),
             condition_source="semantic",
             condition_batch_size=args.batch_size,
+            source_latents=eval_source_latents,
+            source_confidence=eval_source_confidence,
+            source_token_ids=eval_source_token_ids,
+            source_attention_mask=eval_source_attention_mask,
+            source_copy_confidence=eval_source_copy_confidence,
+            source_copy_confidence_threshold=(
+                args.sentence_source_copy_confidence_threshold
+                if args.sentence_source_copy_confidence_threshold >= 0.0
+                else None
+            ),
+            source_edit_latent_preservation=args.sentence_source_edit_latent_preservation,
+            disable_semantic_condition=eval_disable_semantic,
+            semantic_condition_scale=args.dascoli_eval_semantic_scale,
+            source_flow_end_time=args.sentence_source_flow_end_time,
+            decoder_position_logit_bias=decoder_position_logit_bias,
         )
         eval_metrics["step"] = step
         eval_metrics["epoch"] = epoch
@@ -2774,6 +4043,7 @@ def main() -> None:
         interface_metrics = current_semantic_interface_metrics()
         if interface_metrics is not None:
             eval_metrics["semantic_interface"] = interface_metrics
+        attach_dascoli_eval_metadata(eval_metrics)
         eval_metrics["eval_checkpoint_scores"] = eval_checkpoint_scores(eval_metrics)
         with (output_dir / f"eval_step_{step:06d}.json").open("w", encoding="utf-8") as f:
             json.dump(eval_metrics, f, ensure_ascii=False, indent=2)
@@ -2795,20 +4065,12 @@ def main() -> None:
             with (output_dir / "best_metrics.json").open("w", encoding="utf-8") as f:
                 json.dump(eval_metrics, f, ensure_ascii=False, indent=2)
             if args.save_best_checkpoint:
-                torch.save(
-                    {
-                        "step": step,
-                        "epoch": epoch,
-                        "score": score,
-                        "model_state_dict": model.state_dict(),
-                        "adapter_state_dict": adapter.state_dict(),
-                        "args": vars(args),
-                        "config": {
-                            key: value
-                            for key, value in vars(config).items()
-                            if isinstance(value, (str, int, float, bool, type(None), list, tuple))
-                        },
-                    },
+                atomic_torch_save(
+                    training_checkpoint_payload(
+                        checkpoint_step=step,
+                        checkpoint_epoch=epoch,
+                        score=score,
+                    ),
                     output_dir / "best.pt",
                 )
         quality = eval_metrics.get("generation_quality", {})
@@ -2891,20 +4153,12 @@ def main() -> None:
             logger.info("[%d] target=%r generated=%r", idx, eval_metrics["targets"][idx], eval_metrics["generated"][idx])
 
     if args.save_final_checkpoint:
-        torch.save(
-            {
-                "step": step,
-                "epoch": epoch,
-                "score": best_score,
-                "model_state_dict": model.state_dict(),
-                "adapter_state_dict": adapter.state_dict(),
-                "args": vars(args),
-                "config": {
-                    key: value
-                    for key, value in vars(config).items()
-                    if isinstance(value, (str, int, float, bool, type(None), list, tuple))
-                },
-            },
+        atomic_torch_save(
+            training_checkpoint_payload(
+                checkpoint_step=step,
+                checkpoint_epoch=epoch,
+                score=best_score,
+            ),
             output_dir / "final.pt",
         )
 

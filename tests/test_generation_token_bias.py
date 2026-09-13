@@ -14,12 +14,34 @@ if str(SRC_ROOT) not in sys.path:
 
 from utils.generation_utils import (  # noqa: E402
     _apply_ordered_token_sequence_bias,
+    _apply_position_logit_bias,
     _apply_token_logit_bias,
     _apply_token_sequence_bias,
 )
 
 
 class GenerationTokenBiasTest(unittest.TestCase):
+    def test_position_bias_changes_only_aligned_target_slots(self) -> None:
+        logits = torch.zeros(2, 6, 5)
+        bias = torch.tensor(
+            [[0.0, -1.0, -2.0, -3.0, -4.0], [-4.0, -3.0, -2.0, -1.0, 0.0]]
+        )
+
+        result = _apply_position_logit_bias(logits, bias, target_start=3)
+
+        torch.testing.assert_close(result[:, :3], logits[:, :3])
+        torch.testing.assert_close(result[:, 3], bias[0].expand(2, -1))
+        torch.testing.assert_close(result[:, 4], bias[1].expand(2, -1))
+        torch.testing.assert_close(result[:, 5], logits[:, 5])
+
+    def test_position_bias_rejects_vocabulary_mismatch(self) -> None:
+        with self.assertRaisesRegex(ValueError, "vocabulary"):
+            _apply_position_logit_bias(
+                torch.zeros(1, 4, 5),
+                torch.zeros(2, 6),
+                target_start=1,
+            )
+
     def test_static_bias_is_broadcast_to_every_position(self) -> None:
         logits = torch.zeros(1, 4, 6)
         bias = torch.zeros(1, 6)

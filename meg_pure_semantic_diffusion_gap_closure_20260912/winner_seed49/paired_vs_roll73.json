@@ -1,0 +1,70 @@
+{
+  "contract": "paired validation-row comparison; no test data",
+  "baseline": "meg_pure_semantic_diffusion_gap_closure_20260912/roll73/best_metrics.cap10.json",
+  "candidate": "meg_pure_semantic_diffusion_gap_closure_20260912/winner_seed49/best_metrics.cap10.json",
+  "bootstrap_samples": 100000,
+  "seed": 20260912,
+  "metrics": {
+    "content_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.02130853994490358,
+      "candidate_mean": 0.02548158911795275,
+      "candidate_minus_baseline": 0.004173049173049172,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.007272882420609696,
+        0.01582352495988859
+      ],
+      "bootstrap_probability_candidate_better": 0.76138,
+      "rows_candidate_better": 9,
+      "rows_tied": 90,
+      "rows_candidate_worse": 11
+    },
+    "word_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.11191575194671169,
+      "candidate_mean": 0.11710260499734183,
+      "candidate_minus_baseline": 0.005186853050630141,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.010838501110172937,
+        0.02132010507552301
+      ],
+      "bootstrap_probability_candidate_better": 0.73521,
+      "rows_candidate_better": 31,
+      "rows_tied": 50,
+      "rows_candidate_worse": 29
+    },
+    "word_content_f1_sum": {
+      "num_rows": 110,
+      "baseline_mean": 0.13322429189161528,
+      "candidate_mean": 0.1425841941152946,
+      "candidate_minus_baseline": 0.009359902223679308,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.014452097473311942,
+        0.033855366261783364
+      ],
+      "bootstrap_probability_candidate_better": 0.77584,
+      "rows_candidate_better": 32,
+      "rows_tied": 46,
+      "rows_candidate_worse": 32
+    },
+    "per_row_wer": {
+      "num_rows": 110,
+      "baseline_mean": 0.980909090909091,
+      "candidate_mean": 0.9763636363636365,
+      "candidate_minus_baseline": -0.004545454545454544,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.014545454545454542,
+        0.005454545454545453
+      ],
+      "bootstrap_probability_candidate_better": 0.7912,
+      "rows_candidate_better": 17,
+      "rows_tied": 82,
+      "rows_candidate_worse": 11
+    }
+  },
+  "corpus_wer": {
+    "baseline": 0.980909090909091,
+    "candidate": 0.9763636363636363,
+    "candidate_minus_baseline": -0.00454545454545463
+  }
+}

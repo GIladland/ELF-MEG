@@ -1,0 +1,207 @@
+{
+  "contract": {
+    "run_tag": "meg_elfm_puresem_scatbias_c3x24p0_o32p0_p0p40_seed49_20260912",
+    "checkpoint": "/data/engs-pnpl/glandau/elf-runs/meg_elfm_puresem_scatbias_c3x24p0_o32p0_p0p40_seed49_20260912",
+    "n": 110,
+    "null": "random one-to-one reassignment of generated sentences to target rows",
+    "permutations": 100000,
+    "seed": 20260910,
+    "bleu1": "macro sentence BLEU-1 with modified unigram precision and brevity penalty",
+    "rouge1": "macro ROUGE-1 F1 with Porter stemming",
+    "bertscore": "raw non-rescaled roberta-large, layer 17"
+  },
+  "permutation_tests": {
+    "content_f1": {
+      "observed": 0.02548159035769376,
+      "null_mean": 0.025613905861973763,
+      "null_std": 0.004264547023922205,
+      "null_ci95": [
+        0.017497047781944275,
+        0.03416191060096025
+      ],
+      "one_sided_p": 0.5064949350506495,
+      "direction": "higher"
+    },
+    "word_f1": {
+      "observed": 0.11710262298583984,
+      "null_mean": 0.10678272694349289,
+      "null_std": 0.0055864788591861725,
+      "null_ci95": [
+        0.09589049965143204,
+        0.11782034579664469
+      ],
+      "one_sided_p": 0.032089679103208965,
+      "direction": "higher"
+    },
+    "bleu1": {
+      "observed": 0.1162308086048473,
+      "null_mean": 0.1061641052365303,
+      "null_std": 0.005540825892239809,
+      "null_ci95": [
+        0.09536543488502502,
+        0.11714585870504379
+      ],
+      "one_sided_p": 0.037019629803701964,
+      "direction": "higher"
+    },
+    "rouge1_f1": {
+      "observed": 0.1232872876253995,
+      "null_mean": 0.11093343049287796,
+      "null_std": 0.005674636457115412,
+      "null_ci95": [
+        0.09981933142989874,
+        0.12219000682234764
+      ],
+      "one_sided_p": 0.015159848401515985,
+      "direction": "higher"
+    },
+    "wer": {
+      "observed": 0.9763636363636363,
+      "null_mean": 0.9807302355766296,
+      "null_std": 0.0036231609992682934,
+      "null_ci95": [
+        0.9736363887786865,
+        0.9872727394104004
+      ],
+      "one_sided_p": 0.13888861111388887,
+      "direction": "lower"
+    },
+    "word_content_f1_sum": {
+      "observed": 0.14258421117609196,
+      "null_mean": 0.1323966234922409,
+      "null_std": 0.008295489475131035,
+      "null_ci95": [
+        0.11640319451689721,
+        0.14888869635760785
+      ],
+      "one_sided_p": 0.11069889301106989,
+      "direction": "higher"
+    },
+    "bertscore_raw_f1": {
+      "observed": 0.8142041293057528,
+      "null_mean": 0.8125874996185303,
+      "null_std": 0.0005147343617863953,
+      "null_ci95": [
+        0.8115898340940475,
+        0.8136059120297432
+      ],
+      "one_sided_p": 0.0011099889001109989,
+      "direction": "higher"
+    }
+  },
+  "retrieval_chance_tests": {
+    "note": "Exact one-sided binomial chance tests; these are not row-permutation tests."
+  },
+  "top_generations": [
+    {
+      "index": 27,
+      "target": "one nursing twenty four hours around the clock at home",
+      "generated": "Half one a home to and back now and  ham",
+      "content_f1": 0.28571428571428575,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "home, one",
+      "bertscore_raw_f1": 0.8129602670669556
+    },
+    {
+      "index": 94,
+      "target": "business one but when i started going to art school",
+      "generated": "really a to and and and i one andle know",
+      "content_f1": 0.2222222222222222,
+      "word_f1": 0.3,
+      "bleu1": 0.30000001192092896,
+      "rouge1_f1": 0.30000001192092896,
+      "overlapping_content_words": "one",
+      "bertscore_raw_f1": 0.8070662021636963
+    },
+    {
+      "index": 66,
+      "target": "gonna see another day am i gonna see my family",
+      "generated": "one time i know really and and and  another and",
+      "content_f1": 0.18181818181818182,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "another",
+      "bertscore_raw_f1": 0.8078262209892273
+    },
+    {
+      "index": 37,
+      "target": "college loans and you know bought me an apartment paid",
+      "generated": "legally did said a to and made me work know",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.3,
+      "bleu1": 0.30000001192092896,
+      "rouge1_f1": 0.30000001192092896,
+      "overlapping_content_words": "know",
+      "bertscore_raw_f1": 0.8461706638336182
+    },
+    {
+      "index": 25,
+      "target": "remember you know in the emergency room i remember vague",
+      "generated": "and to right i and know  three thousand years",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.2105263157894737,
+      "bleu1": 0.19885317981243134,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "know",
+      "bertscore_raw_f1": 0.826034665107727
+    },
+    {
+      "index": 28,
+      "target": "kind of semi lame at my side and you know",
+      "generated": "ing to church and know and s working really good",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "know",
+      "bertscore_raw_f1": 0.8395782709121704
+    },
+    {
+      "index": 60,
+      "target": "dad one evening i took a two mile walk to",
+      "generated": "one know  days when i go  for now",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.22222222222222224,
+      "bleu1": 0.1947001963853836,
+      "rouge1_f1": 0.2222222238779068,
+      "overlapping_content_words": "one",
+      "bertscore_raw_f1": 0.8220893144607544
+    },
+    {
+      "index": 45,
+      "target": "driver sped away trying to get to safety not knowing",
+      "generated": "This know  driver to the clock and the driver back",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.30000001192092896,
+      "overlapping_content_words": "driver",
+      "bertscore_raw_f1": 0.8309228420257568
+    },
+    {
+      "index": 106,
+      "target": "dear friend of mine says you know tricia i love",
+      "generated": "a to good cause please uh i know really a",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "know",
+      "bertscore_raw_f1": 0.8177026510238647
+    },
+    {
+      "index": 84,
+      "target": "next week bob one of the three instructors says today",
+      "generated": "a to and cause i know like really on one",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.10000000000000002,
+      "bleu1": 0.10000000149011612,
+      "rouge1_f1": 0.10000000149011612,
+      "overlapping_content_words": "one",
+      "bertscore_raw_f1": 0.8105443120002747
+    }
+  ]
+}

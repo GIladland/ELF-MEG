@@ -1,0 +1,116 @@
+{
+  "status": "validated_val110_finalist",
+  "scientific_scope": "train2652-to-val110; protected test26 sealed",
+  "contract": {
+    "inference_condition": "frozen predicted qc4wyals ADA, 1536-D",
+    "sentence_source": null,
+    "dascoli_source": null,
+    "diffusion": "noise-start ELF-M, 32-step ODE",
+    "evaluation": "22-token generation canvas, fixed 10-word cap, 110 rows"
+  },
+  "t5_direct_projector_target": {
+    "word_f1": 0.0994250555,
+    "content_f1": 0.0255091373,
+    "word_content_f1_sum": 0.1249341928,
+    "wer": 0.9772727273
+  },
+  "finalist_configuration": {
+    "semantic_content_topk": 3,
+    "semantic_content_prior_subtraction": 0.5,
+    "semantic_content_bias": 24.0,
+    "semantic_content_placement": "scattered_once",
+    "ordered_prior_subtraction": 0.75,
+    "ordered_bias": 32.0,
+    "position_prior": 0.4,
+    "selection_seed": 49
+  },
+  "seed_results": [
+    {
+      "seed": 49,
+      "word_f1": 0.1171026050,
+      "content_f1": 0.0254815891,
+      "word_content_f1_sum": 0.1425841941,
+      "wer": 0.9763636364,
+      "edit_errors": 1074
+    },
+    {
+      "seed": 7,
+      "word_f1": 0.1186709197,
+      "content_f1": 0.0292167429,
+      "word_content_f1_sum": 0.1478876626,
+      "wer": 0.9745454545,
+      "edit_errors": 1072
+    },
+    {
+      "seed": 82,
+      "word_f1": 0.1072514620,
+      "content_f1": 0.0265152524,
+      "word_content_f1_sum": 0.1337667144,
+      "wer": 0.9854545455,
+      "edit_errors": 1084
+    }
+  ],
+  "seed_mean": {
+    "word_f1": 0.1143416622,
+    "content_f1": 0.0270711948,
+    "word_content_f1_sum": 0.1414128570,
+    "wer": 0.9787878788,
+    "edit_errors": 1076.6666666667
+  },
+  "semantic_roll_results": [
+    {
+      "roll": 1,
+      "word_f1": 0.1089048379,
+      "content_f1": 0.0284581580,
+      "word_content_f1_sum": 0.1373629959,
+      "wer": 0.9818181818,
+      "edit_errors": 1080
+    },
+    {
+      "roll": 37,
+      "word_f1": 0.1094258373,
+      "content_f1": 0.0257057084,
+      "word_content_f1_sum": 0.1351315458,
+      "wer": 0.9854545455,
+      "edit_errors": 1084
+    },
+    {
+      "roll": 73,
+      "word_f1": 0.1119157519,
+      "content_f1": 0.0213085399,
+      "word_content_f1_sum": 0.1332242919,
+      "wer": 0.9809090909,
+      "edit_errors": 1079
+    }
+  ],
+  "semantic_roll_mean": {
+    "word_f1": 0.1100821424,
+    "content_f1": 0.0251574688,
+    "word_content_f1_sum": 0.1352396112,
+    "wer": 0.9827272727,
+    "edit_errors": 1081.0
+  },
+  "matched_minus_semantic_roll_mean": {
+    "word_f1": 0.0070204626,
+    "content_f1": 0.0003241203,
+    "word_content_f1_sum": 0.0073445829,
+    "wer": -0.0063636364
+  },
+  "permutation_audit_100000": {
+    "word_f1_one_sided_p": 0.0320896791,
+    "content_f1_one_sided_p": 0.5064949351,
+    "word_content_f1_sum_one_sided_p": 0.1106988930,
+    "wer_one_sided_p": 0.1388886111,
+    "rouge1_one_sided_p": 0.0151598484,
+    "bertscore_raw_f1_one_sided_p": 0.0011099889
+  },
+  "paired_bootstrap_vs_t5_100000": {
+    "word_content_f1_sum_difference": 0.0176500013,
+    "word_content_f1_sum_ci95": [-0.0128373632, 0.0481292556],
+    "probability_sum_better": 0.8718,
+    "wer_difference": -0.0009090909,
+    "wer_ci95": [-0.0127272727, 0.0109090909],
+    "probability_wer_better": 0.53014
+  },
+  "interpretation": "The declared val110 lexical/WER gap is closed at seed 49 and in three-seed mean. The result is reproducible across seeds and matched semantics consistently improve over fixed rolls, but the strong train-only grammatical prior raises the null. Treat this as a validation leaderboard win, not population-level superiority or a protected-test claim."
+}

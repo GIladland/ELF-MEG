@@ -1,0 +1,56 @@
+{
+  "contract": "paired validation-row comparison; no test data",
+  "baseline": "/data/engs-pnpl/glandau/elf-runs/qc4wyals_elfb_dascoli_weightgrid_lora8_mid_ep40_sem0.0_floor1.0_acc0.50_seed49_20260912/best_metrics.json",
+  "candidate": "/data/engs-pnpl/glandau/elf-runs/meg_dascoli_sentence_flow_20260912/direct_source_acc050.t5retrieval.json",
+  "bootstrap_samples": 50000,
+  "seed": 49,
+  "metrics": {
+    "content_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.28460564711268344,
+      "candidate_mean": 0.4531721620625363,
+      "candidate_minus_baseline": 0.168566514949853,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        0.1398059977225295,
+        0.19846872649389885
+      ],
+      "bootstrap_probability_candidate_better": 1.0,
+      "rows_candidate_better": 87,
+      "rows_tied": 14,
+      "rows_candidate_worse": 9
+    },
+    "word_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.3622280969383113,
+      "candidate_mean": 0.4990909090909091,
+      "candidate_minus_baseline": 0.13686281215259788,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        0.11515184146459369,
+        0.15937103205372397
+      ],
+      "bootstrap_probability_candidate_better": 1.0,
+      "rows_candidate_better": 89,
+      "rows_tied": 15,
+      "rows_candidate_worse": 6
+    },
+    "per_row_wer": {
+      "num_rows": 110,
+      "baseline_mean": 0.698181818181818,
+      "candidate_mean": 0.5018181818181818,
+      "candidate_minus_baseline": -0.1963636363636364,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.23090909090909092,
+        -0.16363636363636364
+      ],
+      "bootstrap_probability_candidate_better": 1.0,
+      "rows_candidate_better": 90,
+      "rows_tied": 19,
+      "rows_candidate_worse": 1
+    }
+  },
+  "corpus_wer": {
+    "baseline": 0.6981818181818182,
+    "candidate": 0.5018181818181818,
+    "candidate_minus_baseline": -0.1963636363636364
+  }
+}

@@ -27,6 +27,7 @@ export BRAIN_INPUT_NPZ=${BRAIN_INPUT_NPZ:-}
 export BRAIN_TRAIN_KEY=${BRAIN_TRAIN_KEY:-train_x}
 export BRAIN_VAL_KEY=${BRAIN_VAL_KEY:-val_x}
 export BRAIN_VAL_ROLL=${BRAIN_VAL_ROLL:-0}
+export SEMANTIC_VAL_ROLL=${SEMANTIC_VAL_ROLL:-0}
 export BRAIN_MODEL_CHECKPOINT=${BRAIN_MODEL_CHECKPOINT:-}
 export BRAIN_SEMANTIC_OUTPUT_DIM=${BRAIN_SEMANTIC_OUTPUT_DIM:-1536}
 export BRAIN_PROJECTOR_MISMATCH=${BRAIN_PROJECTOR_MISMATCH:-error}
@@ -36,6 +37,8 @@ export BRAIN_DROPOUT=${BRAIN_DROPOUT:-0.1}
 export BRAIN_UNFREEZE=${BRAIN_UNFREEZE:-frozen}
 export BRAIN_LR=${BRAIN_LR:-1e-5}
 export BRAIN_LEXICAL_HEAD_CHECKPOINT=${BRAIN_LEXICAL_HEAD_CHECKPOINT:-}
+export SEMANTIC_LEXICAL_HEAD_CHECKPOINT=${SEMANTIC_LEXICAL_HEAD_CHECKPOINT:-}
+export SEMANTIC_ORDERED_HEAD_CHECKPOINT=${SEMANTIC_ORDERED_HEAD_CHECKPOINT:-}
 export BRAIN_LEXICAL_TOPK=${BRAIN_LEXICAL_TOPK:-5}
 export BRAIN_LEXICAL_TEMPERATURE=${BRAIN_LEXICAL_TEMPERATURE:-0.5}
 export BRAIN_LEXICAL_CONTEXT_MODE=${BRAIN_LEXICAL_CONTEXT_MODE:-mixture}
@@ -77,6 +80,7 @@ export EPOCHS=${EPOCHS:-1000}
 export BATCH_SIZE=${BATCH_SIZE:-16}
 export NUM_EXAMPLES=${NUM_EXAMPLES:-0}
 export VAL_NUM_EXAMPLES=${VAL_NUM_EXAMPLES:-0}
+export EVAL_TARGET_LENGTH=${EVAL_TARGET_LENGTH:-0}
 export CONDITION_SOURCE_KEY=${CONDITION_SOURCE_KEY:-condition_source}
 export TRAIN_CONDITION_SOURCES=${TRAIN_CONDITION_SOURCES:-}
 export TRAIN_BALANCE_KEY=${TRAIN_BALANCE_KEY:-}
@@ -131,7 +135,16 @@ export DECODER_CONTENT_PRECISION_TOPK=${DECODER_CONTENT_PRECISION_TOPK:-32}
 export DECODER_CONDITION_PAIRING_MARGIN_WEIGHT=${DECODER_CONDITION_PAIRING_MARGIN_WEIGHT:-0.0}
 export DECODER_CONDITION_PAIRING_MARGIN=${DECODER_CONDITION_PAIRING_MARGIN:-0.1}
 export DECODER_PROB=${DECODER_PROB:-0.5}
+export DECODER_P_MEAN=${DECODER_P_MEAN:-0.8}
+export DECODER_P_STD=${DECODER_P_STD:-0.8}
 export DECODER_NOISE_SCALE=${DECODER_NOISE_SCALE:-2.5}
+export DECODER_POSITION_PRIOR_STRENGTH=${DECODER_POSITION_PRIOR_STRENGTH:-0.0}
+export DECODER_POSITION_PRIOR_SMOOTHING=${DECODER_POSITION_PRIOR_SMOOTHING:-0.25}
+export DECODER_POSITION_PRIOR_CLIP=${DECODER_POSITION_PRIOR_CLIP:-5.0}
+export DECODER_FLOW_LATENT_CACHE=${DECODER_FLOW_LATENT_CACHE:-}
+export DECODER_FLOW_LATENT_BATCH_SIZE=${DECODER_FLOW_LATENT_BATCH_SIZE:-16}
+export DECODER_FLOW_LATENT_SEED=${DECODER_FLOW_LATENT_SEED:-66}
+export DECODER_FLOW_LATENT_DIRECT=${DECODER_FLOW_LATENT_DIRECT:-0}
 export SEMANTIC_ALIGNMENT_TARGET_NPZ=${SEMANTIC_ALIGNMENT_TARGET_NPZ:-}
 export SEMANTIC_ALIGNMENT_TARGET_KEY=${SEMANTIC_ALIGNMENT_TARGET_KEY:-input_embeddings}
 export ALLOW_SEMANTIC_ALIGNMENT_SENTENCE_MISMATCH=${ALLOW_SEMANTIC_ALIGNMENT_SENTENCE_MISMATCH:-0}
@@ -162,6 +175,7 @@ export WANDB_SAMPLE_EXAMPLES=${WANDB_SAMPLE_EXAMPLES:-16}
 export CHECKPOINT_METRIC=${CHECKPOINT_METRIC:-generation_t5_top1}
 export INIT_E2E_CHECKPOINT=${INIT_E2E_CHECKPOINT:-}
 export INIT_E2E_ADAPTER_MISMATCH=${INIT_E2E_ADAPTER_MISMATCH:-error}
+export SAVE_TRAINABLE_ONLY_CHECKPOINT=${SAVE_TRAINABLE_ONLY_CHECKPOINT:-0}
 export SAVE_FINAL_CHECKPOINT=${SAVE_FINAL_CHECKPOINT:-0}
 export SAVE_EVAL_CHECKPOINTS=${SAVE_EVAL_CHECKPOINTS:-0}
 export EVAL_CHECKPOINT_TOP_K=${EVAL_CHECKPOINT_TOP_K:-1}
@@ -235,13 +249,15 @@ echo "SOURCE_NPZ=$SOURCE_NPZ"
 echo "NPZ_PATH=$NPZ_PATH"
 echo "OUTPUT_DIR=$OUTPUT_DIR"
 echo "BRAIN_INPUT_NPZ=$BRAIN_INPUT_NPZ BRAIN_MODEL_CHECKPOINT=$BRAIN_MODEL_CHECKPOINT BRAIN_UNFREEZE=$BRAIN_UNFREEZE BRAIN_LR=$BRAIN_LR"
+echo "SEMANTIC_LEXICAL_HEAD_CHECKPOINT=$SEMANTIC_LEXICAL_HEAD_CHECKPOINT SEMANTIC_ORDERED_HEAD_CHECKPOINT=$SEMANTIC_ORDERED_HEAD_CHECKPOINT BRAIN_LEXICAL_TOPK=$BRAIN_LEXICAL_TOPK BRAIN_LEXICAL_PRIOR_SUBTRACTION=$BRAIN_LEXICAL_PRIOR_SUBTRACTION BRAIN_LEXICAL_DECODE_BIAS_STRENGTH=$BRAIN_LEXICAL_DECODE_BIAS_STRENGTH"
 echo "MODEL=$MODEL CHECKPOINT_PATH=$CHECKPOINT_PATH"
 echo "TARGET_LATENTS_CACHE=$TARGET_LATENTS_CACHE"
 echo "REEMBED_MODEL_NAME=$REEMBED_MODEL_NAME"
 echo "INIT_E2E_CHECKPOINT=$INIT_E2E_CHECKPOINT"
 echo "EVAL_ONLY=$EVAL_ONLY USE_WANDB=$USE_WANDB"
 echo "CFG_SCALE=$CFG_SCALE SELF_COND_CFG_SCALE=$SELF_COND_CFG_SCALE"
-echo "DENOISER_LOSS_WEIGHT=$DENOISER_LOSS_WEIGHT DECODER_LOSS_WEIGHT=$DECODER_LOSS_WEIGHT DECODER_PROB=$DECODER_PROB DECODER_NOISE_SCALE=$DECODER_NOISE_SCALE"
+echo "DENOISER_LOSS_WEIGHT=$DENOISER_LOSS_WEIGHT DECODER_LOSS_WEIGHT=$DECODER_LOSS_WEIGHT DECODER_PROB=$DECODER_PROB DECODER_P_MEAN=$DECODER_P_MEAN DECODER_P_STD=$DECODER_P_STD DECODER_NOISE_SCALE=$DECODER_NOISE_SCALE"
+echo "DECODER_POSITION_PRIOR_STRENGTH=$DECODER_POSITION_PRIOR_STRENGTH DECODER_POSITION_PRIOR_SMOOTHING=$DECODER_POSITION_PRIOR_SMOOTHING DECODER_POSITION_PRIOR_CLIP=$DECODER_POSITION_PRIOR_CLIP"
 echo "DECODER_CONTENT_TOKEN_WEIGHT=$DECODER_CONTENT_TOKEN_WEIGHT"
 echo "DECODER_CONTENT_BOW_LOSS_WEIGHT=$DECODER_CONTENT_BOW_LOSS_WEIGHT"
 echo "DECODER_CONTENT_PRECISION_LOSS_WEIGHT=$DECODER_CONTENT_PRECISION_LOSS_WEIGHT DECODER_CONTENT_PRECISION_TOPK=$DECODER_CONTENT_PRECISION_TOPK"
@@ -274,6 +290,15 @@ brain_cross_attention_args=()
 if [[ "$ELF_BRAIN_CROSS_ATTENTION_ONLY" == "1" ]]; then
   brain_cross_attention_args+=(--elf-brain-cross-attention-only)
 fi
+decoder_flow_latent_args=()
+if [[ -n "$DECODER_FLOW_LATENT_CACHE" ]]; then
+  decoder_flow_latent_args+=(--decoder-flow-latent-cache "$DECODER_FLOW_LATENT_CACHE")
+  decoder_flow_latent_args+=(--decoder-flow-latent-batch-size "$DECODER_FLOW_LATENT_BATCH_SIZE")
+  decoder_flow_latent_args+=(--decoder-flow-latent-seed "$DECODER_FLOW_LATENT_SEED")
+fi
+if [[ "$DECODER_FLOW_LATENT_DIRECT" == "1" ]]; then
+  decoder_flow_latent_args+=(--decoder-flow-latent-direct)
+fi
 if [[ "$ELF_BRAIN_CROSS_ATTENTION_DECODER_ONLY" == "1" ]]; then
   brain_cross_attention_args+=(--elf-brain-cross-attention-decoder-only)
 fi
@@ -282,6 +307,9 @@ if [[ "$USE_WANDB" == "1" ]]; then
   wandb_args+=(--use_wandb)
 fi
 checkpoint_args=(--save-best-checkpoint)
+if [[ "$SAVE_TRAINABLE_ONLY_CHECKPOINT" == "1" ]]; then
+  checkpoint_args+=(--save-trainable-only-checkpoint)
+fi
 if [[ "$SAVE_FINAL_CHECKPOINT" == "1" ]]; then
   checkpoint_args+=(--save-final-checkpoint)
 fi
@@ -380,6 +408,28 @@ if [[ -n "$BRAIN_INPUT_NPZ" ]]; then
     fi
   fi
 fi
+if [[ -n "$SEMANTIC_LEXICAL_HEAD_CHECKPOINT" ]]; then
+  brain_args+=(--semantic-lexical-head-checkpoint "$SEMANTIC_LEXICAL_HEAD_CHECKPOINT")
+  brain_args+=(--brain-lexical-topk "$BRAIN_LEXICAL_TOPK")
+  brain_args+=(--brain-lexical-temperature "$BRAIN_LEXICAL_TEMPERATURE")
+  brain_args+=(--brain-lexical-context-mode "$BRAIN_LEXICAL_CONTEXT_MODE")
+  brain_args+=(--brain-lexical-prior-subtraction "$BRAIN_LEXICAL_PRIOR_SUBTRACTION")
+  brain_args+=(--brain-lexical-decode-bias-strength "$BRAIN_LEXICAL_DECODE_BIAS_STRENGTH")
+  brain_args+=(--brain-lexical-max-prior-probability "$BRAIN_LEXICAL_MAX_PRIOR_PROBABILITY")
+  brain_args+=(--brain-lexical-decode-bias-mode "$BRAIN_LEXICAL_DECODE_BIAS_MODE")
+  brain_args+=(--brain-lexical-decode-bias-max-positions "$BRAIN_LEXICAL_DECODE_BIAS_MAX_POSITIONS")
+  if [[ "$BRAIN_LEXICAL_DECODE_BIAS_ONCE" == "1" ]]; then
+    brain_args+=(--brain-lexical-decode-bias-once)
+  fi
+  if [[ -n "$SEMANTIC_ORDERED_HEAD_CHECKPOINT" ]]; then
+    brain_args+=(--semantic-ordered-head-checkpoint "$SEMANTIC_ORDERED_HEAD_CHECKPOINT")
+    brain_args+=(--brain-ordered-prior-subtraction "$BRAIN_ORDERED_PRIOR_SUBTRACTION")
+    brain_args+=(--brain-ordered-min-prior-probability "$BRAIN_ORDERED_MIN_PRIOR_PROBABILITY")
+    brain_args+=(--brain-ordered-min-margin "$BRAIN_ORDERED_MIN_MARGIN")
+    brain_args+=(--brain-ordered-decode-bias-strength "$BRAIN_ORDERED_DECODE_BIAS_STRENGTH")
+    brain_args+=(--brain-ordered-decode-max-positions "$BRAIN_ORDERED_DECODE_MAX_POSITIONS")
+  fi
+fi
 generation_retrieval_args=()
 if [[ "$GENERATION_T5_RETRIEVAL" == "1" ]]; then
   generation_retrieval_args+=(--generation-t5-retrieval)
@@ -396,11 +446,13 @@ python scripts/train_npz_semantic_to_elf.py \
   --device cuda \
   --input-key "$INPUT_KEY" \
   --sentence-key "$SENTENCE_KEY" \
+  --semantic-val-roll "$SEMANTIC_VAL_ROLL" \
   "${brain_args[@]}" \
   --model "$MODEL" \
   --checkpoint_path "$CHECKPOINT_PATH" \
   --num-examples "$NUM_EXAMPLES" \
   --val-num-examples "$VAL_NUM_EXAMPLES" \
+  --eval-target-length "$EVAL_TARGET_LENGTH" \
   "${condition_source_args[@]}" \
   --eval-num-examples "$EVAL_NUM_EXAMPLES" \
   --retrieval-num-examples "$RETRIEVAL_NUM_EXAMPLES" \
@@ -451,7 +503,13 @@ python scripts/train_npz_semantic_to_elf.py \
   --decoder-condition-pairing-margin-weight "$DECODER_CONDITION_PAIRING_MARGIN_WEIGHT" \
   --decoder-condition-pairing-margin "$DECODER_CONDITION_PAIRING_MARGIN" \
   --decoder_prob "$DECODER_PROB" \
+  --decoder_p_mean "$DECODER_P_MEAN" \
+  --decoder_p_std "$DECODER_P_STD" \
   --decoder_noise_scale "$DECODER_NOISE_SCALE" \
+  --decoder-position-prior-strength "$DECODER_POSITION_PRIOR_STRENGTH" \
+  --decoder-position-prior-smoothing "$DECODER_POSITION_PRIOR_SMOOTHING" \
+  --decoder-position-prior-clip "$DECODER_POSITION_PRIOR_CLIP" \
+  "${decoder_flow_latent_args[@]}" \
   --target-latents-mode cache \
   --target-latents-cache "$TARGET_LATENTS_CACHE" \
   --target-latents-cache-dtype float16 \

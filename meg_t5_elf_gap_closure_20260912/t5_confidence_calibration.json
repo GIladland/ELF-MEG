@@ -1,0 +1,373 @@
+{
+  "scientific_scope": "validation-only global confidence calibration diagnostic; target labels are used only for reporting and global hyperparameter selection",
+  "input": "meg_t5_elf_gap_closure_20260912/arc_results/t5_source/beam4_min10_max20_lp0p8_confidence_variants.json",
+  "word_count": 1038,
+  "bag_membership_rate": 0.1233140655105973,
+  "position_exact_rate": 0.015414258188824663,
+  "variants": {
+    "transition_probability": {
+      "word_count": 1038,
+      "mean": 0.53156647033263,
+      "quantiles": {
+        "0": 0.03370209992327219,
+        "0.05": 0.11212543208541505,
+        "0.1": 0.15715571430689246,
+        "0.15": 0.20350359551293204,
+        "0.2": 0.256401108841208,
+        "0.25": 0.2980452881519243,
+        "0.3": 0.3390575938713512,
+        "0.5": 0.5169283831459983,
+        "0.75": 0.7764131060789776,
+        "0.9": 0.9358696348361372,
+        "1": 0.9994245504832995
+      },
+      "bag_membership_auc": 0.668646978021978,
+      "position_exact_auc": 0.7123899217221135,
+      "bag_membership_brier": 0.3166858587751726,
+      "bag_membership_ece": 0.40825240482203273,
+      "calibration_bins": [
+        {
+          "lower": 0.0,
+          "upper": 0.1,
+          "count": 39,
+          "mean_confidence": 0.07319965014151152,
+          "target_membership_rate": 0.05128205128205128
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 115,
+          "mean_confidence": 0.14975998155677325,
+          "target_membership_rate": 0.05217391304347826
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.30000000000000004,
+          "count": 108,
+          "mean_confidence": 0.2525330378061193,
+          "target_membership_rate": 0.08333333333333333
+        },
+        {
+          "lower": 0.30000000000000004,
+          "upper": 0.4,
+          "count": 130,
+          "mean_confidence": 0.35052614607029825,
+          "target_membership_rate": 0.06153846153846154
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 117,
+          "mean_confidence": 0.4488035845942195,
+          "target_membership_rate": 0.08547008547008547
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6000000000000001,
+          "count": 97,
+          "mean_confidence": 0.5549259694570855,
+          "target_membership_rate": 0.12371134020618557
+        },
+        {
+          "lower": 0.6000000000000001,
+          "upper": 0.7000000000000001,
+          "count": 102,
+          "mean_confidence": 0.6509699974868155,
+          "target_membership_rate": 0.11764705882352941
+        },
+        {
+          "lower": 0.7000000000000001,
+          "upper": 0.8,
+          "count": 94,
+          "mean_confidence": 0.7500426104911747,
+          "target_membership_rate": 0.1276595744680851
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "count": 93,
+          "mean_confidence": 0.8465803050034065,
+          "target_membership_rate": 0.20430107526881722
+        },
+        {
+          "lower": 0.9,
+          "upper": 1.0,
+          "count": 143,
+          "mean_confidence": 0.9571614892903432,
+          "target_membership_rate": 0.26573426573426573
+        }
+      ]
+    },
+    "teacher_probability": {
+      "word_count": 1038,
+      "mean": 0.5314663472283263,
+      "quantiles": {
+        "0": 0.033702220451589354,
+        "0.05": 0.11212450184555947,
+        "0.1": 0.15715439068613704,
+        "0.15": 0.20350312779536403,
+        "0.2": 0.2563992231524,
+        "0.25": 0.2980452306397892,
+        "0.3": 0.33767307358516585,
+        "0.5": 0.5169216666118293,
+        "0.75": 0.7764106740223722,
+        "0.9": 0.935868014171852,
+        "1": 0.999417364603533
+      },
+      "bag_membership_auc": 0.6687242445054945,
+      "position_exact_auc": 0.7123899217221135,
+      "bag_membership_brier": 0.3166040568008459,
+      "bag_membership_ece": 0.40815228171772894,
+      "calibration_bins": [
+        {
+          "lower": 0.0,
+          "upper": 0.1,
+          "count": 39,
+          "mean_confidence": 0.07319724361331255,
+          "target_membership_rate": 0.05128205128205128
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 115,
+          "mean_confidence": 0.1496535333811627,
+          "target_membership_rate": 0.05217391304347826
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.30000000000000004,
+          "count": 108,
+          "mean_confidence": 0.2525044403892031,
+          "target_membership_rate": 0.08333333333333333
+        },
+        {
+          "lower": 0.30000000000000004,
+          "upper": 0.4,
+          "count": 130,
+          "mean_confidence": 0.3503004221942278,
+          "target_membership_rate": 0.06153846153846154
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 117,
+          "mean_confidence": 0.4486311092149664,
+          "target_membership_rate": 0.08547008547008547
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6000000000000001,
+          "count": 97,
+          "mean_confidence": 0.5548090872879963,
+          "target_membership_rate": 0.12371134020618557
+        },
+        {
+          "lower": 0.6000000000000001,
+          "upper": 0.7000000000000001,
+          "count": 102,
+          "mean_confidence": 0.6508452149406247,
+          "target_membership_rate": 0.11764705882352941
+        },
+        {
+          "lower": 0.7000000000000001,
+          "upper": 0.8,
+          "count": 95,
+          "mean_confidence": 0.7505195248907282,
+          "target_membership_rate": 0.1368421052631579
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "count": 92,
+          "mean_confidence": 0.8470523485088591,
+          "target_membership_rate": 0.1956521739130435
+        },
+        {
+          "lower": 0.9,
+          "upper": 1.0,
+          "count": 143,
+          "mean_confidence": 0.9571117555209907,
+          "target_membership_rate": 0.26573426573426573
+        }
+      ]
+    },
+    "teacher_margin": {
+      "word_count": 1038,
+      "mean": 0.7503711045319873,
+      "quantiles": {
+        "0": 0.15359037329837602,
+        "0.05": 0.3759799320366863,
+        "0.1": 0.45144001627885955,
+        "0.15": 0.5152004751506158,
+        "0.2": 0.5643550556678445,
+        "0.25": 0.6019150659150186,
+        "0.3": 0.6447077130674197,
+        "0.5": 0.7982677846633618,
+        "0.75": 0.9286815795607095,
+        "0.9": 0.9800464259630671,
+        "1": 0.9998996257810646
+      },
+      "bag_membership_auc": 0.6362980769230769,
+      "position_exact_auc": 0.6502568493150684,
+      "bag_membership_brier": 0.5239409328715496,
+      "bag_membership_ece": 0.6270570390213901,
+      "calibration_bins": [
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 5,
+          "mean_confidence": 0.17745079049912588,
+          "target_membership_rate": 0.0
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.30000000000000004,
+          "count": 21,
+          "mean_confidence": 0.2526828247223057,
+          "target_membership_rate": 0.047619047619047616
+        },
+        {
+          "lower": 0.30000000000000004,
+          "upper": 0.4,
+          "count": 44,
+          "mean_confidence": 0.35532531228077047,
+          "target_membership_rate": 0.045454545454545456
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 71,
+          "mean_confidence": 0.45249112531577473,
+          "target_membership_rate": 0.11267605633802817
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6000000000000001,
+          "count": 116,
+          "mean_confidence": 0.552744303344211,
+          "target_membership_rate": 0.06896551724137931
+        },
+        {
+          "lower": 0.6000000000000001,
+          "upper": 0.7000000000000001,
+          "count": 118,
+          "mean_confidence": 0.6497595168970692,
+          "target_membership_rate": 0.0847457627118644
+        },
+        {
+          "lower": 0.7000000000000001,
+          "upper": 0.8,
+          "count": 152,
+          "mean_confidence": 0.7509738949437492,
+          "target_membership_rate": 0.08552631578947369
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "count": 192,
+          "mean_confidence": 0.8552303768374953,
+          "target_membership_rate": 0.13020833333333334
+        },
+        {
+          "lower": 0.9,
+          "upper": 1.0,
+          "count": 319,
+          "mean_confidence": 0.9585837085540232,
+          "target_membership_rate": 0.19122257053291536
+        }
+      ]
+    },
+    "teacher_inverse_entropy": {
+      "word_count": 1038,
+      "mean": 0.7997759378703176,
+      "quantiles": {
+        "0": 0.4314681306374249,
+        "0.05": 0.5869028213647646,
+        "0.1": 0.6283709215976739,
+        "0.15": 0.6610851714842452,
+        "0.2": 0.6872206652610555,
+        "0.25": 0.7128933569680418,
+        "0.3": 0.7332355594584926,
+        "0.5": 0.8026563355967258,
+        "0.75": 0.904154962726549,
+        "0.9": 0.9621937540603165,
+        "1": 0.9993225931847786
+      },
+      "bag_membership_auc": 0.6813873626373627,
+      "position_exact_auc": 0.726761252446184,
+      "bag_membership_brier": 0.5646472292093553,
+      "bag_membership_ece": 0.6764618723597203,
+      "calibration_bins": [
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 5,
+          "mean_confidence": 0.4778814025285956,
+          "target_membership_rate": 0.0
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6000000000000001,
+          "count": 61,
+          "mean_confidence": 0.5573289915727191,
+          "target_membership_rate": 0.04918032786885246
+        },
+        {
+          "lower": 0.6000000000000001,
+          "upper": 0.7000000000000001,
+          "count": 166,
+          "mean_confidence": 0.6553621043655395,
+          "target_membership_rate": 0.05421686746987952
+        },
+        {
+          "lower": 0.7000000000000001,
+          "upper": 0.8,
+          "count": 274,
+          "mean_confidence": 0.7547469193452232,
+          "target_membership_rate": 0.08029197080291971
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "count": 266,
+          "mean_confidence": 0.8473298852567149,
+          "target_membership_rate": 0.12781954887218044
+        },
+        {
+          "lower": 0.9,
+          "upper": 1.0,
+          "count": 266,
+          "mean_confidence": 0.9503775688242627,
+          "target_membership_rate": 0.22556390977443608
+        }
+      ]
+    }
+  },
+  "pearson_correlations": {
+    "transition_probability": {
+      "transition_probability": 1.0,
+      "teacher_probability": 0.999996174871375,
+      "teacher_margin": 0.870011031381722,
+      "teacher_inverse_entropy": 0.9079511875518197
+    },
+    "teacher_probability": {
+      "transition_probability": 0.9999961748713749,
+      "teacher_probability": 1.0,
+      "teacher_margin": 0.8699595651288573,
+      "teacher_inverse_entropy": 0.9079391126032049
+    },
+    "teacher_margin": {
+      "transition_probability": 0.870011031381722,
+      "teacher_probability": 0.8699595651288573,
+      "teacher_margin": 1.0,
+      "teacher_inverse_entropy": 0.6299888229776239
+    },
+    "teacher_inverse_entropy": {
+      "transition_probability": 0.9079511875518198,
+      "teacher_probability": 0.907939112603205,
+      "teacher_margin": 0.6299888229776239,
+      "teacher_inverse_entropy": 1.0
+    }
+  },
+  "protected_test_opened": false
+}

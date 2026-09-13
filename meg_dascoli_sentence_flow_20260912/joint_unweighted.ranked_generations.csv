@@ -1,0 +1,111 @@
+index,target,generated,content_f1,word_f1,bleu1,rouge1_f1,overlapping_content_words,bertscore_raw_f1
+45,driver sped away trying to get to safety not knowing,door is halter trying to get out and,0.36363636363636365,0.33333333333333326,0.292050302028656,0.3333333432674408,"get, trying",0.8557946681976318
+18,this nonstop loop of my stepfather almost like that cliche,this nonstop loop of whiping into our hall crushing,0.3636363636363636,0.4210526315789474,0.39770635962486267,0.42105263471603394,"loop, nonstop",0.8737710118293762
+19,i started feeling things i started feeling hot and cold,dark feeling yippyy feeling bomb and apparently,0.30769230769230765,0.3529411764705882,0.2791881561279297,0.3529411852359772,"feeling, feeling",0.8401054739952087
+99,big donor cause i was working at harvard business school,big donor  go a year i'm wanting,0.30769230769230765,0.23529411764705882,0.18612544238567352,0.3333333432674408,"big, donor",0.8535625338554382
+66,gonna see another day am i gonna see my family,gonna know about the first time one happens for another year,0.26666666666666666,0.1904761904761905,0.1818181872367859,0.190476194024086,"another, gonna",0.8329207897186279
+17,you awake if you're awake say something say something please,person looks if you're terrified open sees something coming,0.25,0.3157894736842105,0.2982797622680664,0.380952388048172,"something, you're",0.8434487581253052
+44,explosion sent people flying from their seats my friend jumped,infield ribmicing in the underpourf of it jumped,0.18181818181818182,0.11111111111111112,0.0973500981926918,0.1111111119389534,jumped,0.812089741230011
+14,embankment and then finally came to a last thud and,start trending psychopaths then finally getting to a start,0.1818181818181818,0.4210526315789474,0.39770635962486267,0.42105263471603394,finally,0.828162670135498
+29,got this very beautiful thin scratch of a surgery incision,wearing this beautiful sleve of a meta player and,0.1818181818181818,0.4210526315789474,0.39770635962486267,0.42105263471603394,beautiful,0.8619439601898193
+59,i wanted i asked to go on vacation to see,air trip to your friend to go uh westion,0.1818181818181818,0.3157894736842105,0.2982797622680664,0.31578946113586426,go,0.8304858803749084
+37,college loans and you know bought me an apartment paid,really job because you know helped got my wedding and,0.1818181818181818,0.3,0.30000001192092896,0.30000001192092896,know,0.8857806921005249
+106,dear friend of mine says you know tricia i love,nice message dede bawceter you are i know,0.16666666666666666,0.33333333333333326,0.292050302028656,0.3333333432674408,know,0.8476986289024353
+0,years old i got really sick um and no one,year period got to really brokeered and sleeping and started,0.16666666666666666,0.3,0.30000001192092896,0.4000000059604645,got,0.8309444189071655
+55,botter because i couldn't hear the t's just the r's,way back it didn't know the t's tread went i',0.16666666666666666,0.3,0.30000001192092896,0.4000000059604645,t's,0.857056736946106
+30,arm got better the scar got worse and you know,stone pool as the extentness to be you know a gun,0.16666666666666666,0.28571428571428564,0.27272728085517883,0.2857142984867096,know,0.8229460120201111
+108,wrong job or the wrong marriage i'm in the wrong,left pipe and then the right preserves they're i'm,0.16666666666666666,0.2105263157894737,0.19885317981243134,0.27272728085517883,i'm,0.8403528332710266
+98,committed relationship for the past eighteen years with his boyfriend,final line like you're tenyy years he',0.16666666666666666,0.11764705882352941,0.09306272119283676,0.1111111119389534,years,0.8023979663848877
+72,us military you will forever be an al qaeda target,united states military teted advance the advance  ah,0.16666666666666666,0.11111111111111112,0.0973500981926918,0.1111111119389534,military,0.8098160028457642
+39,pregnant which was a real surprise but a happy one,busy getting happy a hubheads hit really a strange thing going,0.15384615384615385,0.28571428571428564,0.27272728085517883,0.2857142984867096,happy,0.8249959349632263
+105,the process won't allow that you've got to let go,the thing there's trend that you've never wanted,0.15384615384615383,0.33333333333333326,0.292050302028656,0.3636363744735718,you've,0.8307439684867859
+20,kept getting louder and louder the silence then i finally,started getting lost cramity and terrified the extent of it felt,0.15384615384615383,0.28571428571428564,0.27272728085517883,0.2857142984867096,getting,0.8165611624717712
+32,wear a short sleeve blouse or a long sleeve blouse,senior a fucki went  college college long,0.15384615384615383,0.23529411764705882,0.18612544238567352,0.23529411852359772,long,0.7904049754142761
+92,end of class bob picks one of my gesture drawings,play the action steves one of the guns they gets,0.15384615384615383,0.20000000000000004,0.20000000298023224,0.20000000298023224,one,0.8544751405715942
+75,something different by age thirty i had done most everything,anything different beyond of comparing's and logical talked rules what',0.15384615384615383,0.10000000000000002,0.10000000149011612,0.095238097012043,different,0.818692147731781
+101,dear friend sarah who's also a southerner i say sarah,mean friend santo ya wants a country i,0.14285714285714288,0.33333333333333326,0.292050302028656,0.31578946113586426,friend,0.8732056617736816
+71,stay i left baghdad early the next morning going back,again i left mama o could support my request fiance,0.14285714285714288,0.20000000000000004,0.20000000298023224,0.20000000298023224,left,0.8442574143409729
+57,iraqi police iraqi military local mayors leaders with top us,eraqi police inform officer and guards standing,0.14285714285714288,0.11764705882352941,0.09306272119283676,0.11764705926179886,police,0.8233732581138611
+46,twenty five minutes ride to school took two hours because,eight worst saitnahm in fire about fifty hours,0.14285714285714288,0.11111111111111112,0.0973500981926918,0.1111111119389534,hours,0.7998421788215637
+97,go back to my normal life and i'm highly suspicious,start getting dancing uh my second again and i'm starting to,0.14285714285714285,0.380952380952381,0.3636363744735718,0.43478259444236755,i'm,0.8753126263618469
+63,driving at least a hundred mile per hour or even,world at least a hubhai fast forward move and  march,0.14285714285714285,0.3,0.30000001192092896,0.30000001192092896,least,0.7998151183128357
+56,a whole new language i don't remember i ever said,first room stopping and subsequent trouble i don't ask what,0.14285714285714285,0.20000000000000004,0.20000000298023224,0.27272728085517883,don't,0.8428128361701965
+27,one nursing twenty four hours around the clock at home,a youngmate kentan beats about fifty years back home,0.13333333333333333,0.10526315789473685,0.09942658990621567,0.10526315867900848,home,0.8329839110374451
+107,consulting work and even though i'm getting paid a fire,studio analysts and u we enabled getting the technology upgraded a year,0.125,0.2727272727272727,0.25,0.260869562625885,getting,0.8270037174224854
+77,working with companies like retail banking traffic reporting hazardous waste,ever who happens like the funness and ignore part of thing,0.125,0.09523809523809525,0.09090909361839294,0.095238097012043,like,0.8268868327140808
+90,start making these hopeless stick figures every forty five seconds,start performing a fun conf to give them positive about the the things,0.125,0.08695652173913043,0.07692307978868484,0.08695652335882187,start,0.8299880623817444
+89,no way i'm gonna excel drawing this naked man's essence,follow you things like friends i'm usually like telling ok,0.11764705882352941,0.10000000000000002,0.10000000149011612,0.17391304671764374,i'm,0.8208999037742615
+83,entire life i had never held a stick of charcoal,started an appetizer i care it which had a ride,0.0,0.3,0.30000001192092896,0.30000001192092896,,0.8485844731330872
+76,north to boston which caused my family to collectively take,sent went to school and to my e time a list,0.0,0.28571428571428564,0.27272728085517883,0.2857142984867096,,0.8279435634613037
+62,the street he turned left and instead of turning around,the way he back home and we were and going back back,0.0,0.2727272727272727,0.25,0.27272728085517883,,0.8339213132858276
+68,voice said the pain of the jump is nothing compared,may see the tip of your mind never understand the long details,0.0,0.2727272727272727,0.25,0.27272728085517883,,0.8526579141616821
+78,started consulting and i started taking classes to figure out,take seat and i start to get to see fucking donor friends,0.0,0.2727272727272727,0.25,0.4545454680919647,,0.8781864047050476
+3,slept every night in the hospital to take care of,fuckness in frontmate the video camera reps,0.0,0.23529411764705882,0.18612544238567352,0.23529411852359772,,0.7984240055084229
+7,long enough ago i was fourteen a long time ago,twenty minutes oldness to nineteen it was probably a,0.0,0.2105263157894737,0.19885317981243134,0.21052631735801697,,0.8180366158485413
+9,squeaky round styrofoam plate with bunch of yellow rice on,sparkedvict fast stitr slab jam with lots of legal,0.0,0.2105263157894737,0.19885317981243134,0.21052631735801697,,0.8068777322769165
+15,eyes closed and her mouth open and blood was trickling,e turned her back a bloodpipe which was struck,0.0,0.2105263157894737,0.19885317981243134,0.21052631735801697,,0.8282462954521179
+31,multiple surgeries on the arm every time the arm got,labor work on the costness to wear wear drink,0.0,0.2105263157894737,0.19885317981243134,0.21052631735801697,,0.81856369972229
+6,mother and i drove in our red ford mercury car,parent and motivations go in get back new police guy,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8190383911132812
+10,eating this rice um suddenly i heard a loud bang,start throwing flying off christon i get a really baning,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8496525883674622
+26,took us a long time to heal my stepfather broke,back home and and she  went to her bathroom my,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8110112547874451
+60,dad one evening i took a two mile walk to,lastten minute shift i am a world twenty five seconds,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8270747065544128
+85,man the artists model starts to undress and i say,have the female swimmers flying cliffs high and it's hurt,0.0,0.20000000000000004,0.20000000298023224,0.190476194024086,,0.8370214700698853
+104,piled high with artwork and at my review board one,said sayinge to people  at my family ask a calls,0.0,0.20000000000000004,0.20000000298023224,0.20000000298023224,,0.8326504230499268
+22,famous things called the jaws of life to cut open,one table table seat and laza of one to talk lodge,0.0,0.1904761904761905,0.1818181872367859,0.190476194024086,,0.8215600848197937
+5,offering to give thanks for delivering my child home safely,offered professionalation isn't for that coming donor,0.0,0.11764705882352941,0.09306272119283676,0.2222222238779068,,0.8171643018722534
+35,dangerous edgy pictures of women and he wants to shoot,cool shittary comic bob name like he,0.0,0.11764705882352941,0.09306272119283676,0.11764705926179886,,0.8412388563156128
+65,movie the lead actor always survive because it's a movie,destroyed the septjuudary destruction and this the,0.0,0.11764705882352941,0.09306272119283676,0.1111111119389534,,0.8190311789512634
+13,heard another thud and then i kind of heard and,says gon bobman and he has a gun,0.0,0.11111111111111112,0.0973500981926918,0.1111111119389534,,0.8252238035202026
+94,business one but when i started going to art school,finally forward well aa to ninety eleven progressively,0.0,0.11111111111111112,0.0973500981926918,0.1111111119389534,,0.8161396384239197
+21,get help please please get help and then a bunch,chuck seat clip semi hit but a group going,0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.8235878348350525
+24,i remember being incredibly uncomfortable in a cold hospital bed,i knew aa gay and ateen nine years old,0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.8341159820556641
+28,kind of semi lame at my side and you know,has really see depe's union my west soon the,0.0,0.10526315789473685,0.09942658990621567,0.10000000149011612,,0.8127661347389221
+48,the sectarian killings and kidnappings one morning my mom said,the room roomer about eleven oh five she's going,0.0,0.10526315789473685,0.09942658990621567,0.10000000149011612,,0.8191085457801819
+53,thinking about my family back home and their saety later,message from my fellow najaan wants to be open,0.0,0.10526315789473685,0.09942658990621567,0.10526315867900848,,0.8277988433837891
+23,parents got taken somewhere else my arm you know because,new get home we're in the front you fah yeah,0.0,0.10000000000000002,0.10000000149011612,0.095238097012043,,0.8497816920280457
+41,one time for five days with a fetal heart monitor,new room seat downstairs i've got a schex chukuza friend,0.0,0.10000000000000002,0.10000000149011612,0.095238097012043,,0.8021113872528076
+42,please deliver me and my child intact and healthy out,come home this thisia and the landlord sees the landlord,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8335951566696167
+47,shia civil war and to see a strong iraqi military,normal time diving survival it seems a big technical change,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8334643840789795
+49,leave baghdad on thursday november twenty third of two thousand,all time park shift the possibility of the last one,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.7984763979911804
+61,passenger seat the driver was listening to really loud music,front door van to give interview a funny papers shirts,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8284848928451538
+70,soldiers rushed to help me asking what happened what happened,went along the  to bob seat and legs and heal,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.8216100931167603
+73,enrolled in a state university to get my master's degree,transferredected a major activity at the department of of train,0.0,0.10000000000000002,0.10000000149011612,0.095238097012043,,0.8349287509918213
+95,new york times business sections and the wall street journal,last year you say bad trouble the firstpoint ofa paper,0.0,0.10000000000000002,0.10000000149011612,0.10000000149011612,,0.7923566102981567
+100,school as a part time student but i'm still consulting,somebody to  the studio account and the am looking a,0.0,0.10000000000000002,0.10000000149011612,0.095238097012043,,0.8278936147689819
+36,somebody else thinking you're cool can make you think differently,start mhm a donor of' hook up saying you might get,0.0,0.09523809523809525,0.09090909361839294,0.09090909361839294,,0.8303908705711365
+40,complete bed rest the last trimester of my pregnancy and,motivation was not really really but it the procedura motivation responsible,0.0,0.09523809523809525,0.09090909361839294,0.095238097012043,,0.7885454297065735
+58,my new family on base even though it was dangerous,my two time friend other people who might' might have been,0.0,0.09523809523809525,0.09090909361839294,0.095238097012043,,0.8255729079246521
+67,freeway all of a sudden i see a nearby chekcpoint,it's off level of the thing ky player started running to,0.0,0.09523809523809525,0.09090909361839294,0.09090909361839294,,0.820572018623352
+64,hear about a kidnapping almost every day in the news,you you you like something innag you you know like in new,0.0,0.0909090909090909,0.0833333358168602,0.09090909361839294,,0.7950296998023987
+79,needlepoint directing french i found this brochure for the school,stick point referencing home to things really really think about the landlord,0.0,0.0909090909090909,0.0833333358168602,0.09090909361839294,,0.846116840839386
+1,with a hyper allergy something called stevens johnson syndrome and,had any trouble because it probably not  momua to go,0.0,0.0,0.0,0.0,,0.7747295498847961
+2,weeks in the hospital weeks blind and mute as well,start starting leaping hotness fast into you're gonna,0.0,0.0,0.0,0.0,,0.8215152621269226
+4,made a promise to god that um if god delivers,got totally good forward and finally she gets ready her child's,0.0,0.0,0.0,0.0,,0.8232097029685974
+8,still really sick i could barely hold my head up,goon's radiation band it maybe well the another step,0.0,0.0,0.0,0.0,,0.8102004528045654
+11,remember the plate flying and yellow rice everywhere like confetti,gun pushing a semiepoints to get fucked,0.0,0.0,0.0,0.0,,0.8034585118293762
+12,us no trees no nothing just endless miraculous blue sky,big house  understand nobody like in fact really big a picture,0.0,0.0,0.0,0.0,,0.8054049611091614
+16,driving vijay we were at the temple vijay vijay vijay,shirt newjajuists are coming back toward a stage,0.0,0.0,0.0,0.0,,0.7914097905158997
+25,remember you know in the emergency room i remember vague,seemly close forward and likely threeniyan one goes size,0.0,0.0,0.0,0.0,,0.8059170246124268
+33,i really started modeling to pay off my college loans,outside intitu blowging this thing and,0.0,0.0,0.0,0.0,,0.8281981348991394
+34,helmut newton they said you know helmut newton the guy,heppyfield braunfels ride named mara really,0.0,0.0,0.0,0.0,,0.800037682056427
+38,back in another hospital bed staring at another white ceiling,third piece that really really got promoted more actually really more,0.0,0.0,0.0,0.0,,0.7973082661628723
+43,friend she used to study english literature so she and,ton accomplies on seapath  mich mika,0.0,0.0,0.0,0.0,,0.7923890948295593
+50,alive better than you be close and always in danger,even though you're thinking you're angry because you're angry,0.0,0.0,0.0,0.09090909361839294,,0.8359691500663757
+51,arrived in kurdistan state in northern iraq and i managed,get to late street city houanarian  analysts,0.0,0.0,0.0,0.0,,0.7970391511917114
+52,sunset cars driving after sunset i remember watching the colors,kind of good forward first jews come around a room,0.0,0.0,0.0,0.0,,0.8250999450683594
+54,they speak they swallow letters one time a soldier asked,it was been hit people in people what do you say tape lists,0.0,0.0,0.0,0.0,,0.832758903503418
+69,remember feeling any pain i just ran i ran for,big time yeah at early memorial's live he ended,0.0,0.0,0.0,0.0,,0.8239316940307617
+74,losing my new safe home america like i lost baghdad,halt regain lastnesst  survived the  was,0.0,0.0,0.0,0.0,,0.7911956310272217
+80,best to look artsy to fit in but even though,good feeling whenever you like like hit crowded and like like hate,0.0,0.0,0.0,0.0,,0.804337739944458
+81,wrong way to make art now this makes me extremely,real system as the what of custom and never loyalty as you,0.0,0.0,0.0,0.0,,0.8257089853286743
+82,class will focus on process the process of art making,three things differently with every three third step test they't,0.0,0.0,0.0,0.0,,0.8129667043685913
+84,next week bob one of the three instructors says today,a like na cause gonna like things about about,0.0,0.0,0.0,0.0,,0.8088769912719727
+86,busily getting out their easels and knowingly getting out sheets,new found daro romppers wild magicians who model stories,0.0,0.0,0.0,0.0,,0.796281099319458
+87,competitive and so i ask judy who is standing next,one article um max they've uy funnys tell,0.0,0.0,0.0,0.0,,0.801318347454071
+88,going to look different i'm paralyzed what is mine supposed,bu getting hurting back up i'mma started up,0.0,0.0,0.0,0.10000000149011612,,0.8384917378425598
+91,ever trying anything different for even attempting anything new and,kind of give down the support of my mental thing of,0.0,0.0,0.0,0.0,,0.8263551592826843
+93,anything but things at home start to get a little,thingles everybody' don't happens and have ways ways,0.0,0.0,0.0,0.0,,0.8093591928482056
+96,piece gets progressively more undone until the final piece explodes,tree database trailer and ninetteen years flight control fggys,0.0,0.0,0.0,0.0,,0.8121634721755981
+102,moving fast enough i kept pushing him to move faster,start sporting things like give support a home for a,0.0,0.0,0.0,0.0,,0.8145083785057068
+103,two instructors and several students review the work give us,eight year a grade loyalty exercise inaa week,0.0,0.0,0.0,0.0,,0.8280870914459229
+109,home of twenty five years and my jeep gets stolen,a late police donor cause you you know know meant,0.0,0.0,0.0,0.0,,0.8014679551124573

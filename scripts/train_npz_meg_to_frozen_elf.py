@@ -10,6 +10,7 @@ import logging
 import os
 import random
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -34,6 +35,11 @@ from modules.meg2sem_bridge import (
 )
 from modules.meg_adapter import MEGContextAdapter
 from modules.lora import inject_elf_lora, load_elf_state_dict, lora_parameter_count
+from modules.oracle_word_conditioning import (
+    ORACLE_WORD_LAYOUTS,
+    OracleKnownWordMEGContextAdapter,
+    build_oracle_word_mask,
+)
 from modules.semantic_adapter import ResidualIdentityContextProjector
 from modules.t5_encoder import get_encoder
 from scripts.meg_context_overfit import (
@@ -377,6 +383,51 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--norm-type", choices=["batch", "layer"], default="batch")
     parser.add_argument("--generation-t5-retrieval", action="store_true")
     parser.add_argument(
+        "--oracle-known-word-conditioning",
+        action="store_true",
+        help=(
+            "Leak exact target words into an ordered T5 word-memory branch for a validation-only "
+            "ceiling experiment. Results from this mode are not brain-conditioned scores."
+        ),
+    )
+    parser.add_argument(
+        "--oracle-word-train-layout",
+        choices=ORACLE_WORD_LAYOUTS,
+        default="random",
+        help="Known-word layout sampled for training batches; random uses 1, 2, or 4 positions.",
+    )
+    parser.add_argument(
+        "--oracle-word-eval-layout",
+        choices=ORACLE_WORD_LAYOUTS,
+        default="center2",
+        help="Exact target-word layout supplied during validation.",
+    )
+    parser.add_argument("--oracle-word-max-positions", type=int, default=10)
+    parser.add_argument(
+        "--oracle-word-expected-count",
+        type=int,
+        default=10,
+        help="Fail if a row does not contain this many regex words; <=0 disables the check.",
+    )
+    parser.add_argument("--oracle-word-attention-heads", type=int, default=8)
+    parser.add_argument("--oracle-word-dropout", type=float, default=0.0)
+    parser.add_argument(
+        "--oracle-word-lr",
+        type=float,
+        default=None,
+        help="Learning rate for the known-word fusion branch. Defaults to --lr.",
+    )
+    parser.add_argument(
+        "--oracle-word-checkpoint",
+        default="",
+        help="Optional prior oracle run from which to load only word_fusion parameters.",
+    )
+    parser.add_argument(
+        "--oracle-word-freeze-base",
+        action="store_true",
+        help="Freeze the selected winner's ELF, MEG2SEM, and semantic projector; train only word fusion.",
+    )
+    parser.add_argument(
         "--oracle-semantic-eval",
         action="store_true",
         help=(
@@ -502,6 +553,141 @@ def build_content_token_weights(
             if any(start < span_end and end > span_start for span_start, span_end in spans):
                 weights[row, column] = float(content_weight)
     return weights
+
+
+@torch.no_grad()
+def encode_oracle_word_embeddings(
+    *,
+    sentences: Sequence[str],
+    tokenizer,
+    encoder: torch.nn.Module,
+    latent_mean: float,
+    latent_std: float,
+    device: torch.device,
+    batch_size: int,
+    max_words: int,
+    expected_count: int,
+) -> tuple[torch.Tensor, torch.Tensor, list[list[str]]]:
+    """Encode normalized target words independently with the frozen ELF T5 encoder."""
+    rows = [[match.group(0).lower() for match in _WORD_RE.finditer(text)] for text in sentences]
+    if expected_count > 0:
+        mismatches = [(index, len(words)) for index, words in enumerate(rows) if len(words) != expected_count]
+        if mismatches:
+            preview = ", ".join(f"row {index}: {count}" for index, count in mismatches[:8])
+            raise ValueError(
+                f"Oracle known-word experiment expected {expected_count} words per row; {preview}."
+            )
+    if any(len(words) > max_words for words in rows):
+        largest = max(len(words) for words in rows)
+        raise ValueError(
+            f"A sentence has {largest} words but --oracle-word-max-positions={max_words}."
+        )
+
+    vocabulary = sorted({word for words in rows for word in words})
+    if not vocabulary:
+        raise ValueError("No words were extracted for oracle known-word conditioning.")
+    encoded = tokenizer(
+        vocabulary,
+        return_tensors="pt",
+        padding=True,
+        truncation=True,
+        max_length=16,
+        add_special_tokens=False,
+    )
+    word_latents = encode_text_batched(
+        input_ids=encoded["input_ids"],
+        attention_mask=encoded["attention_mask"],
+        encoder=encoder,
+        latent_mean=latent_mean,
+        latent_std=latent_std,
+        device=device,
+        batch_size=batch_size,
+    )
+    token_mask = encoded["attention_mask"].to(dtype=word_latents.dtype).unsqueeze(-1)
+    pooled = (word_latents * token_mask).sum(dim=1) / token_mask.sum(dim=1).clamp_min(1.0)
+    word_to_embedding = {word: pooled[index] for index, word in enumerate(vocabulary)}
+
+    embedding_dim = int(pooled.shape[-1])
+    embeddings = torch.zeros((len(rows), max_words, embedding_dim), dtype=torch.float32)
+    valid_mask = torch.zeros((len(rows), max_words), dtype=torch.bool)
+    for row_index, words in enumerate(rows):
+        for word_index, word in enumerate(words):
+            embeddings[row_index, word_index] = word_to_embedding[word]
+            valid_mask[row_index, word_index] = True
+    return embeddings, valid_mask, rows
+
+
+def load_oracle_word_initialization(
+    adapter: OracleKnownWordMEGContextAdapter,
+    checkpoint_path: str,
+    device: torch.device,
+) -> None:
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    if not isinstance(checkpoint, dict):
+        raise ValueError(f"Unsupported oracle-word checkpoint payload in {checkpoint_path}")
+    state = checkpoint.get("adapter_state_dict", checkpoint)
+    word_state = {
+        key[len("word_fusion.") :]: value
+        for key, value in state.items()
+        if key.startswith("word_fusion.")
+    }
+    if not word_state:
+        raise ValueError(
+            f"Oracle-word checkpoint {checkpoint_path} has no word_fusion.* parameters."
+        )
+    adapter.word_fusion.load_state_dict(word_state)
+    log_for_0(f"Initialized oracle known-word fusion from {checkpoint_path}")
+
+
+def add_oracle_word_adherence(
+    metrics: dict,
+    *,
+    word_rows: Sequence[Sequence[str]] | None,
+    selected_mask: torch.Tensor | None,
+) -> None:
+    """Record whether generated text actually contains the leaked condition words."""
+    if word_rows is None or selected_mask is None:
+        return
+    generated = metrics.get("generated") or []
+    if len(generated) != len(word_rows) or selected_mask.shape[0] != len(word_rows):
+        raise ValueError("Oracle-word adherence rows do not match generated rows.")
+
+    supplied_rows: list[list[str]] = []
+    matched_counts: list[int] = []
+    supplied_counts: list[int] = []
+    all_supplied: list[int] = []
+    for row_index, (words, text) in enumerate(zip(word_rows, generated)):
+        selected = [
+            word
+            for word_index, word in enumerate(words)
+            if bool(selected_mask[row_index, word_index])
+        ]
+        supplied_rows.append(selected)
+        supplied_counter = Counter(selected)
+        generated_counter = Counter(
+            match.group(0).lower() for match in _WORD_RE.finditer(str(text))
+        )
+        matched = sum(
+            min(count, generated_counter.get(word, 0))
+            for word, count in supplied_counter.items()
+        )
+        matched_counts.append(matched)
+        supplied_counts.append(len(selected))
+        all_supplied.append(int(len(selected) > 0 and matched == len(selected)))
+
+    total_supplied = sum(supplied_counts)
+    metrics["oracle_known_word_adherence"] = {
+        "leaky_target_derived_condition": True,
+        "supplied_words": supplied_rows,
+        "matched_counts": matched_counts,
+        "supplied_counts": supplied_counts,
+        "known_word_recall": (
+            float(sum(matched_counts) / total_supplied) if total_supplied > 0 else None
+        ),
+        "rows_all_supplied_fraction": (
+            float(sum(all_supplied) / len(all_supplied)) if total_supplied > 0 else None
+        ),
+    }
 
 
 def selected_checkpoint_score(metrics: dict, metric: str) -> float:
@@ -1291,6 +1477,18 @@ def main() -> None:
     args = parse_args()
     if args.semantic_alignment_loss_weight > 0.0 and args.adapter_kind != "meg2sem_projector":
         raise ValueError("--semantic-alignment-loss-weight is only supported with --adapter-kind meg2sem_projector.")
+    if args.oracle_known_word_conditioning and args.adapter_kind != "meg2sem_projector":
+        raise ValueError(
+            "--oracle-known-word-conditioning currently requires --adapter-kind meg2sem_projector."
+        )
+    if args.oracle_known_word_conditioning and args.oracle_word_eval_layout == "random":
+        raise ValueError("Use a fixed --oracle-word-eval-layout; random is training-only.")
+    if args.oracle_word_checkpoint and not args.oracle_known_word_conditioning:
+        raise ValueError("--oracle-word-checkpoint requires --oracle-known-word-conditioning.")
+    if args.oracle_word_freeze_base and not args.oracle_known_word_conditioning:
+        raise ValueError("--oracle-word-freeze-base requires --oracle-known-word-conditioning.")
+    if args.oracle_known_word_conditioning and args.teacher_context_loss_weight > 0.0:
+        raise ValueError("Oracle word conditioning is not supported with teacher-context-only training.")
     set_seed(args.seed)
     device = resolve_device(args.device)
     output_dir = Path(args.output_dir)
@@ -1423,6 +1621,29 @@ def main() -> None:
         raise ValueError(f"Unsupported adapter_kind={args.adapter_kind!r}")
     if args.init_e2e_checkpoint:
         load_e2e_initialization(model, adapter, args.init_e2e_checkpoint, device)
+    if args.oracle_known_word_conditioning:
+        if args.oracle_word_freeze_base:
+            set_module_trainable(model, False)
+            set_module_trainable(adapter, False)
+        adapter = OracleKnownWordMEGContextAdapter(
+            base_adapter=adapter,
+            context_dim=encoder_config.d_model,
+            max_words=args.oracle_word_max_positions,
+            attention_heads=args.oracle_word_attention_heads,
+            dropout=args.oracle_word_dropout,
+        ).to(device)
+        if args.oracle_word_checkpoint:
+            load_oracle_word_initialization(adapter, args.oracle_word_checkpoint, device)
+        adapter_summary["oracle_known_word_conditioning"] = True
+        adapter_summary["oracle_word_train_layout"] = args.oracle_word_train_layout
+        adapter_summary["oracle_word_eval_layout"] = args.oracle_word_eval_layout
+        adapter_summary["oracle_word_freeze_base"] = bool(args.oracle_word_freeze_base)
+        log_for_0(
+            "Enabled LEAKY oracle known-word conditioning: "
+            f"train_layout={args.oracle_word_train_layout} "
+            f"eval_layout={args.oracle_word_eval_layout} "
+            f"freeze_base={args.oracle_word_freeze_base}"
+        )
     log_for_0(f"Trainable adapter parameters: {sum(p.numel() for p in adapter.parameters() if p.requires_grad):,}")
 
     semantic_rank_teacher_adapter = None
@@ -1550,6 +1771,62 @@ def main() -> None:
     eval_target_ids = eval_input_ids.detach().cpu()
     eval_target_mask = eval_attention_mask.detach().cpu().to(torch.float32)
 
+    train_oracle_word_embeddings = None
+    train_oracle_word_valid_mask = None
+    eval_oracle_word_embeddings = None
+    eval_oracle_word_mask = None
+    eval_oracle_word_rows = None
+    oracle_word_summary: dict[str, object] | None = None
+    if args.oracle_known_word_conditioning:
+        if not args.eval_only:
+            log_for_0("Encoding train oracle words with the frozen T5 encoder")
+            (
+                train_oracle_word_embeddings,
+                train_oracle_word_valid_mask,
+                _train_oracle_words,
+            ) = encode_oracle_word_embeddings(
+                sentences=train_examples.sentences,
+                tokenizer=tokenizer,
+                encoder=encoder,
+                latent_mean=config.latent_mean,
+                latent_std=config.latent_std,
+                device=device,
+                batch_size=args.target_encode_batch_size,
+                max_words=args.oracle_word_max_positions,
+                expected_count=args.oracle_word_expected_count,
+            )
+        log_for_0("Encoding validation oracle words with the frozen T5 encoder")
+        (
+            eval_oracle_word_embeddings,
+            eval_oracle_word_valid_mask,
+            eval_oracle_word_rows,
+        ) = encode_oracle_word_embeddings(
+            sentences=eval_examples.sentences,
+            tokenizer=tokenizer,
+            encoder=encoder,
+            latent_mean=config.latent_mean,
+            latent_std=config.latent_std,
+            device=device,
+            batch_size=args.target_encode_batch_size,
+            max_words=args.oracle_word_max_positions,
+            expected_count=args.oracle_word_expected_count,
+        )
+        eval_oracle_word_mask = build_oracle_word_mask(
+            eval_oracle_word_valid_mask,
+            layout=args.oracle_word_eval_layout,
+        )
+        oracle_word_summary = {
+            "leaky_target_derived_condition": True,
+            "train_layout": args.oracle_word_train_layout,
+            "eval_layout": args.oracle_word_eval_layout,
+            "eval_words_per_row_mean": float(
+                eval_oracle_word_mask.to(dtype=torch.float32).sum(dim=1).mean().item()
+            ),
+            "max_positions": int(args.oracle_word_max_positions),
+            "expected_count": int(args.oracle_word_expected_count),
+        }
+        log_for_0(f"Oracle word summary: {json.dumps(oracle_word_summary, sort_keys=True)}")
+
     param_groups = []
 
     def add_param_group(params: list[torch.nn.Parameter], *, lr: float, name: str) -> None:
@@ -1583,6 +1860,14 @@ def main() -> None:
             lr=args.lr,
             name="meg_adapter",
         )
+    if args.oracle_known_word_conditioning:
+        oracle_word_lr = args.lr if args.oracle_word_lr is None else args.oracle_word_lr
+        add_param_group(
+            [param for param in adapter.word_fusion.parameters() if param.requires_grad],
+            lr=oracle_word_lr,
+            name="oracle_word_fusion",
+        )
+        log_for_0(f"Oracle-word optimizer group: oracle_word_lr={oracle_word_lr:g}")
     if args.unfreeze_elf or args.elf_lora_rank > 0:
         elf_lr = args.lr if args.elf_lr is None else args.elf_lr
         add_param_group(
@@ -1622,6 +1907,7 @@ def main() -> None:
         "train_target_mask_density": float(target_mask.mean().item()),
         "trainable_elf_tensor_count": len(trainable_elf_names),
         "trainable_elf_tensors": trainable_elf_names[:200],
+        "oracle_word_summary": oracle_word_summary,
     }
     with (output_dir / "run_config.json").open("w", encoding="utf-8") as handle:
         json.dump(config_payload, handle, indent=2)
@@ -1647,11 +1933,23 @@ def main() -> None:
                 retrieval_batch_size=args.retrieval_batch_size,
                 retrieval_t=args.retrieval_t,
                 condition_batch_size=args.batch_size,
+                known_word_embeddings=(
+                    eval_oracle_word_embeddings.index_select(0, retrieval_indices)
+                    if eval_oracle_word_embeddings is not None
+                    else None
+                ),
+                known_word_mask=(
+                    eval_oracle_word_mask.index_select(0, retrieval_indices)
+                    if eval_oracle_word_mask is not None
+                    else None
+                ),
             )
             retrieval_metrics["step"] = 0
             retrieval_metrics["epoch"] = epoch
             retrieval_metrics["eval_num_examples"] = retrieval_count
             retrieval_metrics["eval_start_index"] = retrieval_start
+            if oracle_word_summary is not None:
+                retrieval_metrics["oracle_known_words"] = oracle_word_summary
             with (output_dir / "retrieval_step_000000.json").open("w", encoding="utf-8") as handle:
                 json.dump(retrieval_metrics, handle, ensure_ascii=False, indent=2)
             log_for_0(
@@ -1693,12 +1991,37 @@ def main() -> None:
             generator=noise_generator,
             condition_source="meg",
             condition_batch_size=args.batch_size,
+            known_word_embeddings=(
+                eval_oracle_word_embeddings.index_select(0, eval_indices)
+                if eval_oracle_word_embeddings is not None
+                else None
+            ),
+            known_word_mask=(
+                eval_oracle_word_mask.index_select(0, eval_indices)
+                if eval_oracle_word_mask is not None
+                else None
+            ),
         )
         eval_metrics["step"] = 0
         eval_metrics["epoch"] = epoch
         eval_metrics["eval_num_examples"] = eval_count
         eval_metrics["eval_start_index"] = eval_start
         eval_metrics["eval_split"] = eval_split
+        add_oracle_word_adherence(
+            eval_metrics,
+            word_rows=(
+                [eval_oracle_word_rows[int(index)] for index in eval_indices.tolist()]
+                if eval_oracle_word_rows is not None
+                else None
+            ),
+            selected_mask=(
+                eval_oracle_word_mask.index_select(0, eval_indices)
+                if eval_oracle_word_mask is not None
+                else None
+            ),
+        )
+        if oracle_word_summary is not None:
+            eval_metrics["oracle_known_words"] = oracle_word_summary
         if teacher_adapter is not None:
             eval_metrics["teacher_context"] = evaluate_teacher_context(
                 adapter=adapter,
@@ -1829,6 +2152,16 @@ def main() -> None:
 
     for step in range(1, args.steps + 1):
         indices = sample_indices(train_n, args.batch_size, batch_generator)
+        batch_known_word_embeddings = None
+        batch_known_word_mask = None
+        if train_oracle_word_embeddings is not None:
+            batch_known_word_embeddings = train_oracle_word_embeddings.index_select(0, indices)
+            batch_valid_word_mask = train_oracle_word_valid_mask.index_select(0, indices)
+            batch_known_word_mask = build_oracle_word_mask(
+                batch_valid_word_mask,
+                layout=args.oracle_word_train_layout,
+                generator=batch_generator,
+            )
         batch = OverfitBatch(
             indices=indices,
             meg=train_examples.meg.index_select(0, indices),
@@ -1839,6 +2172,8 @@ def main() -> None:
             target_ids=target_ids.index_select(0, indices),
             target_mask=target_mask.index_select(0, indices),
             target_weights=decoder_token_weights.index_select(0, indices),
+            known_word_embeddings=batch_known_word_embeddings,
+            known_word_mask=batch_known_word_mask,
         )
         epoch = step * args.batch_size / max(1, train_n)
         if args.teacher_context_loss_weight > 0.0:
@@ -1970,11 +2305,23 @@ def main() -> None:
                 retrieval_batch_size=args.retrieval_batch_size,
                 retrieval_t=args.retrieval_t,
                 condition_batch_size=args.batch_size,
+                known_word_embeddings=(
+                    eval_oracle_word_embeddings.index_select(0, retrieval_indices)
+                    if eval_oracle_word_embeddings is not None
+                    else None
+                ),
+                known_word_mask=(
+                    eval_oracle_word_mask.index_select(0, retrieval_indices)
+                    if eval_oracle_word_mask is not None
+                    else None
+                ),
             )
             retrieval_metrics["step"] = step
             retrieval_metrics["epoch"] = epoch
             retrieval_metrics["eval_num_examples"] = retrieval_count
             retrieval_metrics["eval_start_index"] = retrieval_start
+            if oracle_word_summary is not None:
+                retrieval_metrics["oracle_known_words"] = oracle_word_summary
             with (output_dir / f"retrieval_step_{step:06d}.json").open("w", encoding="utf-8") as handle:
                 json.dump(retrieval_metrics, handle, ensure_ascii=False, indent=2)
             log_for_0(
@@ -2019,12 +2366,37 @@ def main() -> None:
             generator=noise_generator,
             condition_source="meg",
             condition_batch_size=args.batch_size,
+            known_word_embeddings=(
+                eval_oracle_word_embeddings.index_select(0, eval_indices)
+                if eval_oracle_word_embeddings is not None
+                else None
+            ),
+            known_word_mask=(
+                eval_oracle_word_mask.index_select(0, eval_indices)
+                if eval_oracle_word_mask is not None
+                else None
+            ),
         )
         eval_metrics["step"] = step
         eval_metrics["epoch"] = epoch
         eval_metrics["eval_num_examples"] = eval_count
         eval_metrics["eval_start_index"] = eval_start
         eval_metrics["eval_split"] = eval_split
+        add_oracle_word_adherence(
+            eval_metrics,
+            word_rows=(
+                [eval_oracle_word_rows[int(index)] for index in eval_indices.tolist()]
+                if eval_oracle_word_rows is not None
+                else None
+            ),
+            selected_mask=(
+                eval_oracle_word_mask.index_select(0, eval_indices)
+                if eval_oracle_word_mask is not None
+                else None
+            ),
+        )
+        if oracle_word_summary is not None:
+            eval_metrics["oracle_known_words"] = oracle_word_summary
         if teacher_adapter is not None:
             eval_metrics["teacher_context"] = evaluate_teacher_context(
                 adapter=adapter,

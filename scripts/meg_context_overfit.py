@@ -29,6 +29,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from configs.config import Config, SamplingConfig
 from modules.meg_adapter import MEGContextAdapter
+from modules.dascoli_sentence_source import (
+    apply_source_token_copy,
+    confidence_weighted_source_latents,
+    preserve_editable_source_latents,
+)
 from modules.model import ELF_models
 from modules.t5_encoder import get_encoder
 from utils.checkpoint_utils import _download_hf_checkpoint, _restore_checkpoint
@@ -52,6 +57,7 @@ from utils.sampling_utils import (
     net_out_to_v_x,
     restore_cond,
     sample_timesteps,
+    truncate_sampling_steps,
 )
 
 try:
@@ -79,6 +85,10 @@ class OverfitBatch:
     target_ids: torch.Tensor
     target_mask: torch.Tensor
     target_weights: torch.Tensor | None = None
+    known_word_embeddings: torch.Tensor | None = None
+    known_word_mask: torch.Tensor | None = None
+    source_latents: torch.Tensor | None = None
+    source_confidence: torch.Tensor | None = None
 
 
 class SemanticVectorContextProjector(nn.Module):
@@ -340,10 +350,13 @@ def build_config(args: argparse.Namespace, max_length: int) -> Config:
     config.denoiser_p_mean = -1.5
     config.denoiser_p_std = 0.8
     config.denoiser_noise_scale = 2.0
-    config.decoder_p_mean = 0.8
-    config.decoder_p_std = 0.8
+    config.decoder_p_mean = float(getattr(args, "decoder_p_mean", 0.8))
+    config.decoder_p_std = float(getattr(args, "decoder_p_std", 0.8))
     config.decoder_prob = float(getattr(args, "decoder_prob", config.decoder_prob))
     config.decoder_noise_scale = args.decoder_noise_scale
+    config.decoder_source_direct = bool(
+        getattr(args, "decoder_flow_latent_direct", False)
+    )
     config.t_eps = 0.05
     config.time_schedule = "logit_normal"
     config.self_cond_prob = 0.5
@@ -1510,6 +1523,46 @@ def train_step(
         if batch.target_weights is not None
         else torch.ones_like(target_token_mask)
     )
+    known_word_embeddings = (
+        batch.known_word_embeddings.to(device=device, dtype=torch.float32)
+        if batch.known_word_embeddings is not None
+        else None
+    )
+    known_word_mask = (
+        batch.known_word_mask.to(device=device, dtype=torch.bool)
+        if batch.known_word_mask is not None
+        else None
+    )
+    if (known_word_embeddings is None) != (known_word_mask is None):
+        raise ValueError(
+            "OverfitBatch must provide known_word_embeddings and known_word_mask together."
+        )
+    source_latents = (
+        batch.source_latents.to(device=device, dtype=torch.float32)
+        if batch.source_latents is not None
+        else None
+    )
+    source_confidence = (
+        batch.source_confidence.to(device=device, dtype=torch.float32)
+        if batch.source_confidence is not None
+        else None
+    )
+    if source_latents is None and source_confidence is not None:
+        raise ValueError("source_confidence requires source_latents.")
+    if source_latents is not None and tuple(source_latents.shape) != tuple(target_latents.shape):
+        raise ValueError(
+            "source_latents must match target_latents: "
+            f"source={tuple(source_latents.shape)} target={tuple(target_latents.shape)}"
+        )
+    if source_confidence is not None:
+        if source_confidence.ndim == 2:
+            source_confidence = source_confidence.unsqueeze(-1)
+        if tuple(source_confidence.shape) != (*target_latents.shape[:2], 1):
+            raise ValueError(
+                "source_confidence must be [batch, target_length] or [batch, target_length, 1], "
+                f"got {tuple(source_confidence.shape)}."
+            )
+        source_confidence = source_confidence.clamp(0.0, 1.0)
     alignment_targets = (
         semantic_alignment_targets.to(device=device, dtype=torch.float32)
         if semantic_alignment_targets is not None
@@ -1519,7 +1572,18 @@ def train_step(
     def build_conditioned_x0():
         predicted_semantic = None
         if condition_source == "meg":
-            adapter_output = adapter(meg, meg_lengths=meg_lengths, subjects=subject_ids)
+            word_kwargs = {}
+            if known_word_embeddings is not None:
+                word_kwargs = {
+                    "known_word_embeddings": known_word_embeddings,
+                    "known_word_mask": known_word_mask,
+                }
+            adapter_output = adapter(
+                meg,
+                meg_lengths=meg_lengths,
+                subjects=subject_ids,
+                **word_kwargs,
+            )
             context = adapter_output.context
             cond_seq_mask = adapter_output.context_mask.to(dtype=context.dtype)
             encoded_sequence = getattr(adapter_output, "encoded_sequence", None)
@@ -1563,10 +1627,41 @@ def train_step(
     optimizer.zero_grad(set_to_none=True)
     use_bf16 = bool(config.use_bf16) and device.type == "cuda"
 
+    def confidence_weighted_source() -> torch.Tensor | None:
+        if source_latents is None:
+            return None
+        confidence = (
+            source_confidence
+            if source_confidence is not None
+            else torch.ones(
+                (*source_latents.shape[:2], 1),
+                dtype=source_latents.dtype,
+                device=device,
+            )
+        )
+        source_noise = (
+            torch.randn(
+                source_latents.shape,
+                generator=noise_generator,
+                device=device,
+                dtype=source_latents.dtype,
+            )
+            * config.denoiser_noise_scale
+        )
+        return confidence_weighted_source_latents(
+            source_latents, confidence, source_noise
+        )
+
     def denoiser_loss_for_t(t: torch.Tensor) -> torch.Tensor:
-        _, x0, cond_seq_mask, attention_mask, sc_scale, target_loss_mask, _ = build_conditioned_x0()
-        noise = torch.randn(x0.shape, generator=noise_generator, device=device, dtype=x0.dtype)
-        z = add_noise(x0, noise, t, config, cond_seq_mask=cond_seq_mask.unsqueeze(-1))
+        context, x0, cond_seq_mask, attention_mask, sc_scale, target_loss_mask, _ = build_conditioned_x0()
+        source_target = confidence_weighted_source()
+        if source_target is None:
+            noise = torch.randn(x0.shape, generator=noise_generator, device=device, dtype=x0.dtype)
+            z = add_noise(x0, noise, t, config, cond_seq_mask=cond_seq_mask.unsqueeze(-1))
+        else:
+            source_sequence = torch.cat([context, source_target], dim=1)
+            t_expanded = t.reshape(-1, 1, 1)
+            z = t_expanded * x0 + (1.0 - t_expanded) * source_sequence
         pred, _ = model(
             z,
             t,
@@ -1662,15 +1757,23 @@ def train_step(
         # Decoder-only brain attention sees the same clean condition memory at
         # training and inference; legacy/shared-flow modes keep the historical
         # full-sequence corruption contract.
-        decoder_z = build_decoder_training_latent(
-            x0,
-            decoder_noise,
-            decoder_lambda,
-            cond_seq_mask,
-            preserve_condition_prefix=bool(
-                getattr(model, "brain_cross_attention_decoder_only", False)
-            ),
-        )
+        source_target = confidence_weighted_source()
+        if source_target is None:
+            decoder_z = build_decoder_training_latent(
+                x0,
+                decoder_noise,
+                decoder_lambda,
+                cond_seq_mask,
+                preserve_condition_prefix=bool(
+                    getattr(model, "brain_cross_attention_decoder_only", False)
+                ),
+            )
+        else:
+            source_sequence = torch.cat([context, source_target], dim=1)
+            if bool(getattr(config, "decoder_source_direct", False)):
+                decoder_z = source_sequence
+            else:
+                decoder_z = decoder_lambda * x0 + (1.0 - decoder_lambda) * source_sequence
         decoder_input = (
             torch.cat([decoder_z, torch.zeros_like(decoder_z)], dim=-1)
             if config.self_cond_prob > 0
@@ -1998,6 +2101,11 @@ def train_step(
         "semantic_rank_distill_loss_scaled": float(
             scaled_semantic_rank_distill_loss.detach().cpu()
         ),
+        "source_confidence_mean": (
+            float(source_confidence.mean().detach().cpu())
+            if source_confidence is not None
+            else (1.0 if source_latents is not None else 0.0)
+        ),
     }
     metrics.update(grad_metrics)
     return metrics
@@ -2014,8 +2122,14 @@ def encode_condition_contexts(
     device: torch.device,
     condition_source: str,
     batch_size: int,
+    known_word_embeddings: torch.Tensor | None = None,
+    known_word_mask: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Encode long MEG windows without materializing attention for the full split."""
+    if (known_word_embeddings is None) != (known_word_mask is None):
+        raise ValueError(
+            "known_word_embeddings and known_word_mask must be supplied together."
+        )
     total = int(meg.shape[0] if condition_source == "meg" else semantic_vectors.shape[0])
     chunk_size = total if batch_size <= 0 else min(total, int(batch_size))
     contexts: list[torch.Tensor] = []
@@ -2023,10 +2137,21 @@ def encode_condition_contexts(
     for start in range(0, total, chunk_size):
         stop = min(total, start + chunk_size)
         if condition_source == "meg":
+            word_kwargs = {}
+            if known_word_embeddings is not None:
+                word_kwargs = {
+                    "known_word_embeddings": known_word_embeddings[start:stop].to(
+                        device=device, dtype=torch.float32
+                    ),
+                    "known_word_mask": known_word_mask[start:stop].to(
+                        device=device, dtype=torch.bool
+                    ),
+                }
             output = adapter(
                 meg[start:stop].to(device=device, dtype=torch.float32),
                 meg_lengths=meg_lengths[start:stop].to(device=device, dtype=torch.long),
                 subjects=subject_ids[start:stop].to(device=device, dtype=torch.long),
+                **word_kwargs,
             )
             context = output.context
             mask = output.context_mask.to(device=device, dtype=context.dtype)
@@ -2063,6 +2188,19 @@ def evaluate_generation(
     generator: torch.Generator,
     condition_source: str,
     condition_batch_size: int = 0,
+    known_word_embeddings: torch.Tensor | None = None,
+    known_word_mask: torch.Tensor | None = None,
+    source_latents: torch.Tensor | None = None,
+    source_confidence: torch.Tensor | None = None,
+    source_token_ids: torch.Tensor | None = None,
+    source_attention_mask: torch.Tensor | None = None,
+    source_copy_confidence: torch.Tensor | None = None,
+    source_copy_confidence_threshold: float | None = None,
+    source_edit_latent_preservation: float = 0.0,
+    disable_semantic_condition: bool = False,
+    semantic_condition_scale: float = 1.0,
+    source_flow_end_time: float = 1.0,
+    decoder_position_logit_bias: torch.Tensor | None = None,
 ) -> dict:
     model.eval()
     adapter.eval()
@@ -2076,11 +2214,63 @@ def evaluate_generation(
         device=device,
         condition_source=condition_source,
         batch_size=condition_batch_size,
+        known_word_embeddings=known_word_embeddings,
+        known_word_mask=known_word_mask,
     )
+    if not 0.0 <= float(semantic_condition_scale) <= 1.0:
+        raise ValueError("semantic_condition_scale must be in [0, 1].")
+    if not 0.0 <= float(source_flow_end_time) <= 1.0:
+        raise ValueError("source_flow_end_time must be in [0, 1].")
+    if source_latents is None and source_flow_end_time != 1.0:
+        raise ValueError("source_flow_end_time below 1 requires source_latents.")
+    if disable_semantic_condition:
+        context = torch.zeros_like(context)
+    elif semantic_condition_scale != 1.0:
+        context = context * float(semantic_condition_scale)
+    if source_latents is None and source_confidence is not None:
+        raise ValueError("source_confidence requires source_latents.")
+    copy_values = (
+        source_token_ids,
+        source_attention_mask,
+        source_copy_confidence,
+        source_copy_confidence_threshold,
+    )
+    if any(value is not None for value in copy_values) and not all(
+        value is not None for value in copy_values
+    ):
+        raise ValueError(
+            "source token copy requires ids, attention mask, and confidence threshold"
+        )
+    if not 0.0 <= float(source_edit_latent_preservation) <= 1.0:
+        raise ValueError("source_edit_latent_preservation must be in [0, 1]")
+    if source_edit_latent_preservation > 0.0 and (
+        source_latents is None or not all(value is not None for value in copy_values)
+    ):
+        raise ValueError(
+            "source edit-latent preservation requires source latents and token-copy inputs"
+        )
+    if source_latents is not None:
+        if tuple(source_latents.shape[:2]) != (context.shape[0], target_length):
+            raise ValueError(
+                "source_latents must be [rows, target_length, dim]: "
+                f"source={tuple(source_latents.shape)} rows={context.shape[0]} "
+                f"target_length={target_length}."
+            )
+        if source_latents.shape[-1] != context.shape[-1]:
+            raise ValueError("Source and context latent dimensions must match.")
+        if source_confidence is not None and tuple(source_confidence.shape) not in {
+            (context.shape[0], target_length),
+            (context.shape[0], target_length, 1),
+        }:
+            raise ValueError(
+                "source_confidence must be [rows, target_length] or [rows, target_length, 1]."
+            )
 
     generation_batch_size = context.shape[0] if condition_batch_size <= 0 else int(condition_batch_size)
     generated: list[str] = []
     lexical_predictions: list[str] = []
+    copy_counts: list[int] = []
+    copy_eligible_counts: list[int] = []
     for start in range(0, context.shape[0], generation_batch_size):
         context_chunk = context[start : start + generation_batch_size]
         mask_chunk = context_mask[start : start + generation_batch_size]
@@ -2105,20 +2295,71 @@ def evaluate_generation(
             device=device,
             dtype=context_chunk.dtype,
         )
-        z = torch.randn(cond_seq.shape, generator=generator, device=device, dtype=context_chunk.dtype)
-        z = z * config.denoiser_noise_scale
-        latent = _generate_samples_single_batch(
-            model=model,
-            generator=generator,
-            z=z,
-            t_steps=t_steps,
-            cond_seq=cond_seq,
-            cond_seq_mask=cond_mask,
-            config=config,
-            sampling_config=sampling_config,
-            cfg_scale=sampling_config.cfgs[0],
-            self_cond_cfg_scale=sampling_config.self_cond_cfg_scales[0],
+        t_steps = truncate_sampling_steps(t_steps, source_flow_end_time)
+        z = (
+            torch.randn(
+                cond_seq.shape,
+                generator=generator,
+                device=device,
+                dtype=context_chunk.dtype,
+            )
+            * config.denoiser_noise_scale
         )
+        if source_latents is not None:
+            source_chunk = source_latents[start : start + generation_batch_size].to(
+                device=device, dtype=context_chunk.dtype
+            )
+            if source_confidence is None:
+                confidence_chunk = torch.ones(
+                    (*source_chunk.shape[:2], 1),
+                    dtype=context_chunk.dtype,
+                    device=device,
+                )
+            else:
+                confidence_chunk = source_confidence[
+                    start : start + generation_batch_size
+                ].to(device=device, dtype=context_chunk.dtype)
+                if confidence_chunk.ndim == 2:
+                    confidence_chunk = confidence_chunk.unsqueeze(-1)
+                confidence_chunk = confidence_chunk.clamp(0.0, 1.0)
+            target_noise = z[:, context_chunk.shape[1] :]
+            z[:, context_chunk.shape[1] :] = confidence_weighted_source_latents(
+                source_chunk,
+                confidence_chunk,
+                target_noise,
+            )
+        if t_steps.numel() == 1:
+            latent = restore_cond(z, cond_seq, cond_mask)
+        else:
+            latent = _generate_samples_single_batch(
+                model=model,
+                generator=generator,
+                z=z,
+                t_steps=t_steps,
+                cond_seq=cond_seq,
+                cond_seq_mask=cond_mask,
+                config=config,
+                sampling_config=sampling_config,
+                cfg_scale=sampling_config.cfgs[0],
+                self_cond_cfg_scale=sampling_config.self_cond_cfg_scales[0],
+            )
+        if source_edit_latent_preservation > 0.0:
+            raw_confidence_chunk = source_copy_confidence[
+                start : start + generation_batch_size
+            ].to(device=device, dtype=context_chunk.dtype)
+            raw_attention_chunk = source_attention_mask[
+                start : start + generation_batch_size
+            ].to(device=device)
+            flow_target, _ = preserve_editable_source_latents(
+                latent[:, context_chunk.shape[1] :],
+                source_chunk,
+                raw_confidence_chunk,
+                raw_attention_chunk,
+                copy_threshold=float(source_copy_confidence_threshold),
+                preservation=float(source_edit_latent_preservation),
+            )
+            latent = latent.clone()
+            latent[:, context_chunk.shape[1] :] = flow_target
         lexical_token_bias = None
         lexical_sequence_ids = None
         lexical_sequence_bias = None
@@ -2187,9 +2428,32 @@ def evaluate_generation(
             ordered_token_max_positions=int(
                 getattr(adapter, "ordered_decode_max_positions", 0)
             ),
+            position_logit_bias=decoder_position_logit_bias,
+            position_logit_bias_target_start=context_chunk.shape[1],
         )
         shift = torch.full((context_chunk.shape[0],), context_length, dtype=torch.long, device=device)
         predicted_ids = shift_left(predicted_ids, shift, 0)[:, :target_length]
+        copied_token_count = 0
+        eligible_token_count = 0
+        if source_token_ids is not None:
+            source_ids_chunk = source_token_ids[
+                start : start + generation_batch_size
+            ].to(device=predicted_ids.device, dtype=predicted_ids.dtype)
+            source_mask_chunk = source_attention_mask[
+                start : start + generation_batch_size
+            ].to(device=predicted_ids.device)
+            source_confidence_chunk = source_copy_confidence[
+                start : start + generation_batch_size
+            ].to(device=predicted_ids.device, dtype=torch.float32)
+            predicted_ids, copy_mask = apply_source_token_copy(
+                predicted_ids,
+                source_ids_chunk,
+                source_confidence_chunk,
+                source_mask_chunk,
+                threshold=float(source_copy_confidence_threshold),
+            )
+            copied_token_count = int(copy_mask.sum().item())
+            eligible_token_count = int(source_mask_chunk.sum().item())
         predicted_ids = mask_after_eos(
             predicted_ids,
             eos_token_id=tokenizer.eos_token_id,
@@ -2199,6 +2463,9 @@ def evaluate_generation(
             tokenizer.decode(row.detach().cpu().tolist(), skip_special_tokens=True).strip()
             for row in predicted_ids
         )
+        if source_token_ids is not None:
+            copy_counts.append(copied_token_count)
+            copy_eligible_counts.append(eligible_token_count)
     normalized_targets = [sentence.strip() for sentence in target_sentences]
     exact = [int(gen == tgt) for gen, tgt in zip(generated, normalized_targets)]
     overlap = word_overlap_metrics(generated, normalized_targets)
@@ -2211,7 +2478,16 @@ def evaluate_generation(
         "exact_match": float(sum(exact) / len(exact)),
         "generation_quality": generation_quality,
         "word_overlap": overlap,
+        "source_flow_end_time": float(source_flow_end_time),
+        "source_edit_latent_preservation": float(source_edit_latent_preservation),
     }
+    if source_token_ids is not None:
+        metrics["source_token_copy"] = {
+            "confidence_threshold": float(source_copy_confidence_threshold),
+            "copied_tokens": int(sum(copy_counts)),
+            "eligible_source_tokens": int(sum(copy_eligible_counts)),
+            "copy_fraction": float(sum(copy_counts) / max(1, sum(copy_eligible_counts))),
+        }
     if len(lexical_predictions) == len(normalized_targets):
         metrics["lexical_predictions"] = lexical_predictions
         metrics["lexical_probe_quality"] = word_overlap_metrics(
@@ -2263,6 +2539,8 @@ def evaluate_retrieval(
     retrieval_batch_size: int,
     retrieval_t: float,
     condition_batch_size: int = 0,
+    known_word_embeddings: torch.Tensor | None = None,
+    known_word_mask: torch.Tensor | None = None,
 ) -> dict:
     model.eval()
     adapter.eval()
@@ -2276,6 +2554,8 @@ def evaluate_retrieval(
         device=device,
         condition_source=condition_source,
         batch_size=condition_batch_size,
+        known_word_embeddings=known_word_embeddings,
+        known_word_mask=known_word_mask,
     )
 
     target_latents = target_latents.to(device)

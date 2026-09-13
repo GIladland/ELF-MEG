@@ -1,0 +1,56 @@
+{
+  "contract": "paired validation-row comparison; no test data",
+  "baseline": "/data/engs-pnpl/glandau/elf-runs/qc4wyals_elfb_dascoli_weightgrid_lora8_mid_ep40_sem0.0_floor1.0_acc0.50_seed49_20260912/best_metrics.json",
+  "candidate": "/data/engs-pnpl/glandau/elf-runs/qc4wyals_elfb_dascoli_eval_lora8_mid_ep40_sem003_floor1_joint_weighted_acc0.50_seed49_20260911/best_metrics.json",
+  "bootstrap_samples": 50000,
+  "seed": 49,
+  "metrics": {
+    "content_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.28460564711268344,
+      "candidate_mean": 0.28853094906781934,
+      "candidate_minus_baseline": 0.003925301955135895,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.00909335473686023,
+        0.016398518019648055
+      ],
+      "bootstrap_probability_candidate_better": 0.72902,
+      "rows_candidate_better": 28,
+      "rows_tied": 68,
+      "rows_candidate_worse": 14
+    },
+    "word_f1": {
+      "num_rows": 110,
+      "baseline_mean": 0.3622280969383113,
+      "candidate_mean": 0.3647149920786285,
+      "candidate_minus_baseline": 0.0024868951403172355,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.0073701475026833885,
+        0.011915116808855106
+      ],
+      "bootstrap_probability_candidate_better": 0.69778,
+      "rows_candidate_better": 30,
+      "rows_tied": 65,
+      "rows_candidate_worse": 15
+    },
+    "per_row_wer": {
+      "num_rows": 110,
+      "baseline_mean": 0.698181818181818,
+      "candidate_mean": 0.6799999999999999,
+      "candidate_minus_baseline": -0.01818181818181818,
+      "bootstrap_95ci_candidate_minus_baseline": [
+        -0.03545454545454547,
+        -0.0027272727272727245
+      ],
+      "bootstrap_probability_candidate_better": 0.98868,
+      "rows_candidate_better": 26,
+      "rows_tied": 73,
+      "rows_candidate_worse": 11
+    }
+  },
+  "corpus_wer": {
+    "baseline": 0.6981818181818182,
+    "candidate": 0.68,
+    "candidate_minus_baseline": -0.018181818181818188
+  }
+}

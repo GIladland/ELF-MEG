@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "system": "t5_beam4",
+  "row_count": 110,
+  "paired_text_sha256": "f139cde72056b80a6f701d9e1ca6fc3735953be2bb0b65b59e91ed89aae326d2",
+  "contract": {
+    "unit": "validation row",
+    "entity_scope": "person names only",
+    "annotations": "manual full-set review bound to paired_text_sha256",
+    "categories_on_named_targets": "exact recovery, wrong-name substitution, and deletion are mutually exclusive"
+  },
+  "counts": {
+    "named_target_rows": 7,
+    "unnamed_target_rows": 103,
+    "named_target_to_any_name": 3,
+    "exact_name_recovery": 0,
+    "name_substitution": 3,
+    "name_deletion": 4,
+    "false_name_insertion": 1
+  },
+  "rates": {
+    "named_target_to_any_name": 0.42857142857142855,
+    "exact_name_recovery": 0.0,
+    "name_substitution": 0.42857142857142855,
+    "name_deletion": 0.5714285714285714,
+    "false_name_insertion": 0.009708737864077669
+  },
+  "row_indices": {
+    "named_target_to_any_name": [
+      87,
+      101,
+      106
+    ],
+    "exact_name_recovery": [],
+    "name_substitution": [
+      87,
+      101,
+      106
+    ],
+    "name_deletion": [
+      16,
+      34,
+      84,
+      92
+    ],
+    "false_name_insertion": [
+      80
+    ]
+  },
+  "annotated_rows": [
+    {
+      "index": 16,
+      "target": "driving vijay we were at the temple vijay vijay vijay",
+      "generated": "people and they're trying to find our way back stage",
+      "target_person_names": [
+        "vijay"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 34,
+      "target": "helmut newton they said you know helmut newton the guy",
+      "generated": "taller than a few people pretend you know exactly what",
+      "target_person_names": [
+        "helmut newton"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 80,
+      "target": "best to look artsy to fit in but even though",
+      "generated": "great emotion that i'm adam a day and",
+      "target_person_names": [],
+      "generated_person_names": [
+        "adam"
+      ],
+      "category": "false_name_insertion"
+    },
+    {
+      "index": 84,
+      "target": "next week bob one of the three instructors says today",
+      "generated": "kind of thing i'm talking to all the people",
+      "target_person_names": [
+        "bob"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 87,
+      "target": "competitive and so i ask judy who is standing next",
+      "generated": "one year old mike and it says he's got a",
+      "target_person_names": [
+        "judy"
+      ],
+      "generated_person_names": [
+        "mike"
+      ],
+      "category": "name_substitution"
+    },
+    {
+      "index": 92,
+      "target": "end of class bob picks one of my gesture drawings",
+      "generated": "make this pick the rodeo th make the",
+      "target_person_names": [
+        "bob"
+      ],
+      "generated_person_names": [],
+      "category": "name_deletion"
+    },
+    {
+      "index": 101,
+      "target": "dear friend sarah who's also a southerner i say sarah",
+      "generated": "the witches and i'm sure steve and i",
+      "target_person_names": [
+        "sarah"
+      ],
+      "generated_person_names": [
+        "steve"
+      ],
+      "category": "name_substitution"
+    },
+    {
+      "index": 106,
+      "target": "dear friend of mine says you know tricia i love",
+      "generated": "president of the world i'm proud steve and i said",
+      "target_person_names": [
+        "tricia"
+      ],
+      "generated_person_names": [
+        "steve"
+      ],
+      "category": "name_substitution"
+    }
+  ]
+}
