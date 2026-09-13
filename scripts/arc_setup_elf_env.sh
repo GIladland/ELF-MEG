@@ -31,6 +31,24 @@ if [[ "${ARC_ENV_LOCK_HELD:-0}" == "1" && -d "$TMP_ENV_ROOT/bin" && -f "$stamp_p
   fi
 fi
 
+if ! command -v conda >/dev/null 2>&1; then
+  for conda_sh in \
+    "${CONDA_SH:-}" \
+    "$HOME/miniconda3/etc/profile.d/conda.sh" \
+    "$HOME/anaconda3/etc/profile.d/conda.sh" \
+    "/data/engs-pnpl/glandau/miniconda3/etc/profile.d/conda.sh"; do
+    if [[ -n "$conda_sh" && -f "$conda_sh" ]]; then
+      source "$conda_sh"
+      break
+    fi
+  done
+fi
+
+if ! command -v conda >/dev/null 2>&1; then
+  echo "conda command not found; set CONDA_SH to the conda.sh path before launching." >&2
+  exit 127
+fi
+
 source "$(conda info --base)/etc/profile.d/conda.sh"
 
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$DATA_ROOT/xdg-cache}"

@@ -38,10 +38,8 @@ export HF_HOME=$data_root/huggingface TOKENIZERS_PARALLELISM=false PYTHONNOUSERS
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True TMPDIR=$data_root/tmp
 
 cd "$project_root"
-source "$(conda info --base)/etc/profile.d/conda.sh"
 PROJECT_ROOT="$project_root" DATA_ROOT="$data_root" TMP_ENV_ROOT="$tmp_env_root" ENV_STAMP="$env_stamp" \
   bash "$project_root/scripts/arc_setup_elf_env.sh"
-conda activate "$tmp_env_root"
 python_bin=$tmp_env_root/bin/python
 
 [[ -x "$python_bin" ]] || { echo "Missing python binary: $python_bin" >&2; exit 2; }
