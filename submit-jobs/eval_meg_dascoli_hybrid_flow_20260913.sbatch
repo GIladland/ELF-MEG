@@ -17,8 +17,7 @@ set -euo pipefail
 project_root=${PROJECT_ROOT:-/data/engs-pnpl/glandau/BrainDiffusion/ELF}
 data_root=${DATA_ROOT:-/data/engs-pnpl/glandau/elf-cache}
 runs_root=${RUNS_ROOT:-/data/engs-pnpl/glandau/elf-runs}
-tmp_env_root=${TMP_ENV_ROOT:-/tmp/${USER}-braindiffusion-elf-torch213}
-env_stamp=${ENV_STAMP:-braindiffusion-elf-torch213-py310-20260803}
+python_bin=$data_root/conda-envs/braindiffusion-elf-torch271cu118/bin/python
 interface=$data_root/tang_themoth_qc4wyals_nested_oof_20260908/interface
 source_npz=$interface/qc4wyals_oof_predicted_train_valtail_ada002.npz
 dascoli_source=$project_root/meg_t5_elf_gap_closure_20260912/dascoli_initial_topprior_0.01_top10_minmax_global.json
@@ -30,7 +29,7 @@ semantic_scale=${semantic_scales[${SLURM_ARRAY_TASK_ID:-0}]}
 run_tag=qc4wyals_elfb_dascolisource_hybrid_sem${semantic_scale}_seed49_20260913
 output_dir=$runs_root/$run_tag
 
-for required in "$source_npz" "$dascoli_source" "$selected_checkpoint"; do
+for required in "$python_bin" "$source_npz" "$dascoli_source" "$selected_checkpoint"; do
   [[ -f "$required" ]] || { echo "Missing required path: $required" >&2; exit 2; }
 done
 mkdir -p "$output_dir" "$data_root/tmp"
@@ -38,10 +37,6 @@ export HF_HOME=$data_root/huggingface TOKENIZERS_PARALLELISM=false PYTHONNOUSERS
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True TMPDIR=$data_root/tmp
 
 cd "$project_root"
-PROJECT_ROOT="$project_root" DATA_ROOT="$data_root" TMP_ENV_ROOT="$tmp_env_root" ENV_STAMP="$env_stamp" \
-  bash "$project_root/scripts/arc_setup_elf_env.sh"
-python_bin=$tmp_env_root/bin/python
-
 [[ -x "$python_bin" ]] || { echo "Missing python binary: $python_bin" >&2; exit 2; }
 
 exec "$python_bin" -u scripts/train_npz_semantic_to_elf.py \

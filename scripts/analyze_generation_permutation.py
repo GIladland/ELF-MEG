@@ -23,6 +23,8 @@ from collections import Counter
 from pathlib import Path
 
 import numpy as np
+import torch
+import torch.nn.functional as F
 
 
 WORD_RE = re.compile(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?")
@@ -70,11 +72,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-json", required=True)
     parser.add_argument("--output-csv", required=True)
     parser.add_argument("--bertscore", action="store_true")
+    parser.add_argument("--sentence-embedding", action="store_true")
     parser.add_argument("--bertscore-model", default="roberta-large")
     parser.add_argument("--bertscore-model-path", default="")
     parser.add_argument("--bertscore-layers", type=int, default=17)
     parser.add_argument("--bertscore-device", default="cpu")
     parser.add_argument("--bertscore-batch-size", type=int, default=64)
+    parser.add_argument(
+        "--sentence-embedding-model",
+        default="sentence-transformers/all-MiniLM-L6-v2",
+    )
+    parser.add_argument("--sentence-embedding-device", default="cpu")
+    parser.add_argument("--sentence-embedding-batch-size", type=int, default=64)
+    parser.add_argument("--sentence-embedding-max-length", type=int, default=64)
+    parser.add_argument("--sentence-embedding-local-files-only", action="store_true")
     return parser.parse_args()
 
 
@@ -232,6 +243,48 @@ def bertscore_matrix(generated: list[str], targets: list[str], args: argparse.Na
     return np.asarray(f1.tolist(), dtype=np.float32).reshape(n, n)
 
 
+def sentence_embedding_matrix(
+    generated: list[str],
+    targets: list[str],
+    args: argparse.Namespace,
+) -> np.ndarray:
+    from transformers import AutoModel, AutoTokenizer
+
+    device = torch.device(args.sentence_embedding_device)
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.sentence_embedding_model,
+        local_files_only=args.sentence_embedding_local_files_only,
+    )
+    model = AutoModel.from_pretrained(
+        args.sentence_embedding_model,
+        local_files_only=args.sentence_embedding_local_files_only,
+    ).to(device).eval()
+    n = len(targets)
+
+    @torch.no_grad()
+    def encode_texts(texts: list[str]) -> np.ndarray:
+        output = []
+        for start in range(0, len(texts), args.sentence_embedding_batch_size):
+            end = min(start + args.sentence_embedding_batch_size, len(texts))
+            encoded = tokenizer(
+                texts[start:end],
+                padding=True,
+                truncation=True,
+                max_length=args.sentence_embedding_max_length,
+                return_tensors="pt",
+            )
+            encoded = {key: value.to(device) for key, value in encoded.items()}
+            hidden = model(**encoded).last_hidden_state
+            mask = encoded["attention_mask"].to(dtype=hidden.dtype).unsqueeze(-1)
+            pooled = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1.0)
+            output.append(F.normalize(pooled.float(), dim=-1).cpu().numpy())
+        return np.concatenate(output, axis=0)
+
+    generated_embeddings = encode_texts(generated)
+    target_embeddings = encode_texts(targets)
+    return np.asarray(generated_embeddings @ target_embeddings.T, dtype=np.float32).reshape(n, n)
+
+
 def binomial_tail(successes: int, trials: int, probability: float) -> float:
     return float(
         sum(
@@ -301,6 +354,12 @@ def main() -> None:
     )
     if args.bertscore:
         matrices["bertscore_raw_f1"] = bertscore_matrix(generated, targets, args)
+    if args.sentence_embedding:
+        matrices["sentence_embedding_cosine"] = sentence_embedding_matrix(
+            generated,
+            targets,
+            args,
+        )
 
     rng = np.random.default_rng(args.seed)
     row_indices = np.arange(n)
@@ -380,6 +439,9 @@ def main() -> None:
                 f"raw non-rescaled {args.bertscore_model}, layer {args.bertscore_layers}"
                 if args.bertscore
                 else "not computed"
+            ),
+            "sentence_embedding": (
+                args.sentence_embedding_model if args.sentence_embedding else "not computed"
             ),
         },
         "permutation_tests": tests,

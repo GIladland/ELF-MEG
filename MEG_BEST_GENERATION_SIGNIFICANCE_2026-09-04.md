@@ -46,7 +46,7 @@ These are exact one-sided binomial chance tests, not row-permutation tests. All 
 | 59 | i wanted i asked to go on vacation to see | go home avan a year up now wests | go | 0.1818 |
 | 26 | took us a long time to heal my stepfather broke | the home detached and she took to home her wedding job | took | 0.1667 |
 | 80 | best to look artsy to fit in but even though | keep up all of people in hit at night and even what like | even | 0.1667 |
-| 27 | one nursing twenty four hours around the clock at home | a front side brunite's home by | home | 0.1667 |
+| 27 | one nursing twenכty four hours around the clock at home | a front side brunite's home by | home | 0.1667 |
 | 31 | multiple surgeries on the arm every time the arm got | oil piecemate a time to take of of drink | time | 0.1667 |
 
 ## Reproducible artifacts

@@ -31,23 +31,20 @@ if [[ "${ARC_ENV_LOCK_HELD:-0}" == "1" && -d "$TMP_ENV_ROOT/bin" && -f "$stamp_p
   fi
 fi
 
-if ! command -v conda >/dev/null 2>&1; then
+if [[ -z "${CONDA_EXE:-}" ]]; then
   for conda_exe in \
-    "${CONDA_EXE:-}" \
     "$HOME/miniconda3/bin/conda" \
     "$HOME/anaconda3/bin/conda" \
     "/data/engs-pnpl/glandau/miniconda3/bin/conda"; do
-    if [[ -n "$conda_exe" && -x "$conda_exe" ]]; then
+    if [[ -x "$conda_exe" ]]; then
       export CONDA_EXE="$conda_exe"
-      export CONDA_PYTHON_EXE="${conda_exe%/bin/conda}/bin/python"
-      source "${conda_exe%/bin/conda}/etc/profile.d/conda.sh"
       break
     fi
   done
 fi
 
-if ! command -v conda >/dev/null 2>&1; then
-  echo "conda command not found; set CONDA_EXE to the conda executable path before launching." >&2
+if [[ -z "${CONDA_EXE:-}" || ! -x "$CONDA_EXE" ]]; then
+  echo "conda executable not found; set CONDA_EXE to the conda binary path before launching." >&2
   exit 127
 fi
 
@@ -78,10 +75,10 @@ mkdir -p \
   "$CONDA_PKGS_DIRS"
 
 if [ ! -d "$TMP_ENV_ROOT/bin" ]; then
-  conda create -y -p "$TMP_ENV_ROOT" python=3.10
+  "$CONDA_EXE" create -y -p "$TMP_ENV_ROOT" python=3.10
 fi
 
-conda activate "$TMP_ENV_ROOT"
+export PATH="$TMP_ENV_ROOT/bin:$PATH"
 cd "$PROJECT_ROOT"
 
 echo "HOST: $(hostname)"

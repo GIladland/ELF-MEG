@@ -1,0 +1,198 @@
+{
+  "contract": {
+    "run_tag": "meg_t5_elfb_confcopy_winner_mpnet",
+    "checkpoint": "",
+    "n": 110,
+    "null": "random one-to-one reassignment of generated sentences to target rows",
+    "permutations": 10000,
+    "seed": 20260914,
+    "bleu1": "macro sentence BLEU-1 with modified unigram precision and brevity penalty",
+    "rouge1": "macro ROUGE-1 F1 with Porter stemming",
+    "bertscore": "not computed",
+    "sentence_embedding": "sentence-transformers/all-mpnet-base-v2"
+  },
+  "permutation_tests": {
+    "content_f1": {
+      "observed": 0.02834279320456765,
+      "null_mean": 0.010707767680287361,
+      "null_std": 0.003909081220626831,
+      "null_ci95": [
+        0.003636363660916686,
+        0.019016877049580213
+      ],
+      "one_sided_p": 9.999000099990002e-05,
+      "direction": "higher"
+    },
+    "word_f1": {
+      "observed": 0.1050833441994407,
+      "null_mean": 0.07239318639039993,
+      "null_std": 0.006473766639828682,
+      "null_ci95": [
+        0.059772205911576747,
+        0.08545470926910638
+      ],
+      "one_sided_p": 9.999000099990002e-05,
+      "direction": "higher"
+    },
+    "bleu1": {
+      "observed": 0.10232032429088246,
+      "null_mean": 0.07029835134744644,
+      "null_std": 0.006275738123804331,
+      "null_ci95": [
+        0.05797269865870476,
+        0.08317437339574099
+      ],
+      "one_sided_p": 9.999000099990002e-05,
+      "direction": "higher"
+    },
+    "rouge1_f1": {
+      "observed": 0.11578842509876598,
+      "null_mean": 0.0789913609623909,
+      "null_std": 0.006601917557418346,
+      "null_ci95": [
+        0.06634553465992213,
+        0.09199922252446413
+      ],
+      "one_sided_p": 9.999000099990002e-05,
+      "direction": "higher"
+    },
+    "wer": {
+      "observed": 0.9772727272727273,
+      "null_mean": 0.9843769669532776,
+      "null_std": 0.003632633714005351,
+      "null_ci95": [
+        0.9772727489471436,
+        0.9909090995788574
+      ],
+      "one_sided_p": 0.037696230376962306,
+      "direction": "lower"
+    },
+    "word_content_f1_sum": {
+      "observed": 0.13342614607377487,
+      "null_mean": 0.08310094475746155,
+      "null_std": 0.008818833157420158,
+      "null_ci95": [
+        0.06634283903986216,
+        0.10133340787142514
+      ],
+      "one_sided_p": 9.999000099990002e-05,
+      "direction": "higher"
+    },
+    "sentence_embedding_cosine": {
+      "observed": 0.16687332500110974,
+      "null_mean": 0.11096236854791641,
+      "null_std": 0.007267677690833807,
+      "null_ci95": [
+        0.09677781574428082,
+        0.12526634559035302
+      ],
+      "one_sided_p": 9.999000099990002e-05,
+      "direction": "higher"
+    }
+  },
+  "retrieval_chance_tests": {
+    "note": "Exact one-sided binomial chance tests; these are not row-permutation tests."
+  },
+  "top_generations": [
+    {
+      "index": 0,
+      "target": "school as a part time student but i'm still consulting",
+      "generated": "time to get married and i'm working on a painting",
+      "content_f1": 0.30769230769230765,
+      "word_f1": 0.3,
+      "bleu1": 0.30000001192092896,
+      "rouge1_f1": 0.3636363744735718,
+      "overlapping_content_words": "i'm, time"
+    },
+    {
+      "index": 1,
+      "target": "somebody else thinking you're cool can make you think differently",
+      "generated": "think the gun is going to make fucking illilla's come",
+      "content_f1": 0.26666666666666666,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.1818181872367859,
+      "overlapping_content_words": "make, think"
+    },
+    {
+      "index": 2,
+      "target": "us military you will forever be an al qaeda target",
+      "generated": "military helicopters that resulted in the death of an insurgent",
+      "content_f1": 0.20000000000000004,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "military"
+    },
+    {
+      "index": 3,
+      "target": "college loans and you know bought me an apartment paid",
+      "generated": "went to college and i thought i would have earned",
+      "content_f1": 0.2,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "college"
+    },
+    {
+      "index": 4,
+      "target": "something different by age thirty i had done most everything",
+      "generated": "the way that i really thought about open up something",
+      "content_f1": 0.2,
+      "word_f1": 0.20000000000000004,
+      "bleu1": 0.20000000298023224,
+      "rouge1_f1": 0.20000000298023224,
+      "overlapping_content_words": "something"
+    },
+    {
+      "index": 5,
+      "target": "embankment and then finally came to a last thud and",
+      "generated": "startling uh just a little screams and in chaos came",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.3,
+      "bleu1": 0.30000001192092896,
+      "rouge1_f1": 0.30000001192092896,
+      "overlapping_content_words": "came"
+    },
+    {
+      "index": 6,
+      "target": "passenger seat the driver was listening to really loud music",
+      "generated": "driver's seat and i took my car home",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.11111111111111112,
+      "bleu1": 0.0973500981926918,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "seat"
+    },
+    {
+      "index": 7,
+      "target": "anything but things at home start to get a little",
+      "generated": "really love the things you're running out of things that",
+      "content_f1": 0.1818181818181818,
+      "word_f1": 0.10000000000000002,
+      "bleu1": 0.10000000149011612,
+      "rouge1_f1": 0.095238097012043,
+      "overlapping_content_words": "things"
+    },
+    {
+      "index": 8,
+      "target": "two instructors and several students review the work give us",
+      "generated": "progress to the next two years of ihin's",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.22222222222222224,
+      "bleu1": 0.1947001963853836,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "two"
+    },
+    {
+      "index": 9,
+      "target": "gonna see another day am i gonna see my family",
+      "generated": "time i remember one day this is so perfect",
+      "content_f1": 0.16666666666666666,
+      "word_f1": 0.2105263157894737,
+      "bleu1": 0.19885317981243134,
+      "rouge1_f1": 0.21052631735801697,
+      "overlapping_content_words": "day"
+    }
+  ]
+}
